@@ -182,6 +182,7 @@ def parse_detailed_forecast(html_content, location_name, url):
             day_date_div = day_cell.find('div', class_='forecast-table-days__date')
             # --- Get full date from data-date attribute --- START
             full_date_str = day_cell.get('data-date') # Expected format YYYY-MM-DD
+            # logger.debug(f"Extracted data-date: {full_date_str} for {location_name}") # REMOVED DEBUG LOG
             day_name_str = extract_text(day_name_div)
             day_num_str = extract_text(day_date_div)
             # Construct display day string, handling potential missing date attribute
