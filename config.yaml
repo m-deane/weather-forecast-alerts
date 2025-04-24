@@ -52,7 +52,7 @@ locations:
   - area: Coigach
     latitude: 58.000 # Approx center of Coigach
     longitude: -5.300
-    area_proxy_url: https://www.mountain-forecast.com/peaks/Ben-Mor-Coigach/forecasts/400 # Example proxy
+    area_proxy_url: https://www.mountain-forecast.com/peaks/Stac-Pollaidh/forecasts/613 # Changed proxy to Stac Pollaidh
     munros:
       # Add specific Coigach peaks here later
       # - name: Ben More Coigach

@@ -1443,11 +1443,115 @@ def analyze_saved_forecasts(forecast_dir="forecasts"):
 
     # --- Format and Print Report --- 
     report_lines = [] 
-    report_lines.append(f"{'-'*50}")
+    report_lines.append(f"{'='*50}") # Use single quotes inside double quotes
     report_lines.append("GENERATED FORECAST SUMMARY REPORT")
-    report_lines.append(f"{'-'*50}")
+    report_lines.append(f"{'='*50}") # Use single quotes inside double quotes
     # Sort days chronologically
     sorted_days = sorted(analysis_by_day.keys())
+
+    # --- NEW: Weekend Summary Calculation --- START
+    weekend_munro_periods = []
+    first_saturday_date = None
+    first_sunday_date = None
+    first_saturday_display = None
+    first_sunday_display = None
+
+    # Find the first Sat/Sun in the forecast data
+    for day_str in sorted_days:
+        try:
+            dt_obj = datetime.datetime.strptime(day_str, '%Y-%m-%d')
+            weekday = dt_obj.weekday() # Monday is 0, Sunday is 6
+            day_display = dt_obj.strftime('%A %d/%m/%Y')
+            if weekday == 5 and first_saturday_date is None: # Saturday
+                first_saturday_date = day_str
+                first_saturday_display = day_display
+            elif weekday == 6 and first_sunday_date is None: # Sunday
+                first_sunday_date = day_str
+                first_sunday_display = day_display
+            # Optimization: Stop if we found both
+            if first_saturday_date and first_sunday_date:
+                break
+        except ValueError:
+            continue # Skip if date format is wrong
+
+    # Collect Munro periods for the identified weekend days
+    for weekend_date in [first_saturday_date, first_sunday_date]:
+        if weekend_date and weekend_date in analysis_by_day:
+            # De-duplicate results for the day first
+            unique_weekend_day_results = []
+            seen_weekend_loc_times = set()
+            for res in analysis_by_day[weekend_date]:
+                loc_time_key = (res.get('location'), res.get('time'))
+                if loc_time_key not in seen_weekend_loc_times:
+                    unique_weekend_day_results.append(res)
+                    seen_weekend_loc_times.add(loc_time_key)
+            
+            # Filter for Munro-only results
+            weekend_munro_periods.extend([
+                res for res in unique_weekend_day_results
+                if not any(excl in res.get('location', '') for excl in ['(Proxy)', '(Averaged)', '(OpenWeatherMap)'])
+            ])
+
+    weekend_summary_lines = []
+    if weekend_munro_periods:
+        weekend_display = f"{first_saturday_display if first_saturday_display else 'N/A'} - {first_sunday_display if first_sunday_display else 'N/A'}"
+        weekend_summary_lines.append(f"\\n--- Weekend Munro Average Summary ({weekend_display}) ---")
+
+        # Calculate average hike score
+        hike_scores = [p['hike_score'] for p in weekend_munro_periods]
+        avg_hike_score = statistics.mean(hike_scores) if hike_scores else None
+        weekend_summary_lines.append(f"  - Overall Average Hiking/Camping Score: {avg_hike_score:.1f}" if avg_hike_score is not None else "  - Overall Average Hiking/Camping Score: N/A")
+        
+        # --- Calculate and add average scores per Munro for the weekend --- START
+        weekend_scores_by_munro = defaultdict(list)
+        for p in weekend_munro_periods:
+            loc = p.get('location')
+            score = p.get('hike_score')
+            if loc and score is not None:
+                 weekend_scores_by_munro[loc].append(score)
+                 
+        weekend_munro_averages = []
+        for munro, scores in weekend_scores_by_munro.items():
+            if scores:
+                 munro_avg = round(statistics.mean(scores), 1)
+                 weekend_munro_averages.append({'location': munro, 'avg_score': munro_avg})
+                 
+        # Sort Munros by their weekend average score
+        sorted_weekend_munros = sorted(weekend_munro_averages, key=lambda x: x['avg_score'])
+        
+        if sorted_weekend_munros:
+             weekend_summary_lines.append("  - Average Weekend Scores by Munro:")
+             for i, data in enumerate(sorted_weekend_munros):
+                 weekend_summary_lines.append(f"    {i+1}. {data['location']}: {data['avg_score']:.1f}")
+        # --- Calculate and add average scores per Munro for the weekend --- END
+
+        # Calculate predominant photography potential
+        photo_potentials = [p.get('photography_potential', 'N/A') for p in weekend_munro_periods]
+        if photo_potentials:
+            try:
+                photo_mode = statistics.mode(photo_potentials)
+            except statistics.StatisticsError: # Handle multiple modes or no data
+                 photo_mode = "Mixed / N/A"
+        else:
+            photo_mode = "N/A"
+        weekend_summary_lines.append(f"  - Predominant Photography Potential: {photo_mode}")
+
+        # Check for inversions
+        weekend_inversion = any(p['inversion_potential'] for p in weekend_munro_periods)
+        weekend_summary_lines.append(f"  - Potential for Cloud Inversions: {'Yes' if weekend_inversion else 'No'}")
+
+        # Check for astrophotography
+        weekend_astro = any('clear' in p.get('photography_potential', '').lower() and p.get('time') == 'night' for p in weekend_munro_periods)
+        weekend_summary_lines.append(f"  - Clear Night Periods Indicated: {'Yes' if weekend_astro else 'No'}")
+    else:
+        weekend_summary_lines.append("\\n--- Weekend Munro Average Summary ---")
+        weekend_summary_lines.append("  (No relevant Saturday/Sunday Munro forecast data found for averaging)")
+    # --- NEW: Weekend Summary Calculation --- END
+
+    # --- Add Weekend Summary to the TOP of the Report --- START
+    report_lines.extend(weekend_summary_lines)
+    # --- Add Weekend Summary to the TOP of the Report --- END
+
     for day in sorted_days:
         try:
             day_display = datetime.datetime.strptime(day, '%Y-%m-%d').strftime('%A %d/%m/%Y')
@@ -1479,24 +1583,46 @@ def analyze_saved_forecasts(forecast_dir="forecasts"):
         ]
         # --- Filter unique results --- END
 
-        def sort_key_hike(item):
-            # Sort key remains the same (score ascending)
-            prio = 0 # Priority doesn't matter as much now we filter first
-            return (item['hike_score'], prio)
-            
-        # Sort the filtered Munro list
-        sorted_hike = sorted(munro_only_results, key=sort_key_hike)
+        # --- Group results by location and calculate daily average score --- START
+        munro_daily_scores = defaultdict(lambda: {'scores': [], 'am': None, 'pm': None, 'night': None})
+        for res in munro_only_results:
+             location = res.get('location')
+             time = res.get('time')
+             score = res.get('hike_score')
+             if location and score is not None:
+                 munro_daily_scores[location]['scores'].append(score)
+                 if time == 'AM': munro_daily_scores[location]['am'] = score
+                 if time == 'PM': munro_daily_scores[location]['pm'] = score
+                 if time == 'night': munro_daily_scores[location]['night'] = score
         
-        if not sorted_hike:
+        aggregated_munros = []
+        for location, data in munro_daily_scores.items():
+            if data['scores']:
+                 avg_score = round(statistics.mean(data['scores']), 1)
+                 aggregated_munros.append({
+                     'location': location,
+                     'avg_score': avg_score,
+                     'am_score': data['am'],
+                     'pm_score': data['pm'],
+                     'night_score': data['night'],
+                 })
+        # --- Group results by location and calculate daily average score --- END
+
+        # --- Sort by average score --- START
+        sorted_munros = sorted(aggregated_munros, key=lambda x: x['avg_score'])
+        # --- Sort by average score --- END
+
+        if not sorted_munros:
              report_lines.append("    No specific Munro forecast data found for this day.")
         else:
-             # REMOVED limit - Show all Munro periods
-             for i, res in enumerate(sorted_hike): # Iterate through all sorted munros
-                 # Corrected f-string: ensure no escaped quotes are needed if using double quotes externally
-                 report_lines.append(f"    {i+1}. {res['location']} ({res['time']}): Score {res['hike_score']} ({res['conditions_summary']})")
-             # REMOVED check for limit > 5
-             # if len(sorted_hike) > limit:
-             #     report_lines.append(\"    (... and more)\")
+             # --- Generate report lines with new format --- START
+             for i, munro_data in enumerate(sorted_munros):
+                 am_str = f"AM: {munro_data['am_score']}" if munro_data['am_score'] is not None else "AM: -"
+                 pm_str = f"PM: {munro_data['pm_score']}" if munro_data['pm_score'] is not None else "PM: -"
+                 night_str = f"Night: {munro_data['night_score']}" if munro_data['night_score'] is not None else "Night: -"
+                 report_lines.append(f"    {i+1}. {munro_data['location']}: Avg Score {munro_data['avg_score']} ({am_str}, {pm_str}, {night_str})")
+             # --- Generate report lines with new format --- END
+             
         # --- Photography Recommendations --- 
         report_lines.append("\n  **Best Photography Prospects (Sunrise/Sunset & Clouds):**")
         # Prioritize OWM data for sunrise/sunset times
@@ -1590,7 +1716,11 @@ def analyze_saved_forecasts(forecast_dir="forecasts"):
              report_lines.extend(munro_summaries_list)
         # --- Individual Munro Summaries --- END
                  
-    report_lines.append(f"{'-'*50}")
+    # --- Add Weekend Summary to Report --- START
+    # report_lines.extend(weekend_summary_lines) # << REMOVED: Moved to top
+    # --- Add Weekend Summary to Report --- END
+    
+    report_lines.append(f"{'='*50}") # Use single quotes inside double quotes
     
     # --- Save Report to File --- 
     report_content = "\n".join(report_lines)
