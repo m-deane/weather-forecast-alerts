@@ -49,7 +49,17 @@ INVERSION_WIND_THRESHOLD_KPH = 15    # Wind speed below this
 # --- Helper Functions ---
 
 def load_config(config_path):
-    """Loads the YAML configuration file."""
+    """Loads the YAML configuration file.
+
+    Attempts to load the OWM API key from the 'OWM_API_KEY' environment
+    variable if it's not present or is a placeholder in the config file.
+
+    Args:
+        config_path (str): The path to the YAML configuration file.
+
+    Returns:
+        dict or None: The loaded configuration dictionary, or None if an error occurred.
+    """
     try:
         with open(config_path, 'r') as f:
             config = yaml.safe_load(f)
@@ -80,7 +90,16 @@ def load_config(config_path):
 
 
 def get_html(url):
-    """Fetches HTML content from a URL."""
+    """Fetches HTML content from a URL using requests.
+
+    Includes a User-Agent header and a timeout.
+
+    Args:
+        url (str): The URL to fetch HTML from.
+
+    Returns:
+        str or None: The HTML content as a string, or None if an error occurred.
+    """
     logger.debug(f"Fetching HTML from {url}")
     try:
         headers = {'User-Agent': USER_AGENT}
@@ -97,12 +116,31 @@ def get_html(url):
 
 
 def extract_text(element):
-    """Extracts text content cleanly from a BeautifulSoup element."""
+    """Extracts text content cleanly from a BeautifulSoup element.
+
+    Handles cases where the element might be None.
+
+    Args:
+        element (bs4.element.Tag or None): The BeautifulSoup element (Tag) or None.
+
+    Returns:
+        str: The stripped text content, or an empty string if element is None.
+    """
     return element.get_text(strip=True) if element else '' # Return empty string instead of 'N/A'
 
 
 def clean_filename(name):
-    """Removes potentially problematic characters for filenames."""
+    """Removes potentially problematic characters for filenames.
+
+    Removes parentheses, replaces spaces/slashes/colons with underscores,
+    and removes other non-alphanumeric characters (except underscores, hyphens, periods).
+
+    Args:
+        name (str): The original name string.
+
+    Returns:
+        str: The cleaned name suitable for use in a filename.
+    """
     # Remove parentheses and replace spaces/slashes with underscores
     name = re.sub(r'[()]+', '', name)
     name = re.sub(r'[\s/\\:]+', '_', name).strip('_')
@@ -114,7 +152,23 @@ def clean_filename(name):
 # --- Mountain-Forecast.com Parsing (Method 1 Proxy + Munros) ---
 
 def parse_detailed_forecast(html_content, location_name, url):
-    """Parses Mountain-Forecast.com HTML based on the confirmed structure (April 2025)."""
+    """Parses Mountain-Forecast.com HTML to extract detailed weather forecast periods.
+
+    Identifies forecast periods based on header rows (day, time) and extracts
+    various weather parameters (temperature, wind, precipitation, etc.) from
+    data rows using 'data-row' attributes and CSS classes.
+
+    Args:
+        html_content (str): The HTML content of the forecast page.
+        location_name (str): The name of the location being parsed.
+        url (str): The source URL of the forecast page.
+
+    Returns:
+        dict or None: A dictionary containing parsed forecast data, including
+                      location info, elevation, scrape time, and a list of
+                      forecast periods. Returns None if the main forecast table
+                      cannot be found or a critical parsing error occurs.
+    """
     if not html_content:
         logger.warning(f"No HTML content provided for {location_name}")
         return None
@@ -368,7 +422,18 @@ def parse_detailed_forecast(html_content, location_name, url):
 # --- OpenWeatherMap Fetching and Parsing (Method 2) ---
 
 def get_owm_forecast(lat, lon, api_key, area_name):
-    """Fetches daily forecast data from OpenWeatherMap One Call API."""
+    """Fetches daily forecast data from OpenWeatherMap One Call API.
+
+    Args:
+        lat (float): Latitude of the location.
+        lon (float): Longitude of the location.
+        api_key (str): Your OpenWeatherMap API key.
+        area_name (str): The name of the area for logging purposes.
+
+    Returns:
+        dict or None: The JSON response from the OWM API as a dictionary,
+                      or None if an error occurred or required parameters are missing.
+    """
     if not api_key:
         logger.warning(f"OWM API key missing. Skipping OWM forecast for {area_name}.")
         return None
@@ -401,7 +466,20 @@ def get_owm_forecast(lat, lon, api_key, area_name):
 
 
 def parse_owm_forecast(owm_data, area_name):
-    """Parses the daily forecast data from the OWM JSON response."""
+    """Parses the daily forecast data from the OWM JSON response.
+
+    Extracts daily weather parameters, including temperature, wind, precipitation,
+    and sunrise/sunset times. Handles timezone offset for sunrise/sunset.
+
+    Args:
+        owm_data (dict): The JSON data returned from the OWM API.
+        area_name (str): The name of the area for logging purposes.
+
+    Returns:
+        dict or None: A dictionary formatted similarly to the mountain-forecast data,
+                      containing daily forecast periods. Returns None if input data
+                      is invalid or missing the 'daily' key.
+    """
     if not owm_data or 'daily' not in owm_data:
         logger.warning(f"OWM data is missing or incomplete for {area_name}. Cannot parse.")
         return None
@@ -456,7 +534,8 @@ def parse_owm_forecast(owm_data, area_name):
                     'cloud_base_m': None,
                     'freezing_level_m': None,
                     'sunrise': sunrise_str, # Add sunrise
-                    'sunset': sunset_str    # Add sunset
+                    'sunset': sunset_str,    # Add sunset
+                    'humidity': day_data.get('humidity') # Add humidity
                 }
                 periods_data.append(period)
             except Exception as e:
@@ -471,7 +550,23 @@ def parse_owm_forecast(owm_data, area_name):
 # --- Averaging Logic (Method 3) ---
 
 def calculate_average_forecast(munro_forecasts_data, area_name):
-    """Calculates an average forecast from multiple Munro forecasts for the same area."""
+    """Calculates an average forecast from multiple Munro forecasts for the same area.
+
+    Averages numeric fields (temperature, wind speed, precipitation, etc.) and
+    finds the mode for wind direction across corresponding time periods from
+    different Munro forecasts within the same area.
+
+    Args:
+        munro_forecasts_data (list[dict]): A list of forecast dictionaries,
+                                           each parsed from a specific Munro's
+                                           mountain-forecast.com page.
+        area_name (str): The name of the area these Munros belong to.
+
+    Returns:
+        dict or None: A dictionary representing the averaged forecast, formatted
+                      similarly to the individual forecasts. Returns None if fewer
+                      than two forecasts are provided or if no common periods are found.
+    """
     if not munro_forecasts_data or len(munro_forecasts_data) < 2:
         logger.info(f"Need at least two Munro forecasts to calculate average for {area_name}. Skipping.")
         return None
@@ -562,7 +657,21 @@ def calculate_average_forecast(munro_forecasts_data, area_name):
 # --- Summary Generation Functions ---
 
 def summarize_day_conditions(periods, source="MF"):
-    """Generates a brief summary of hiking/camping conditions for a given day's periods."""
+    """Generates a brief text summary of hiking/camping conditions for a day.
+
+    Analyzes a list of forecast periods (typically for one day) to identify
+    potential challenges like high winds, heavy rain/snow, or extreme temperatures
+    (including wind chill). Provides a concluding sentence about overall favorability.
+
+    Args:
+        periods (list[dict]): A list of forecast period dictionaries for the day.
+        source (str, optional): The source of the forecast ("MF" for Mountain-Forecast,
+                                "OWM" for OpenWeatherMap). This affects rain threshold
+                                scaling. Defaults to "MF".
+
+    Returns:
+        str: A text summary of the day's conditions.
+    """
     if not periods:
         return "No period data available for summary."
 
@@ -651,7 +760,19 @@ def summarize_day_conditions(periods, source="MF"):
         return f"Generally favorable conditions indicated. ({ '; '.join(summary_points) })"
 
 def summarize_photography_conditions(daily_period):
-    """Generates a photography summary focusing on sunrise/sunset and cloud cover."""
+    """Generates a photography summary based on OWM daily forecast data.
+
+    Focuses on sunrise/sunset times and general cloud cover description
+    to assess potential photographic conditions.
+
+    Args:
+        daily_period (dict): A dictionary representing a single daily forecast
+                             period, typically from parsed OWM data. Should contain
+                             keys like 'sunrise', 'sunset', 'weather_icon_alt'.
+
+    Returns:
+        str: A text summary of potential photography conditions.
+    """
     if not daily_period or not isinstance(daily_period, dict):
         return "No daily data for photography summary."
 
@@ -685,7 +806,14 @@ def summarize_photography_conditions(daily_period):
 # --- Printing Functions ---
 
 def print_forecast_period(period):
-    """Prints a single forecast period with icons."""
+    """Prints a single forecast period to the console with icons.
+
+    Formats various weather parameters with corresponding Unicode icons
+    for better readability in the terminal output.
+
+    Args:
+        period (dict): A dictionary representing a single forecast period.
+    """
     # Icons: Choose emojis or other Unicode symbols
     # https://unicode.org/emoji/charts/full-emoji-list.html
     icons = {
@@ -755,7 +883,15 @@ def print_forecast_period(period):
 
 
 def display_forecast(forecast_data, title_prefix=""):
-    """Prints any parsed forecast data (MF, OWM, Average) in a readable format."""
+    """Prints a complete forecast (MF, OWM, or Average) to the console.
+
+    Displays the location, source, scrape time, overall summaries (if present),
+    and then iterates through the forecast periods, printing each day's details.
+
+    Args:
+        forecast_data (dict): The complete forecast data dictionary.
+        title_prefix (str, optional): A string to prepend to the main title. Defaults to "".
+    """
     if not forecast_data:
         logger.warning(f"No forecast data provided for display (Prefix: {title_prefix}).")
         return
@@ -802,7 +938,18 @@ def display_forecast(forecast_data, title_prefix=""):
 # --- Formatting Functions ---
 
 def format_forecast_markdown(forecast_data):
-    """Formats forecast data into a Markdown string with tables for each day."""
+    """Formats forecast data into a Markdown string with tables for each day.
+
+    Generates a Markdown document including a header, summaries, and tables
+    for each day's forecast periods. Uses Markdown table syntax and includes icons.
+
+    Args:
+        forecast_data (dict): The complete forecast data dictionary.
+
+    Returns:
+        str: A string containing the formatted Markdown forecast. Returns an
+             empty string if input data is invalid.
+    """
     if not forecast_data or not isinstance(forecast_data, dict):
         return "" # Return empty string if no data
 
@@ -948,7 +1095,19 @@ def format_forecast_markdown(forecast_data):
     return "\n".join(lines)
 
 def format_forecast_html(forecast_data):
-    """Formats forecast data into an HTML string with embedded CSS."""
+    """Formats forecast data into an HTML string with embedded CSS.
+
+    Generates an HTML document with basic styling, a header, summaries, and
+    HTML tables for each day's forecast periods. Includes icons and handles
+    None values gracefully.
+
+    Args:
+        forecast_data (dict): The complete forecast data dictionary.
+
+    Returns:
+        str: A string containing the formatted HTML forecast. Returns an
+             empty string if input data is invalid.
+    """
     if not forecast_data or not isinstance(forecast_data, dict):
         return ""
 
@@ -1098,7 +1257,17 @@ def format_forecast_html(forecast_data):
 # --- Saving Function ---
 
 def save_area_forecasts(forecast_list, area_name):
-    """Saves a list of forecast data dictionaries to JSON, Markdown, and HTML files."""
+    """Saves a list of forecasts (JSON, Markdown, HTML) for a specific area.
+
+    Creates a subdirectory for the area within the base 'forecasts' directory.
+    Saves each forecast in the list as separate JSON, Markdown, and HTML files,
+    named using a timestamp, location, and source. Also displays the forecast
+    to the console.
+
+    Args:
+        forecast_list (list[dict]): A list of forecast data dictionaries to save.
+        area_name (str): The name of the area, used for the subdirectory name.
+    """
     if not forecast_list:
         logger.info(f"No forecasts to save for area {area_name}.")
         return
@@ -1186,7 +1355,19 @@ def save_area_forecasts(forecast_list, area_name):
 
 # --- Main Processing Logic --- 
 def process_locations(config):
-    """Processes each location defined in the config, fetching and parsing forecasts."""
+    """Processes each location defined in the config, fetching and saving forecasts.
+
+    Iterates through the locations in the configuration data. For each location,
+    it attempts to fetch forecasts using configured methods (OWM, MF Proxy, specific Munros).
+    It calculates an average forecast if multiple Munro forecasts are available.
+    Finally, it saves all generated forecasts for the area.
+
+    Args:
+        config (dict): The loaded configuration dictionary.
+
+    Returns:
+        int: The number of areas processed.
+    """
     if not config or 'locations' not in config:
         logger.error("Invalid or missing 'locations' section in configuration.")
         return 0
@@ -1321,7 +1502,19 @@ def process_locations(config):
 # --- Analysis Function ---
 
 def analyze_saved_forecasts(forecast_dir="forecasts"):
-    """Analyzes saved JSON forecasts and prints/saves a summary report."""
+    """Analyzes saved JSON forecasts and generates/saves a summary report.
+
+    Loads all .json forecast files from the specified directory and its subdirectories.
+    Calculates hiking scores, photography potential, and inversion potential for each period.
+    Generates a Markdown summary report (`summary_report_YYYYMMDD_HHMMSS.md`)
+    ranking locations by suitability for hiking/camping and highlighting photography
+    and inversion opportunities for each day. Includes an overall weekend summary.
+    The report is saved in the `forecast_dir` and printed to the console.
+
+    Args:
+        forecast_dir (str, optional): The base directory containing the saved
+                                      forecast JSON files. Defaults to "forecasts".
+    """
     logger.info(f"Starting analysis of saved forecasts in '{forecast_dir}'")
     # --- Load all forecast data and extract overall summaries --- 
     all_forecasts_raw = [] # Store raw loaded dicts for period analysis
@@ -1425,9 +1618,10 @@ def analyze_saved_forecasts(forecast_dir="forecasts"):
             inversion_potential = False
             cloud_base = period.get('cloud_base_m')
             wind = period.get('wind_kph')
-            # Check if cloud base and wind are available and meet thresholds
-            if cloud_base is not None and wind is not None: 
-                if cloud_base < INVERSION_CLOUD_BASE_THRESHOLD_M and wind < INVERSION_WIND_THRESHOLD_KPH:
+            humidity = period.get('humidity')
+            # Check if cloud base, wind, and humidity are available and meet thresholds
+            if cloud_base is not None and wind is not None and humidity is not None: 
+                if cloud_base < INVERSION_CLOUD_BASE_THRESHOLD_M and wind < INVERSION_WIND_THRESHOLD_KPH and humidity > 95:
                     inversion_potential = True
             
             analysis_by_day[full_date].append({
@@ -1663,11 +1857,11 @@ def analyze_saved_forecasts(forecast_dir="forecasts"):
                   report_lines.append("    (...)")
                   
         # --- Cloud Inversion Potential --- START
-        report_lines.append("\n  **Potential Cloud Inversions (Low Cloud & Low Wind):**")
+        report_lines.append("\n  **Potential Cloud Inversions (Low Cloud & Low Wind & Humidity > 95%):**")
         inversion_periods = [res for res in unique_day_results if res.get('inversion_potential')] 
         if not inversion_periods:
              # Corrected f-string syntax
-             report_lines.append(f"    None indicated based on criteria (Cloud Base < {INVERSION_CLOUD_BASE_THRESHOLD_M}m & Wind < {INVERSION_WIND_THRESHOLD_KPH}kph).")
+             report_lines.append(f"    None indicated based on criteria (Cloud Base < {INVERSION_CLOUD_BASE_THRESHOLD_M}m & Wind < {INVERSION_WIND_THRESHOLD_KPH}kph & Humidity > 95%).")
         else:
              # Sort by time for readability
              def sort_key_time(item):
@@ -1743,12 +1937,10 @@ def analyze_saved_forecasts(forecast_dir="forecasts"):
 # --- Main Execution Block ---
 
 if __name__ == "__main__":
+    """Main execution block."""
     logger.info("Starting weather scraper script.")
     # Note on scheduling:
-    # To run this daily, use cron (Linux/macOS) or Task Scheduler (Windows).
-    # Example cron job (runs at 7 AM daily):
-    # 0 7 * * * /usr/bin/python3 /path/to/weather_scraper.py >> /path/to/weather.log 2>&1
-    # Make sure paths are correct and python environment is accessible.
+    # To run this daily, use cron (Linux/macOS) or Task Scheduler (Windows).\n# Example cron job (runs at 7 AM daily):\n# 0 7 * * * /usr/bin/python3 /path/to/weather_scraper.py >> /path/to/weather.log 2>&1\n# Make sure paths are correct and python environment is accessible.
 
     config_data = load_config(CONFIG_FILE)
     if not config_data:
@@ -1772,7 +1964,7 @@ if __name__ == "__main__":
         num_processed = process_locations(config_data)
         if num_processed > 0:
             logger.info(f"Successfully processed {num_processed} area(s).")
-            # --- Call analysis function AFTER processing --- 
+            # --- Call analysis function AFTER processing ---
             analyze_saved_forecasts()
         else:
             logger.info("No areas were successfully processed or defined.")
