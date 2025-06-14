@@ -11,11 +11,25 @@ import os # For environment variables (optional API key)
 import json # For saving forecasts
 from collections import defaultdict # For grouping periods
 import glob # For finding forecast files
+import csv # For CSV output
+import time # Add this import for delay
+from urllib.parse import urlparse # For URL validation
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+import random # For User-Agent rotation
 
 # --- Configuration ---
 CONFIG_FILE = "config.yaml"
-USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-REQUEST_TIMEOUT = 25 # Slightly increased timeout
+USER_AGENTS = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15',
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+]
+REQUEST_TIMEOUT = 30 # Increased timeout
+MAX_RETRIES = 3 # Number of retries for failed requests
+RETRY_DELAY_BASE = 5 # Base delay in seconds for exponential backoff
 
 # Configure logging
 # Set level to DEBUG to see more detailed parsing info/errors
@@ -36,15 +50,15 @@ HIKING_TEMP_HOT_THRESHOLD_C = 25
 
 # Scoring weights for hiking summary (lower is better) - Adjust as desired
 # Increased weights for more conservative scoring
-SCORE_WEIGHT_WIND = 1.5  # Penalty per 10 kph over 30 (Increased)
+SCORE_WEIGHT_WIND = 2.5  # Penalty per 10 kph over 30 (Increased)
 SCORE_WEIGHT_RAIN = 7.0  # Penalty per mm of rain (Increased)
 SCORE_WEIGHT_SNOW = 12.0 # Penalty per cm of snow (Increased)
 SCORE_WEIGHT_COLD = 3.0  # Penalty per degree below 0°C (including chill) (Increased)
-SCORE_WEIGHT_HOT = 1.5   # Penalty per degree above 25°C (Increased)
+SCORE_WEIGHT_HOT = 0.5   # Penalty per degree above 25°C (Increased)
 
 # Inversion Check Thresholds
 INVERSION_CLOUD_BASE_THRESHOLD_M = 300 # Cloud base below this might indicate inversion fog
-INVERSION_WIND_THRESHOLD_KPH = 15    # Wind speed below this
+INVERSION_WIND_THRESHOLD_KPH = 10    # Wind speed below this
 
 # --- Helper Functions ---
 
@@ -89,10 +103,94 @@ def load_config(config_path):
         return None
 
 
-def get_html(url):
-    """Fetches HTML content from a URL using requests.
+def validate_url(url):
+    """Validates if URL is properly formatted and accessible.
+    
+    Args:
+        url (str): The URL to validate.
+        
+    Returns:
+        bool: True if URL is valid, False otherwise.
+    """
+    try:
+        result = urlparse(url)
+        return all([result.scheme, result.netloc])
+    except:
+        return False
 
-    Includes a User-Agent header and a timeout.
+
+def get_html_with_retry(url, max_retries=MAX_RETRIES):
+    """Fetches HTML content from a URL with retry logic.
+    
+    Implements exponential backoff and rotating User-Agents.
+    
+    Args:
+        url (str): The URL to fetch HTML from.
+        max_retries (int): Maximum number of retry attempts.
+        
+    Returns:
+        str or None: The HTML content as a string, or None if all attempts failed.
+    """
+    if not validate_url(url):
+        logger.error(f"Invalid URL format: {url}")
+        return None
+    
+    for attempt in range(max_retries):
+        try:
+            # Create session with retry adapter
+            session = requests.Session()
+            retry_strategy = Retry(
+                total=2,
+                status_forcelist=[429, 500, 502, 503, 504],
+                allowed_methods=["HEAD", "GET", "OPTIONS"]
+            )
+            adapter = HTTPAdapter(max_retries=retry_strategy)
+            session.mount("http://", adapter)
+            session.mount("https://", adapter)
+            
+            # Rotate User-Agent
+            headers = {
+                'User-Agent': random.choice(USER_AGENTS),
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Accept-Encoding': 'gzip, deflate',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1'
+            }
+            
+            logger.debug(f"Attempt {attempt + 1}/{max_retries} - Fetching HTML from {url}")
+            response = session.get(url, headers=headers, timeout=REQUEST_TIMEOUT)
+            response.raise_for_status()
+            
+            logger.info(f"Successfully fetched HTML from {url} (Status: {response.status_code})")
+            return response.text
+            
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 404:
+                logger.error(f"URL not found (404): {url}")
+                return None  # Don't retry on 404
+            logger.warning(f"HTTP error on attempt {attempt + 1}/{max_retries} for {url}: {e}")
+            
+        except requests.exceptions.RequestException as e:
+            logger.warning(f"Request error on attempt {attempt + 1}/{max_retries} for {url}: {e}")
+            
+        except Exception as e:
+            logger.error(f"Unexpected error on attempt {attempt + 1}/{max_retries} for {url}: {e}", exc_info=True)
+        
+        # Exponential backoff if not last attempt
+        if attempt < max_retries - 1:
+            delay = RETRY_DELAY_BASE * (2 ** attempt) + random.uniform(0, 1)
+            logger.info(f"Waiting {delay:.1f} seconds before retry...")
+            time.sleep(delay)
+    
+    logger.error(f"Failed to fetch HTML after {max_retries} attempts for {url}")
+    return None
+
+
+def get_html(url):
+    """Fetches HTML content from a URL using the retry mechanism.
+
+    This is a wrapper for backward compatibility.
 
     Args:
         url (str): The URL to fetch HTML from.
@@ -100,19 +198,7 @@ def get_html(url):
     Returns:
         str or None: The HTML content as a string, or None if an error occurred.
     """
-    logger.debug(f"Fetching HTML from {url}")
-    try:
-        headers = {'User-Agent': USER_AGENT}
-        response = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT)
-        response.raise_for_status()
-        logger.info(f"Successfully fetched HTML from {url} (Status: {response.status_code})")
-        return response.text
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Error fetching URL {url}: {e}")
-        return None
-    except Exception as e:
-        logger.error(f"An unexpected error occurred during HTML fetch for {url}: {e}", exc_info=True)
-        return None
+    return get_html_with_retry(url)
 
 
 def extract_text(element):
@@ -149,6 +235,100 @@ def clean_filename(name):
     return name
 
 
+def validate_forecast_data(forecast_data, location_name):
+    """Validates that forecast data contains expected fields and reasonable values.
+    
+    Args:
+        forecast_data (dict): The forecast data to validate.
+        location_name (str): The location name for logging.
+        
+    Returns:
+        bool: True if data appears valid, False otherwise.
+    """
+    if not forecast_data:
+        logger.warning(f"No forecast data to validate for {location_name}")
+        return False
+    
+    # Check required fields
+    required_fields = ['location', 'source', 'forecast_periods']
+    for field in required_fields:
+        if field not in forecast_data:
+            logger.warning(f"Missing required field '{field}' in forecast data for {location_name}")
+            return False
+    
+    # Check if we have periods
+    periods = forecast_data.get('forecast_periods', [])
+    if not periods:
+        logger.warning(f"No forecast periods found for {location_name}")
+        return False
+    
+    # Validate periods have expected data
+    valid_periods = 0
+    for period in periods:
+        if period.get('day_period') and period.get('time'):
+            # Check if at least some weather data exists
+            has_temp = any(period.get(k) is not None for k in ['temp_max_c', 'temp_min_c'])
+            has_wind = period.get('wind_kph') is not None
+            has_precip = any(period.get(k) is not None for k in ['rain_mm', 'snow_cm'])
+            
+            if has_temp or has_wind or has_precip:
+                valid_periods += 1
+    
+    if valid_periods == 0:
+        logger.warning(f"No valid forecast periods with data found for {location_name}")
+        return False
+    
+    logger.info(f"Validated {valid_periods} forecast periods for {location_name}")
+    return True
+
+
+def check_page_has_forecast(html_content):
+    """Check if the HTML page actually contains forecast data.
+    
+    Some mountain pages redirect to info pages without forecast tables.
+    
+    Args:
+        html_content (str): The HTML content to check.
+        
+    Returns:
+        bool: True if page appears to have forecast data, False otherwise.
+    """
+    if not html_content:
+        return False
+    
+    soup = BeautifulSoup(html_content, 'html.parser')
+    
+    # Check for forecast table
+    forecast_indicators = [
+        'table.forecast-table__table',
+        'table.forecast-table',
+        'table[class*="forecast"]',
+        'div.forecast-table',
+        '.forecast-table__row'
+    ]
+    
+    for selector in forecast_indicators:
+        if soup.select_one(selector):
+            return True
+    
+    # Check for common redirect/info page indicators
+    no_forecast_indicators = [
+        'No forecast available',
+        'forecast not available',
+        'See forecast for',
+        'This mountain is part of',
+        'Combined forecast'
+    ]
+    
+    page_text = soup.get_text().lower()
+    for indicator in no_forecast_indicators:
+        if indicator.lower() in page_text:
+            logger.warning(f"Page appears to be an info/redirect page (found '{indicator}')")
+            return False
+    
+    return False  # If no forecast indicators found
+
+
 # --- Mountain-Forecast.com Parsing (Method 1 Proxy + Munros) ---
 
 def parse_detailed_forecast(html_content, location_name, url):
@@ -157,6 +337,8 @@ def parse_detailed_forecast(html_content, location_name, url):
     Identifies forecast periods based on header rows (day, time) and extracts
     various weather parameters (temperature, wind, precipitation, etc.) from
     data rows using 'data-row' attributes and CSS classes.
+    
+    Enhanced with fallback selectors and better error handling.
 
     Args:
         html_content (str): The HTML content of the forecast page.
@@ -172,6 +354,11 @@ def parse_detailed_forecast(html_content, location_name, url):
     if not html_content:
         logger.warning(f"No HTML content provided for {location_name}")
         return None
+    
+    # Check if page has forecast data
+    if not check_page_has_forecast(html_content):
+        logger.warning(f"Page for {location_name} does not contain forecast data (may be info/redirect page)")
+        return None
 
     logger.debug(f"Starting detailed parse for {location_name}")
     soup = BeautifulSoup(html_content, 'html.parser')
@@ -184,29 +371,45 @@ def parse_detailed_forecast(html_content, location_name, url):
         "forecast_periods": []
     }
 
-    # Find the main forecast table
-    forecast_table = soup.find('table', class_='forecast-table__table')
+    # Find the main forecast table with multiple selector attempts
+    forecast_table = None
+    table_selectors = [
+        'table.forecast-table__table',
+        'table.forecast-table',
+        'table[class*="forecast"]',
+        'div.forecast-table table',
+        'div[class*="forecast"] table'
+    ]
+    
+    for selector in table_selectors:
+        forecast_table = soup.select_one(selector)
+        if forecast_table:
+            logger.debug(f"Found forecast table using selector: {selector}")
+            break
+    
     if not forecast_table:
-        logger.error(f"Could not find forecast table class 'forecast-table__table' for {location_name} at {url}")
+        logger.error(f"Could not find forecast table for {location_name} at {url}")
         return None # Cannot proceed without the table
 
     # --- Try to Extract Elevation (if available) ---
     try:
-        if 'data-elevation' in forecast_table.attrs:
-            forecast_data['elevation'] = forecast_table.attrs['data-elevation'] + 'm'
-        else:
-            table_wrapper = forecast_table.find_parent('div', class_='forecast-table-data')
-            if table_wrapper and 'data-elevation' in table_wrapper.attrs:
-                forecast_data['elevation'] = table_wrapper['data-elevation'] + 'm'
-            else:
-                table_wrapper_alt = forecast_table.find_parent('div', class_='forecast-table')
-                if table_wrapper_alt and 'data-elevation' in table_wrapper_alt.attrs:
-                    forecast_data['elevation'] = table_wrapper_alt['data-elevation'] + 'm'
-                else:
-                    logger.warning(f"Could not find elevation data for {location_name}")
+        elevation_selectors = [
+            ('data-elevation', forecast_table),
+            ('data-elevation', forecast_table.find_parent('div', class_='forecast-table-data')),
+            ('data-elevation', forecast_table.find_parent('div', class_='forecast-table')),
+            ('data-elevation', soup.find('div', attrs={'data-elevation': True}))
+        ]
+        
+        for attr, element in elevation_selectors:
+            if element and element.get(attr):
+                forecast_data['elevation'] = element[attr] + 'm'
+                logger.debug(f"Found elevation: {forecast_data['elevation']}")
+                break
+                
+        if not forecast_data['elevation']:
+            logger.warning(f"Could not find elevation data for {location_name}")
     except Exception as e:
          logger.warning(f"Error extracting elevation for {location_name}: {e}")
-
 
     # --- Header Rows Processing (Day and Time) ---
     thead = forecast_table.find('thead')
@@ -218,11 +421,18 @@ def parse_detailed_forecast(html_content, location_name, url):
     time_row = thead.find('tr', attrs={'data-row': 'time'})
 
     if not day_row or not time_row:
-        logger.error(f"Could not find header rows with data-row 'days' or 'time' for {location_name}")
-        return forecast_data
+        # Try alternative selectors
+        rows = thead.find_all('tr')
+        if len(rows) >= 2:
+            day_row = rows[0]
+            time_row = rows[1]
+            logger.info(f"Using fallback header row selection for {location_name}")
+        else:
+            logger.error(f"Could not find header rows for {location_name}")
+            return forecast_data
 
-    day_cells = day_row.find_all('td', class_='forecast-table-days__cell')
-    time_cells = time_row.find_all('td', class_='forecast-table__cell')
+    day_cells = day_row.find_all('td', class_='forecast-table-days__cell') or day_row.find_all('td')
+    time_cells = time_row.find_all('td', class_='forecast-table__cell') or time_row.find_all('td')
 
     if not day_cells or not time_cells:
         logger.error(f"Could not find day or time cells within header rows for {location_name}")
@@ -234,24 +444,31 @@ def parse_detailed_forecast(html_content, location_name, url):
         for day_cell in day_cells:
             day_name_div = day_cell.find('div', class_='forecast-table-days__name')
             day_date_div = day_cell.find('div', class_='forecast-table-days__date')
-            # --- Get full date from data-date attribute --- START
+            
+            # Fallback: extract text directly if divs not found
+            if not day_name_div:
+                day_name_str = extract_text(day_cell).split()[0] if extract_text(day_cell) else 'Unknown'
+            else:
+                day_name_str = extract_text(day_name_div)
+                
+            if not day_date_div:
+                day_num_str = extract_text(day_cell).split()[-1] if extract_text(day_cell) else ''
+            else:
+                day_num_str = extract_text(day_date_div)
+                
+            # Get full date from data-date attribute
             full_date_str = day_cell.get('data-date') # Expected format YYYY-MM-DD
-            # logger.debug(f"Extracted data-date: {full_date_str} for {location_name}") # REMOVED DEBUG LOG
-            day_name_str = extract_text(day_name_div)
-            day_num_str = extract_text(day_date_div)
-            # Construct display day string, handling potential missing date attribute
+            display_day_str = f"{day_name_str} {day_num_str}"
+            
             try:
                 if full_date_str:
                     dt_obj = datetime.datetime.strptime(full_date_str, '%Y-%m-%d')
                     display_day_str = dt_obj.strftime(f'%A {dt_obj.day}/%m/%Y') # Format: Weekday DD/MM/YYYY
                 else:
-                    display_day_str = f"{day_name_str} {day_num_str}" # Fallback
                     full_date_str = None # Ensure it's None if not parsed
             except ValueError:
                 logger.warning(f"Could not parse data-date '{full_date_str}' for {location_name}. Using fallback day format.")
-                display_day_str = f"{day_name_str} {day_num_str}"
                 full_date_str = None
-            # --- Get full date from data-date attribute --- END
 
             colspan = int(day_cell.get('colspan', 1))
             if colspan != 3:
@@ -260,8 +477,15 @@ def parse_detailed_forecast(html_content, location_name, url):
 
             for _ in range(colspan):
                 if time_index < len(time_cells):
-                    time_period_span = time_cells[time_index].find('span', class_='en')
-                    time_str = extract_text(time_period_span)
+                    time_cell = time_cells[time_index]
+                    time_period_span = time_cell.find('span', class_='en')
+                    
+                    # Fallback: extract text directly
+                    if time_period_span:
+                        time_str = extract_text(time_period_span)
+                    else:
+                        time_str = extract_text(time_cell)
+                    
                     # Store both display day and full date for sorting/keying
                     col_headers.append({
                         "display_day": display_day_str,
@@ -301,6 +525,10 @@ def parse_detailed_forecast(html_content, location_name, url):
         return forecast_data # Return partial data, body needed
 
     data_rows = tbody.find_all('tr', class_='forecast-table__row', recursive=False)
+    if not data_rows:
+        # Fallback: try all tr elements
+        data_rows = tbody.find_all('tr')
+        logger.info(f"Using fallback row selection for {location_name}")
 
     param_map = {
         'phrases': 'summary', # Text summary
@@ -311,8 +539,6 @@ def parse_detailed_forecast(html_content, location_name, url):
         'temperature-min': 'temp_min_c',
         'temperature-chill': 'temp_chill_c', # Wind chill
         'wind': ('wind_kph', 'wind_dir'), # Special handling
-        # Gust speed doesn't appear to have its own row or easily identifiable attribute in the provided HTML.
-        # Add 'gust': 'gust_kph' here if a row 'data-row="gust"' is found later.
         'freezing-level': 'freezing_level_m',
         'cloud-base': 'cloud_base_m'
     }
@@ -324,7 +550,7 @@ def parse_detailed_forecast(html_content, location_name, url):
             continue # Skip rows we don't recognize
 
         data_key_info = param_map[data_row_type]
-        value_cells = row.find_all('td', class_='forecast-table__cell')
+        value_cells = row.find_all('td', class_='forecast-table__cell') or row.find_all('td')
 
         for i, cell in enumerate(value_cells):
             if i < num_periods:
@@ -386,7 +612,7 @@ def parse_detailed_forecast(html_content, location_name, url):
 
                     elif data_row_type == 'phrases':
                         phrase_span = cell.find('span', class_='forecast-table__phrase')
-                        value = extract_text(phrase_span)
+                        value = extract_text(phrase_span) if phrase_span else extract_text(cell)
                         periods_data[i][data_key_info] = value if value else 'N/A'
 
                     elif data_row_type == 'weather':
@@ -415,8 +641,14 @@ def parse_detailed_forecast(html_content, location_name, url):
                 break # Stop processing cells for this row
 
     forecast_data['forecast_periods'] = periods_data
-    logger.info(f"Successfully finished parsing {num_periods} periods for {location_name}")
-    return forecast_data
+    
+    # Validate the parsed data
+    if validate_forecast_data(forecast_data, location_name):
+        logger.info(f"Successfully finished parsing {num_periods} periods for {location_name}")
+        return forecast_data
+    else:
+        logger.warning(f"Parsed data failed validation for {location_name}")
+        return None
 
 
 # --- OpenWeatherMap Fetching and Parsing (Method 2) ---
@@ -1354,6 +1586,50 @@ def save_area_forecasts(forecast_list, area_name):
 
 
 # --- Main Processing Logic --- 
+def fix_known_url_issues(url):
+    """Fix known URL issues like spelling mistakes in mountain names.
+    
+    Args:
+        url (str): The original URL.
+        
+    Returns:
+        str: The corrected URL.
+    """
+    # Known fixes for mountain-forecast.com URLs
+    url_fixes = {
+        'Liathach': 'Liathac',  # Common misspelling
+        'An-Teallach-Bidean-a-Ghlas-Thuill': 'An-Teallach-Bidein-a-Ghlas-Thuill',  # Bidean -> Bidein
+        'Maol-Cheann-dearg': 'Maol-Chean-dearg',  # Extra n removed
+        'Beinn-a-Chearcaill': 'Beinn-a-Chearcall',  # ill -> all
+        'Sgurr-an-Fhidhleir': 'Sgurr-an-Fhidhleir-and-Ben-Mor-Coigach',  # Combined page
+        'A-Mhaighdean': 'A-Mhaighdean-and-Ruadh-Stac-Mor',  # Combined page  
+        'Ben-Mor-Coigach': 'Sgurr-an-Fhidhleir-and-Ben-Mor-Coigach',  # Combined page
+        'Beinn-a-Chrulaiste': 'Creise-and-Meall-a-Bhuiridh',  # Different mountain page
+        # Add more fixes as discovered
+    }
+    
+    original_url = url
+    for wrong, correct in url_fixes.items():
+        if wrong in url:
+            fixed_url = url.replace(wrong, correct)
+            logger.info(f"Fixed URL: {original_url} -> {fixed_url}")
+            return fixed_url
+    
+    # Check for mountains that might be listed under different names entirely
+    alternative_names = {
+        'Maol-Chean-Dearg': 'Maol-Chean-dearg',  # Case variations
+        'An-Teallach': 'An-Teallach-Sgurr-Fiona',  # Alternative page
+    }
+    
+    for alt_wrong, alt_correct in alternative_names.items():
+        if alt_wrong in url:
+            fixed_url = url.replace(alt_wrong, alt_correct)
+            logger.info(f"Using alternative URL: {original_url} -> {fixed_url}")
+            return fixed_url
+    
+    return url
+
+
 def process_locations(config):
     """Processes each location defined in the config, fetching and saving forecasts.
 
@@ -1374,6 +1650,7 @@ def process_locations(config):
 
     owm_api_key = config.get('openweathermap', {}).get('api_key')
     processed_areas = 0
+    failed_munros = []  # Track failed Munros for status output
 
     for location_index, location in enumerate(config['locations']):
         area = location.get('area', f'Unknown Area {location_index+1}')
@@ -1448,13 +1725,23 @@ def process_locations(config):
 
             if not munro_name or not munro_url:
                 logger.warning(f"Skipping munro with missing name or URL in area {area}")
+                failed_munros.append({'area': area, 'munro': munro_name or 'N/A', 'url': munro_url or 'N/A', 'status': 'Missing name or URL'})
                 continue
 
+            # Fix known URL issues
+            munro_url = fix_known_url_issues(munro_url)
+            
             logger.info(f"Fetching forecast for {munro_name} ({munro_url})")
+            
+            # Add random delay to avoid rate limiting
+            delay = random.uniform(3, 6)  # Random delay between 3-6 seconds
+            logger.debug(f"Waiting {delay:.1f} seconds before fetching {munro_name}")
+            time.sleep(delay)
+            
             html = get_html(munro_url)
             if html:
                 parsed_data = parse_detailed_forecast(html, munro_name, munro_url)
-                if parsed_data:
+                if parsed_data and validate_forecast_data(parsed_data, munro_name):
                     # --- Generate Munro Summary --- START
                     munro_periods_by_day = defaultdict(list)
                     if parsed_data.get('forecast_periods'):
@@ -1466,10 +1753,13 @@ def process_locations(config):
                     # --- Generate Munro Summary --- END
                     area_forecasts_to_save.append(parsed_data) 
                     munro_forecasts_data.append(parsed_data) 
+                    logger.info(f"Successfully scraped and validated forecast for {munro_name}")
                 else:
-                    logger.error(f"Failed to parse forecast for {munro_name}")
+                    logger.error(f"Failed to parse or validate forecast for {munro_name}")
+                    failed_munros.append({'area': area, 'munro': munro_name, 'url': munro_url, 'status': 'Parse/validation failed'})
             else:
                 logger.error(f"Failed to retrieve HTML for {munro_name}")
+                failed_munros.append({'area': area, 'munro': munro_name, 'url': munro_url, 'status': 'HTML fetch failed'})
 
         # --- Method 3: Averaged Munro Forecast ---
         if len(munro_forecasts_data) >= 2:
@@ -1495,6 +1785,17 @@ def process_locations(config):
         save_area_forecasts(area_forecasts_to_save, area) 
 
         processed_areas += 1
+
+    # --- After all areas processed, save failed Munros status to file ---
+    if failed_munros:
+        ts_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        status_filepath = os.path.join("forecasts", f"failed_munros_{ts_str}.csv")
+        with open(status_filepath, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(f, fieldnames=['area', 'munro', 'url', 'status'])
+            writer.writeheader()
+            for row in failed_munros:
+                writer.writerow(row)
+        logger.info(f"Failed Munros status written to: {status_filepath}")
 
     return processed_areas
 
@@ -1788,22 +2089,35 @@ def analyze_saved_forecasts(forecast_dir="forecasts"):
                  if time == 'AM': munro_daily_scores[location]['am'] = score
                  if time == 'PM': munro_daily_scores[location]['pm'] = score
                  if time == 'night': munro_daily_scores[location]['night'] = score
-        
-        aggregated_munros = []
+        # --- Calculate avg_score for each munro for both CSV and sorting ---
         for location, data in munro_daily_scores.items():
-            if data['scores']:
-                 avg_score = round(statistics.mean(data['scores']), 1)
-                 aggregated_munros.append({
-                     'location': location,
-                     'avg_score': avg_score,
-                     'am_score': data['am'],
-                     'pm_score': data['pm'],
-                     'night_score': data['night'],
-                 })
+            data['avg_score'] = round(statistics.mean(data['scores']), 1) if data['scores'] else None
+        # --- CSV OUTPUT: Write munro_daily_scores for this day ---
+        if munro_daily_scores:
+            ts_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            csv_filename = f"munro_daily_scores_{day}_{ts_str}.csv"
+            csv_filepath = os.path.join(forecast_dir, csv_filename)
+            with open(csv_filepath, 'w', newline='', encoding='utf-8') as csvfile:
+                fieldnames = ['location', 'avg_score', 'am_score', 'pm_score', 'night_score', 'all_scores']
+                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                writer.writeheader()
+                for location, data in munro_daily_scores.items():
+                    writer.writerow({
+                        'location': location,
+                        'avg_score': data['avg_score'],
+                        'am_score': data['am'],
+                        'pm_score': data['pm'],
+                        'night_score': data['night'],
+                        'all_scores': ",".join(str(s) for s in data['scores'])
+                    })
+            logger.info(f"Wrote munro_daily_scores CSV for {day} to {csv_filepath}")
         # --- Group results by location and calculate daily average score --- END
 
         # --- Sort by average score --- START
-        sorted_munros = sorted(aggregated_munros, key=lambda x: x['avg_score'])
+        sorted_munros = sorted(
+            [dict(location=loc, **data) for loc, data in munro_daily_scores.items()],
+            key=lambda x: (x['avg_score'] if x['avg_score'] is not None else float('inf'))
+        )
         # --- Sort by average score --- END
 
         if not sorted_munros:
@@ -1811,9 +2125,9 @@ def analyze_saved_forecasts(forecast_dir="forecasts"):
         else:
              # --- Generate report lines with new format --- START
              for i, munro_data in enumerate(sorted_munros):
-                 am_str = f"AM: {munro_data['am_score']}" if munro_data['am_score'] is not None else "AM: -"
-                 pm_str = f"PM: {munro_data['pm_score']}" if munro_data['pm_score'] is not None else "PM: -"
-                 night_str = f"Night: {munro_data['night_score']}" if munro_data['night_score'] is not None else "Night: -"
+                 am_str = f"AM: {munro_data['am']}" if munro_data['am'] is not None else "AM: -"
+                 pm_str = f"PM: {munro_data['pm']}" if munro_data['pm'] is not None else "PM: -"
+                 night_str = f"Night: {munro_data['night']}" if munro_data['night'] is not None else "Night: -"
                  report_lines.append(f"    {i+1}. {munro_data['location']}: Avg Score {munro_data['avg_score']} ({am_str}, {pm_str}, {night_str})")
              # --- Generate report lines with new format --- END
              
@@ -1973,4 +2287,4 @@ if __name__ == "__main__":
         exit(1)
 
     logger.info("Weather scraper script finished.")
-    exit(0) # Exit cleanly 
+    exit(0) # Exit cleanly

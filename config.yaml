@@ -11,53 +11,98 @@ locations:
     munros:
       - name: Beinn Eighe
         url: https://www.mountain-forecast.com/peaks/Beinn-Eighe/forecasts/1010
+
       - name: Liathach
-        url: https://www.mountain-forecast.com/peaks/Liathach/forecasts/1128
+        url: https://www.mountain-forecast.com/peaks/Liathac/forecasts/1053
+      
       # --- Added Munros (Note: Grouping under Torridon for simplicity, geographical areas vary) ---
       - name: Maol Chean Dearg
-        url: https://www.mountain-forecast.com/peaks/Maol-Chean-dearg/forecasts/933
+        url: https://www.mountain-forecast.com/peaks/Maol-Chean-Dearg/forecasts/933
+
       - name: Beinn Alligin - Sgurr Mor
-        url: https://www.mountain-forecast.com/peaks/Beinn-Alligin-Sgurr-Mor/forecasts/986
+        url: https://www.mountain-forecast.com/peaks/Beinn-Alligin/forecasts/986
+
       - name: Baosbheinn
         url: https://www.mountain-forecast.com/peaks/Baosbheinn/forecasts/875
+
       - name: An Ruadh Stac
         url: https://www.mountain-forecast.com/peaks/An-Ruadh-stac/forecasts/892
+
       - name: Beinn Damh
         url: https://www.mountain-forecast.com/peaks/Beinn-Damh/forecasts/903
+
       - name: Beinn A Chearcaill
         url: https://www.mountain-forecast.com/peaks/Beinn-a-Chearcaill/forecasts/724
-      - name: Beinn a Chrulaiste
-        url: https://www.mountain-forecast.com/peaks/Beinn-a-Chrulaiste/forecasts/857
-      - name: Suilven
-        url: https://www.mountain-forecast.com/peaks/Suilven/forecasts/731
+
       - name: Sgurr An Fhidhleir
         url: https://www.mountain-forecast.com/peaks/Sgurr-an-Fhidhleir/forecasts/705
+
       - name: A Mhaighdean
         url: https://www.mountain-forecast.com/peaks/A-Mhaighdean/forecasts/967
+
       - name: Slioch
         url: https://www.mountain-forecast.com/peaks/Slioch/forecasts/981
+
       - name: An Teallach - Bidein a Ghlas Thuill
-        url: https://www.mountain-forecast.com/peaks/An-Teallach-Bidean-a-Ghlas-Thuill/forecasts/1062
+        url: https://www.mountain-forecast.com/peaks/An-Teallach-Bidein-a-Ghlas-Thuill/forecasts/1062
+
       - name: Cul Beag
         url: https://www.mountain-forecast.com/peaks/Cul-Beag/forecasts/769
+
+      - name: Beinn Dearg Mor
+        url: https://www.mountain-forecast.com/peaks/Beinn-Dearg-Mor/forecasts/910
+
+      - name: Beinn Tarsuinn Corbett
+        url: https://www.mountain-forecast.com/peaks/Beinn-Tarsuinn-Corbett/forecasts/826
+
+
+  
   # --- Add New Areas --- 
   - area: Glencoe
     latitude: 56.670 # Approx center of Glencoe
     longitude: -5.030
     area_proxy_url: https://www.mountain-forecast.com/peaks/Bidean-nam-Bian/forecasts/500 # Example proxy
     munros: 
-      # Add specific Glencoe munros/peaks here later
-      # - name: Bidean nam Bian
-      #   url: https://www.mountain-forecast.com/peaks/Bidean-nam-Bian/forecasts/1150
+      - name: Beinn a Chrulaiste
+        url: https://www.mountain-forecast.com/peaks/Beinn-a-Chrulaiste/forecasts/857
+
+      - name: Bidean nam Bian
+        url: https://www.mountain-forecast.com/peaks/Bidean-nam-Bian/forecasts/1150
+
+      - name: Ben Starav
+        url: https://www.mountain-forecast.com/peaks/Ben-Starav/forecasts/1078
+
+      - name: Buachaille Etive Mor
+        url: https://www.mountain-forecast.com/peaks/Buachaille-Etive-Mor/forecasts/1020
+  
   - area: Coigach
     latitude: 58.000 # Approx center of Coigach
     longitude: -5.300
     area_proxy_url: https://www.mountain-forecast.com/peaks/Stac-Pollaidh/forecasts/613 # Changed proxy to Stac Pollaidh
     munros:
       # Add specific Coigach peaks here later
-      # - name: Ben More Coigach
-      #   url: https://www.mountain-forecast.com/peaks/Ben-Mor-Coigach/forecasts/743
+      - name: Ben More Coigach
+        url: https://www.mountain-forecast.com/peaks/Ben-Mor-Coigach/forecasts/743
+      - name: Suilven
+        url: https://www.mountain-forecast.com/peaks/Suilven/forecasts/731
+      - name: Stac Pollaidh
+        url: https://www.mountain-forecast.com/peaks/Stac-Pollaidh/forecasts/613
 
+  - area: Skye (Glenbrittle)
+    latitude: 57.217
+    longitude: -6.270
+    area_proxy_url: https://www.mountain-forecast.com/peaks/Bla-Bheinn/forecasts/928
+    munros:
+      - name: Bla Bheinn
+        url: https://www.mountain-forecast.com/peaks/Bla-Bheinn/forecasts/928
+
+  - area: Knoydart (Inverie)
+    latitude: 57.038
+    longitude: -5.693
+    area_proxy_url: https://www.mountain-forecast.com/peaks/Beinn-na-Caillich-Knoydart/forecasts/785
+    munros:
+      - name: Beinn na Caillich (Knoydart)
+        url: https://www.mountain-forecast.com/peaks/Beinn-na-Caillich-Knoydart/forecasts/785
 
 # Add more areas and munros here in the future
 # Example:
@@ -68,3 +113,6 @@ locations:
 #   munros:
 #     - name: Ben Macdui
 #       url: https://www.mountain-forecast.com/peaks/Ben-Macdui/forecasts/1309 
+
+# Skye
+# Knoydart
