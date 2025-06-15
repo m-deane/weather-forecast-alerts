@@ -1,0 +1,82 @@
+# Scottish Mountain Weather API Requirements
+
+# Core Framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+
+# Database
+sqlalchemy==2.0.23
+psycopg2-binary==2.9.9
+geoalchemy2==0.14.2
+alembic==1.13.1
+
+# Time Series Database
+# Note: TimescaleDB extension must be installed separately in PostgreSQL
+
+# Caching
+redis==5.0.1
+hiredis==2.2.3
+
+# HTTP Client & Web Scraping (for weather data)
+aiohttp==3.9.1
+aiofiles==23.2.0
+requests==2.31.0
+httpx==0.25.2
+
+# Web Scraping (existing weather_scraper.py dependencies)
+beautifulsoup4==4.12.2
+lxml==4.9.3
+
+# Configuration & Environment
+pydantic==2.5.0
+pydantic-settings==2.1.0
+python-dotenv==1.0.0
+PyYAML==6.0.1
+
+# Security & Authentication
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.6
+
+# Data Processing
+pandas==2.1.4
+numpy==1.25.2
+
+# Utilities
+python-dateutil==2.8.2
+pytz==2023.3
+colorama==0.4.6
+schedule==1.2.0
+
+# Monitoring & Logging
+prometheus-client==0.19.0
+
+# Testing (development)
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+httpx==0.25.2  # For testing FastAPI endpoints
+
+# Development Tools
+black==23.11.0
+flake8==6.1.0
+isort==5.12.0
+mypy==1.7.1
+
+# Production WSGI Server
+gunicorn==21.2.0
+
+# Optional: Enhanced PostgreSQL adapter
+asyncpg==0.29.0  # Alternative to psycopg2 for async operations
+
+# Optional: Advanced monitoring
+sentry-sdk[fastapi]==1.38.0
+
+# Existing weather_scraper.py dependencies (maintain compatibility)
+# These should already be satisfied by the above, but listed for reference:
+# requests>=2.25.1
+# beautifulsoup4>=4.9.3
+# PyYAML>=5.4.1
+# python-dotenv>=0.19.0
+# colorama>=0.4.4

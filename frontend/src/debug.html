@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Debug Test</title>
+</head>
+<body>
+    <h1>Scottish Mountain Weather - Debug Mode</h1>
+    <div id="test"></div>
+    
+    <script>
+        // Test basic JavaScript
+        console.log('JavaScript is working!');
+        document.getElementById('test').innerHTML = '<p>✅ JavaScript executed successfully</p>';
+        
+        // Test if we can fetch from the API
+        fetch('/api/v1/locations')
+            .then(res => res.json())
+            .then(data => {
+                console.log('API Response:', data);
+                document.getElementById('test').innerHTML += '<p>✅ API is accessible</p>';
+                document.getElementById('test').innerHTML += '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            })
+            .catch(err => {
+                console.error('API Error:', err);
+                document.getElementById('test').innerHTML += '<p>❌ API Error: ' + err + '</p>';
+            });
+    </script>
+</body>
+</html>

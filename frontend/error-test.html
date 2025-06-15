@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Error Test</title>
+    <script>
+      // Capture all errors
+      window.addEventListener('error', function(event) {
+        document.getElementById('errors').innerHTML += 
+          '<div style="color: red; margin: 10px; padding: 10px; border: 1px solid red;">' +
+          '<strong>Error:</strong> ' + event.message + '<br>' +
+          '<strong>Source:</strong> ' + event.filename + '<br>' +
+          '<strong>Line:</strong> ' + event.lineno + ', Column: ' + event.colno + '<br>' +
+          '<strong>Stack:</strong><pre>' + (event.error?.stack || 'No stack trace') + '</pre>' +
+          '</div>';
+      });
+      
+      window.addEventListener('unhandledrejection', function(event) {
+        document.getElementById('errors').innerHTML += 
+          '<div style="color: orange; margin: 10px; padding: 10px; border: 1px solid orange;">' +
+          '<strong>Unhandled Promise Rejection:</strong> ' + event.reason + 
+          '</div>';
+      });
+    </script>
+  </head>
+  <body>
+    <h1>Error Detection Test</h1>
+    <div id="errors" style="background: #f0f0f0; padding: 20px; margin: 20px;">
+      <p>Any JavaScript errors will appear here:</p>
+    </div>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

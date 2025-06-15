@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Test</title>
+</head>
+<body>
+    <h1>Debug Test Page</h1>
+    <div id="status">Checking app status...</div>
+    <pre id="console"></pre>
+    
+    <script>
+        const log = (msg) => {
+            document.getElementById('console').innerHTML += msg + '\n';
+        };
+        
+        // Check if React app is loading
+        fetch('/')
+            .then(res => res.text())
+            .then(html => {
+                log('✓ Index page loaded');
+                log('HTML length: ' + html.length);
+                
+                // Check for script tags
+                const hasMain = html.includes('main.tsx');
+                log(hasMain ? '✓ main.tsx referenced' : '✗ main.tsx NOT referenced');
+            });
+            
+        // Check API
+        fetch('/api/v1/locations')
+            .then(res => res.json())
+            .then(data => {
+                log('✓ API working: ' + data.locations.length + ' locations');
+                document.getElementById('status').innerHTML = 
+                    '<span style="color: green">✓ Backend API is working!</span>';
+            })
+            .catch(err => {
+                log('✗ API error: ' + err.message);
+            });
+    </script>
+</body>
+</html>
