@@ -1,0 +1,57 @@
+INFO:     Started server process [91533]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:64737 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64761 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64824 - "GET /api/v1/areas HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64825 - "GET /api/v1/locations?q= HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64839 - "POST /api/metrics HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:64847 - "GET /api/v1/areas HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64848 - "GET /api/v1/locations?q= HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64851 - "POST /api/metrics HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:64859 - "GET /api/v1/areas HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64860 - "GET /api/v1/locations?q= HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64864 - "GET /api/v1/locations?q= HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64865 - "GET /api/v1/areas HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64875 - "POST /api/metrics HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:64885 - "GET /api/v1/areas HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64886 - "GET /api/v1/locations?q= HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65015 - "POST /api/metrics HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:65099 - "POST /api/metrics HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:65122 - "POST /api/metrics HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:65139 - "POST /api/metrics HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:65150 - "POST /api/metrics HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:65159 - "POST /api/metrics HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:65174 - "POST /api/metrics HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:65183 - "POST /api/metrics HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:65190 - "POST /api/metrics HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:65203 - "POST /api/metrics HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:65213 - "POST /api/metrics HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:65242 - "POST /api/metrics HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:65256 - "POST /api/metrics HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:65339 - "POST /api/metrics HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:65349 - "POST /api/metrics HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49716 - "GET /api/v1/areas HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49717 - "GET /api/v1/locations?q= HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49726 - "POST /api/metrics HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49739 - "GET /api/v1/locations?q= HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49740 - "GET /api/v1/areas HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49751 - "GET /api/v1/locations?q= HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49752 - "GET /api/v1/areas HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49767 - "POST /api/metrics HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49780 - "GET /api/v1/areas HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49781 - "GET /api/v1/locations?q= HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49782 - "POST /api/metrics HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49791 - "GET /api/v1/areas HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49792 - "GET /api/v1/locations?q= HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49884 - "POST /api/metrics HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49900 - "POST /api/metrics HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49952 - "POST /api/metrics HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49997 - "POST /api/metrics HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50066 - "POST /api/metrics HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50111 - "POST /api/metrics HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50117 - "POST /api/metrics HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50495 - "GET /api/v1/locations HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50573 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50573 - "GET /favicon.ico HTTP/1.1" 404 Not Found

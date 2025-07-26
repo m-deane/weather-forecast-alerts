@@ -14,11 +14,11 @@ from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.staticfiles import StaticFiles
 import uvicorn
 
-from .api import app as api_app
-from .database import startup_database, db_health_monitor
-from .cache import cache_manager, get_redis
-from .security import SecurityMiddleware, security_config, get_security_info
-from .weather_service import WeatherService
+from api import app as api_app
+from database import startup_database, db_health_monitor
+from cache import cache_manager, get_redis
+from security import SecurityMiddleware, security_config, get_security_info
+from weather_service import WeatherService
 
 # Configure logging
 logging.basicConfig(
@@ -166,6 +166,7 @@ async def health_check():
 @app.get("/health/detailed")
 async def detailed_health_check():
     """Detailed health check with all services"""
+    from datetime import datetime
     health_status = {
         "status": "healthy",
         "services": {},
@@ -304,7 +305,7 @@ async def cache_stats():
 async def clear_cache():
     """Clear all cache (development only)"""
     try:
-        from .cache import clear_all_cache
+        from cache import clear_all_cache
         result = clear_all_cache()
         return {"success": result, "message": "Cache cleared" if result else "Failed to clear cache"}
     except Exception as e:

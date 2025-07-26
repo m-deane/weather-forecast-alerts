@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test App</title>
+</head>
+<body>
+    <h1>Frontend Server Test</h1>
+    <p>If you see this, the frontend server is working!</p>
+    <p>API Status: <span id="api-status">Checking...</span></p>
+    
+    <script>
+        // Test API connection
+        fetch('http://localhost:8000/health')
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('api-status').textContent = 
+                    'Connected! Status: ' + data.status;
+            })
+            .catch(err => {
+                document.getElementById('api-status').textContent = 
+                    'Failed to connect: ' + err.message;
+            });
+    </script>
+</body>
+</html>
