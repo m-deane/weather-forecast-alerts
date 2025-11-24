@@ -34,16 +34,21 @@ class SecurityConfig(BaseModel):
     rate_limit_per_day: int = 10000
     
     # API Keys
-    require_api_key: bool = False  # Set to True for production
+    require_api_key: bool = True  # SECURITY: Enabled by default
     api_key_header: str = "X-API-Key"
-    
+
     # Request size limits
     max_request_size: int = 1024 * 1024  # 1MB
     max_query_params: int = 50
-    
+
     # Security headers
     enable_cors: bool = True
-    allowed_origins: List[str] = ["*"]  # Configure for production
+    allowed_origins: List[str] = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        # Add production domain when deployed:
+        # "https://yourdomain.com"
+    ]
     
     # IP filtering
     blocked_ips: List[str] = []

@@ -67,7 +67,7 @@ export class ErrorBoundary extends Component<Props, State> {
     }
 
     // Log to console in development
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       console.group('🐛 Error Boundary Caught Error')
       console.error('Error:', error)
       console.error('Error Info:', errorInfo)
@@ -144,7 +144,7 @@ export class ErrorBoundary extends Component<Props, State> {
       }
 
       const canRetry = this.retryCount < this.maxRetries
-      const isDevelopment = process.env.NODE_ENV === 'development'
+      const isDevelopment = import.meta.env.DEV
 
       return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -272,7 +272,7 @@ export function useErrorReporting() {
     }
 
     // Log to console in development
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       console.error('Manual Error Report:', errorReport)
     }
 

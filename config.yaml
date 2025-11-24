@@ -13,7 +13,7 @@ locations:
         url: https://www.mountain-forecast.com/peaks/Beinn-Eighe/forecasts/1010
 
       - name: Liathach
-        url: https://www.mountain-forecast.com/peaks/Liathac/forecasts/1053
+        url: https://www.mountain-forecast.com/peaks/Liathach/forecasts/1053
       
       # --- Added Munros (Note: Grouping under Torridon for simplicity, geographical areas vary) ---
       - name: Maol Chean Dearg
@@ -32,7 +32,7 @@ locations:
         url: https://www.mountain-forecast.com/peaks/Beinn-Damh/forecasts/903
 
       - name: Beinn A Chearcaill
-        url: https://www.mountain-forecast.com/peaks/Beinn-a-Chearcaill/forecasts/724
+        url: https://www.mountain-forecast.com/peaks/Beinn-a-Chearcall/forecasts/724
 
       - name: Sgurr An Fhidhleir
         url: https://www.mountain-forecast.com/peaks/Sgurr-an-Fhidhleir/forecasts/705
@@ -104,15 +104,44 @@ locations:
       - name: Beinn na Caillich (Knoydart)
         url: https://www.mountain-forecast.com/peaks/Beinn-na-Caillich-Knoydart/forecasts/785
 
-# Add more areas and munros here in the future
-# Example:
-# - area: Cairngorms
-#   latitude: 57.083
-#   longitude: -3.666
-#   area_proxy_url: https://www.mountain-forecast.com/peaks/Ben-Macdui/forecasts/600
-#   munros:
-#     - name: Ben Macdui
-#       url: https://www.mountain-forecast.com/peaks/Ben-Macdui/forecasts/1309 
+  # --- Cairngorms - Most popular hiking area in Scotland ---
+  - area: Cairngorms
+    latitude: 57.083
+    longitude: -3.666
+    area_proxy_url: https://www.mountain-forecast.com/peaks/Ben-Macdui/forecasts/600
+    munros:
+      - name: Ben Macdui
+        url: https://www.mountain-forecast.com/peaks/Ben-Macdui/forecasts/1309
 
-# Skye
-# Knoydart
+      - name: Cairn Gorm
+        url: https://www.mountain-forecast.com/peaks/Cairn-Gorm/forecasts/1245
+
+      - name: Braeriach
+        url: https://www.mountain-forecast.com/peaks/Braeriach/forecasts/1296
+
+      - name: Cairn Toul
+        url: https://www.mountain-forecast.com/peaks/Cairn-Toul/forecasts/1291
+
+      - name: Ben Avon
+        url: https://www.mountain-forecast.com/peaks/Ben-Avon/forecasts/1171
+
+  # --- Ben Nevis Area - Includes highest mountain in UK ---
+  - area: Ben Nevis
+    latitude: 56.797
+    longitude: -5.003
+    area_proxy_url: https://www.mountain-forecast.com/peaks/Ben-Nevis/forecasts/600
+    munros:
+      - name: Ben Nevis
+        url: https://www.mountain-forecast.com/peaks/Ben-Nevis/forecasts/1344
+
+      - name: Aonach Beag
+        url: https://www.mountain-forecast.com/peaks/Aonach-Beag-Lochaber/forecasts/1234
+
+      - name: Aonach Mor
+        url: https://www.mountain-forecast.com/peaks/Aonach-Mor/forecasts/1221
+
+      - name: Carn Mor Dearg
+        url: https://www.mountain-forecast.com/peaks/Carn-Mor-Dearg/forecasts/1220
+
+      - name: Stob Ban
+        url: https://www.mountain-forecast.com/peaks/Stob-Ban-Grey-Corries/forecasts/999

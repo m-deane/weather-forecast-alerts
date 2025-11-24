@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 
-interface GeolocationPosition {
+interface UserLocation {
   latitude: number
   longitude: number
   accuracy: number
@@ -21,7 +21,7 @@ interface UseGeolocationOptions {
   timeout?: number
   maximumAge?: number
   watch?: boolean
-  onSuccess?: (position: GeolocationPosition) => void
+  onSuccess?: (position: UserLocation) => void
   onError?: (error: GeolocationError) => void
 }
 
@@ -35,7 +35,7 @@ export function useGeolocation(options: UseGeolocationOptions = {}) {
     onError
   } = options
 
-  const [position, setPosition] = useState<GeolocationPosition | null>(null)
+  const [position, setPosition] = useState<UserLocation | null>(null)
   const [error, setError] = useState<GeolocationError | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isSupported, setIsSupported] = useState(false)
@@ -44,7 +44,7 @@ export function useGeolocation(options: UseGeolocationOptions = {}) {
     setIsSupported('geolocation' in navigator)
   }, [])
 
-  const getCurrentPosition = useCallback(async (): Promise<GeolocationPosition> => {
+  const getCurrentPosition = useCallback(async (): Promise<UserLocation> => {
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
         const error = {
@@ -59,7 +59,7 @@ export function useGeolocation(options: UseGeolocationOptions = {}) {
       setError(null)
 
       const success = (pos: GeolocationPosition) => {
-        const position: GeolocationPosition = {
+        const position: UserLocation = {
           latitude: pos.coords.latitude,
           longitude: pos.coords.longitude,
           accuracy: pos.coords.accuracy,
@@ -103,7 +103,7 @@ export function useGeolocation(options: UseGeolocationOptions = {}) {
     setError(null)
 
     const success = (pos: GeolocationPosition) => {
-      const position: GeolocationPosition = {
+      const position: UserLocation = {
         latitude: pos.coords.latitude,
         longitude: pos.coords.longitude,
         accuracy: pos.coords.accuracy,
@@ -172,8 +172,8 @@ function getErrorMessage(code: number): string {
 
 // Hook for finding nearest locations
 export function useNearestLocations(
-  userPosition: GeolocationPosition | null,
-  locations: Array<{ id: string; latitude: number; longitude: number; name: string; distance?: number }>
+  userPosition: UserLocation | null,
+  locations: Array<{ id: string; latitude: number; longitude: number; name: string; area?: string; elevation_m?: number; distance?: number }>
 ) {
   const [nearestLocations, setNearestLocations] = useState<typeof locations>([])
 

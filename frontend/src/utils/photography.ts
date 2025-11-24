@@ -353,27 +353,30 @@ function calculatePhotographyScore(
   opportunities: PhotographyOpportunity[]
 ): number {
   let score = 0
-  
-  // Base visibility score (40% weight)
+
+  // Base visibility score (40% weight - max 4 points)
   score += visibilityScore * 0.4
-  
-  // Weather conditions (30% weight)
+
+  // Weather conditions (30% weight - max 3 points)
   if (period.precipitation_mm === 0) score += 3
   else if (period.precipitation_mm < 2) score += 2
   else if (period.precipitation_mm < 5) score += 1
-  
-  // Wind conditions (10% weight)
-  if (period.wind_speed_kph < 15) score += 1
-  else if (period.wind_speed_kph < 30) score += 0.5
-  
-  // Special opportunities (20% weight)
+
+  // Wind conditions (15% weight - max 1.5 points)
+  if (period.wind_speed_kph < 15) score += 1.5
+  else if (period.wind_speed_kph < 30) score += 0.75
+  else if (period.wind_speed_kph < 50) score += 0.25
+
+  // Special opportunities (15% weight - max 1.5 points)
   const highProbOpportunities = opportunities.filter(o => o.probability > 70)
-  score += Math.min(2, highProbOpportunities.length * 0.5)
-  
-  // Inversion bonus
+  score += Math.min(1.5, highProbOpportunities.length * 0.5)
+
+  // Inversion bonus (optional - can push score above 10)
   if (inversionProbability > 50) score += 1
   else if (inversionProbability > 30) score += 0.5
-  
+
+  // Total max: 4 + 3 + 1.5 + 1.5 + 1 (bonus) = 11
+  // But we cap at 10, so base score maxes at 10, bonus can add on top
   return Math.min(10, Math.max(1, Math.round(score)))
 }
 

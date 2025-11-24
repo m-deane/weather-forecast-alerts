@@ -58,7 +58,7 @@ interface UserMetrics {
   userId?: string
   timestamp: number
   events: Array<{
-    type: 'page_view' | 'click' | 'search' | 'forecast_view' | 'export' | 'offline'
+    type: 'page_view' | 'click' | 'search' | 'forecast_view' | 'export' | 'offline' | 'scroll'
     target?: string
     metadata?: Record<string, any>
     timestamp: number
@@ -236,7 +236,7 @@ class MonitoringService {
     })
 
     // Scroll tracking (throttled)
-    let scrollTimeout: NodeJS.Timeout
+    let scrollTimeout: number
     document.addEventListener('scroll', () => {
       clearTimeout(scrollTimeout)
       scrollTimeout = setTimeout(() => {
@@ -276,7 +276,7 @@ class MonitoringService {
     // Update the latest performance entry
     if (this.performanceEntries.length > 0) {
       const latest = this.performanceEntries[this.performanceEntries.length - 1]
-      latest.metrics[key] = value
+      ;(latest.metrics[key] as any) = value
       this.storeMetrics('performance', latest)
     }
   }
@@ -343,7 +343,7 @@ class MonitoringService {
     }
 
     // In production, this would send to your analytics/monitoring service
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       console.log('📊 Metrics Payload:', payload)
     }
 

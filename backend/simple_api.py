@@ -5,10 +5,14 @@ This provides mock data to test the frontend without requiring database setup
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import json
 from datetime import datetime, timedelta
 import uvicorn
+import glob
+import os
+from pathlib import Path
+from collections import defaultdict
 
 app = FastAPI(
     title="Scottish Mountain Weather API (Mock)",
@@ -24,6 +28,153 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
 )
+
+# Path to forecast directory
+FORECAST_DIR = Path(__file__).parent.parent / "forecasts"
+
+# Scoring algorithm constants (from weather_scraper.py)
+SCORE_WEIGHT_WIND = 2.0
+SCORE_WEIGHT_RAIN = 1.5
+SCORE_WEIGHT_SNOW = 3.0
+SCORE_WEIGHT_COLD = 0.8
+SCORE_WEIGHT_HOT = 0.5
+
+def calculate_hiking_score(temp_min, temp_max, temp_chill, wind_kph, rain_mm=0, snow_cm=0):
+    """Calculate hiking suitability score (1-10, 10=perfect)"""
+    penalty_score = 0
+
+    # Use wind chill if more severe
+    effective_min_temp = temp_min
+    if temp_chill is not None and temp_min is not None:
+        effective_min_temp = min(temp_min, temp_chill)
+    elif temp_chill is not None:
+        effective_min_temp = temp_chill
+
+    # Cold penalty
+    if effective_min_temp is not None and effective_min_temp < 0:
+        penalty_score += abs(effective_min_temp) * SCORE_WEIGHT_COLD
+
+    # Heat penalty
+    if temp_max is not None and temp_max > 25:
+        penalty_score += (temp_max - 25) * SCORE_WEIGHT_HOT
+
+    # Wind penalty
+    if wind_kph is not None and wind_kph > 30:
+        penalty_score += ((wind_kph - 30) / 10) * SCORE_WEIGHT_WIND
+
+    # Precipitation penalties
+    if rain_mm: penalty_score += rain_mm * SCORE_WEIGHT_RAIN
+    if snow_cm: penalty_score += snow_cm * SCORE_WEIGHT_SNOW
+
+    return round(max(1.0, 10.0 - penalty_score), 1)
+
+def get_risk_level(score):
+    """Convert score to risk level"""
+    if score >= 8: return "low"
+    elif score >= 6: return "moderate"
+    elif score >= 4: return "high"
+    else: return "extreme"
+
+def find_latest_forecast(location_name: str) -> Optional[Dict]:
+    """Find the most recent forecast JSON file for a location"""
+    if not FORECAST_DIR.exists():
+        return None
+
+    # Search all subdirectories for forecast files matching location name
+    pattern = f"**/*{location_name.replace(' ', '_')}*mountain-forecast.com.json"
+    files = list(FORECAST_DIR.glob(pattern))
+
+    if not files:
+        # Try without spaces
+        pattern = f"**/*{location_name.replace(' ', '')}*mountain-forecast.com.json"
+        files = list(FORECAST_DIR.glob(pattern))
+
+    if not files:
+        return None
+
+    # Get the most recent file
+    latest_file = max(files, key=lambda p: p.stat().st_mtime)
+
+    try:
+        with open(latest_file, 'r') as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"Error loading forecast for {location_name}: {e}")
+        return None
+
+def convert_forecast_to_api_format(forecast_data: Dict, location: Dict) -> Dict:
+    """Convert scraped forecast JSON to API response format"""
+    if not forecast_data or "forecast_periods" not in forecast_data:
+        return None
+
+    # Group periods by day
+    daily_forecasts = defaultdict(list)
+    for period in forecast_data["forecast_periods"]:
+        date = period.get("full_date", "")
+        if date:
+            daily_forecasts[date].append(period)
+
+    # Convert to API format
+    forecasts = []
+    for date_str in sorted(daily_forecasts.keys())[:6]:  # Max 6 days
+        periods_data = daily_forecasts[date_str]
+
+        # Convert each period
+        api_periods = []
+        for p in periods_data:
+            score = calculate_hiking_score(
+                temp_min=p.get("temp_min_c"),
+                temp_max=p.get("temp_max_c"),
+                temp_chill=p.get("temp_chill_c"),
+                wind_kph=p.get("wind_kph"),
+                rain_mm=p.get("rain_mm", 0),
+                snow_cm=p.get("snow_cm", 0)
+            )
+
+            api_periods.append({
+                "period_type": p.get("time", "").lower(),
+                "temperature_c": p.get("temp_max_c", 0),
+                "feels_like_c": p.get("temp_chill_c"),
+                "wind_speed_kph": p.get("wind_kph", 0),
+                "wind_direction": p.get("wind_dir", ""),
+                "precipitation_mm": (p.get("rain_mm", 0) + (p.get("snow_cm", 0) * 10)),  # Convert snow to water equivalent
+                "weather_description": p.get("summary", ""),
+                "visibility_m": 10000,  # Not in scraped data
+                "cloud_base_m": p.get("cloud_base_m", 1000),
+                "humidity_percent": 80,  # Not in scraped data
+                "hiking_score": score,
+                "risk_level": get_risk_level(score),
+                "snow_cm": p.get("snow_cm", 0),
+                "freezing_level_m": p.get("freezing_level_m")
+            })
+
+        # Calculate daily summary
+        if api_periods:
+            temps = [p["temperature_c"] for p in api_periods if p["temperature_c"]]
+            winds = [p["wind_speed_kph"] for p in api_periods if p["wind_speed_kph"]]
+            precip = sum(p["precipitation_mm"] for p in api_periods)
+            scores = [p["hiking_score"] for p in api_periods]
+
+            forecasts.append({
+                "date": date_str,
+                "summary": {
+                    "max_temp_c": max(temps) if temps else 0,
+                    "min_temp_c": min(temps) if temps else 0,
+                    "max_wind_speed_kph": max(winds) if winds else 0,
+                    "total_precipitation_mm": round(precip, 1),
+                    "overall_hiking_score": round(sum(scores) / len(scores), 1) if scores else 5.0,
+                    "dominant_conditions": api_periods[0]["weather_description"] if api_periods else "Unknown"
+                },
+                "periods": api_periods
+            })
+
+    return {
+        "location": location,
+        "forecasts": forecasts,
+        "last_updated": forecast_data.get("scrape_time", datetime.now().isoformat()),
+        "data_source": "mountain-forecast.com (scraped)",
+        "alerts": []
+    }
 
 # Mock data - Extended list of Scottish mountains
 MOCK_LOCATIONS = [
@@ -173,7 +324,27 @@ MOCK_LOCATIONS = [
         "classification": "munro",
         "difficulty": "moderate"
     },
-    
+    {
+        "id": "cairngorms-cairn-toul",
+        "name": "Cairn Toul",
+        "area": "Cairngorms",
+        "latitude": 57.0614,
+        "longitude": -3.7117,
+        "elevation_m": 1291,
+        "classification": "munro",
+        "difficulty": "moderate"
+    },
+    {
+        "id": "cairngorms-ben-avon",
+        "name": "Ben Avon",
+        "area": "Cairngorms",
+        "latitude": 57.0967,
+        "longitude": -3.4331,
+        "elevation_m": 1171,
+        "classification": "munro",
+        "difficulty": "moderate"
+    },
+
     # Coigach area
     {
         "id": "coigach-suilven",
@@ -230,24 +401,54 @@ MOCK_LOCATIONS = [
     
     # Ben Nevis area
     {
-        "id": "fort-william-ben-nevis",
+        "id": "ben-nevis-ben-nevis",
         "name": "Ben Nevis",
-        "area": "Fort William",
+        "area": "Ben Nevis",
         "latitude": 56.7969,
         "longitude": -5.0036,
-        "elevation_m": 1345,
+        "elevation_m": 1344,
         "classification": "munro",
         "difficulty": "moderate"
     },
     {
-        "id": "fort-william-carn-mor-dearg",
+        "id": "ben-nevis-aonach-mor",
+        "name": "Aonach Mor",
+        "area": "Ben Nevis",
+        "latitude": 56.8167,
+        "longitude": -4.9167,
+        "elevation_m": 1221,
+        "classification": "munro",
+        "difficulty": "moderate"
+    },
+    {
+        "id": "ben-nevis-carn-mor-dearg",
         "name": "Carn Mor Dearg",
-        "area": "Fort William",
+        "area": "Ben Nevis",
         "latitude": 56.8036,
         "longitude": -4.9942,
         "elevation_m": 1220,
         "classification": "munro",
         "difficulty": "challenging"
+    },
+    {
+        "id": "ben-nevis-aonach-beag",
+        "name": "Aonach Beag",
+        "area": "Ben Nevis",
+        "latitude": 56.8167,
+        "longitude": -4.9000,
+        "elevation_m": 1234,
+        "classification": "munro",
+        "difficulty": "challenging"
+    },
+    {
+        "id": "ben-nevis-stob-ban",
+        "name": "Stob Ban",
+        "area": "Ben Nevis",
+        "latitude": 56.8167,
+        "longitude": -4.8667,
+        "elevation_m": 999,
+        "classification": "munro",
+        "difficulty": "moderate"
     }
 ]
 
@@ -393,10 +594,20 @@ async def get_locations(
 async def get_weather(location_id: str):
     """Get weather forecast for a specific location"""
     location = next((loc for loc in MOCK_LOCATIONS if loc["id"] == location_id), None)
-    
+
     if not location:
         raise HTTPException(status_code=404, detail="Location not found")
-    
+
+    # Try to load real scraped forecast data
+    forecast_data = find_latest_forecast(location["name"])
+    if forecast_data:
+        real_forecast = convert_forecast_to_api_format(forecast_data, location)
+        if real_forecast:
+            print(f"✅ Serving REAL forecast for {location['name']}")
+            return real_forecast
+
+    # Fall back to mock data if no real forecast available
+    print(f"⚠️  No real forecast found for {location['name']}, using mock data")
     return generate_mock_forecast(location)
 
 @app.get("/api/v1/weather/compare")

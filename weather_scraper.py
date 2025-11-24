@@ -50,11 +50,11 @@ HIKING_TEMP_HOT_THRESHOLD_C = 25
 
 # Scoring weights for hiking summary (lower is better) - Adjust as desired
 # Increased weights for more conservative scoring
-SCORE_WEIGHT_WIND = 2.5  # Penalty per 10 kph over 30 (Increased)
-SCORE_WEIGHT_RAIN = 7.0  # Penalty per mm of rain (Increased)
-SCORE_WEIGHT_SNOW = 12.0 # Penalty per cm of snow (Increased)
-SCORE_WEIGHT_COLD = 3.0  # Penalty per degree below 0°C (including chill) (Increased)
-SCORE_WEIGHT_HOT = 0.5   # Penalty per degree above 25°C (Increased)
+SCORE_WEIGHT_WIND = 2.0  # Penalty per 10 kph over 30 (Recalibrated for realistic Scottish conditions)
+SCORE_WEIGHT_RAIN = 1.5  # Penalty per mm of rain (Recalibrated: 5mm = 7.5 penalty)
+SCORE_WEIGHT_SNOW = 3.0  # Penalty per cm of snow (Recalibrated: 3cm = 9 penalty)
+SCORE_WEIGHT_COLD = 0.8  # Penalty per degree below 0°C (Recalibrated: -5°C = 4 penalty)
+SCORE_WEIGHT_HOT = 0.5   # Penalty per degree above 25°C (unchanged)
 
 # Inversion Check Thresholds
 INVERSION_CLOUD_BASE_THRESHOLD_M = 300 # Cloud base below this might indicate inversion fog
@@ -104,19 +104,221 @@ def load_config(config_path):
 
 
 def validate_url(url):
-    """Validates if URL is properly formatted and accessible.
-    
+    """Enhanced URL validation with domain and path pattern checks.
+
     Args:
         url (str): The URL to validate.
-        
+
     Returns:
-        bool: True if URL is valid, False otherwise.
+        bool: True if URL is valid and matches expected patterns, False otherwise.
     """
     try:
         result = urlparse(url)
-        return all([result.scheme, result.netloc])
-    except:
+
+        # Basic format check
+        if not all([result.scheme, result.netloc]):
+            return False
+
+        # Domain whitelist check
+        if result.netloc != 'www.mountain-forecast.com':
+            logger.warning(f"URL not from mountain-forecast.com: {url}")
+            return False
+
+        # Path pattern check - should be /peaks/{name}/forecasts/{elevation}
+        path_pattern = r'^/peaks/[\w-]+/forecasts/\d+$'
+        if not re.match(path_pattern, result.path):
+            logger.warning(f"URL path doesn't match expected pattern: {url}")
+            return False
+
+        return True
+    except Exception as e:
+        logger.error(f"Error validating URL {url}: {e}")
         return False
+
+
+def validate_weather_data(temp_c=None, wind_kph=None, precip_mm=None, data_source="unknown"):
+    """Validates weather data values are within reasonable ranges.
+
+    Args:
+        temp_c (float, optional): Temperature in Celsius
+        wind_kph (float, optional): Wind speed in kph
+        precip_mm (float, optional): Precipitation in mm
+        data_source (str): Source of data for logging
+
+    Returns:
+        dict: Dictionary with 'valid' (bool) and 'issues' (list) keys
+    """
+    issues = []
+
+    # Temperature validation (-60°C to +60°C is extreme but possible globally)
+    if temp_c is not None:
+        if temp_c < -60 or temp_c > 60:
+            issues.append(f"Temperature {temp_c}°C outside reasonable range (-60 to +60°C)")
+        if temp_c < -40:
+            logger.warning(f"Extreme cold temperature {temp_c}°C from {data_source}")
+        if temp_c > 40:
+            logger.warning(f"Extreme hot temperature {temp_c}°C from {data_source}")
+
+    # Wind speed validation (0-300 kph, record winds can exceed 250 kph)
+    if wind_kph is not None:
+        if wind_kph < 0:
+            issues.append(f"Negative wind speed {wind_kph} kph is invalid")
+        if wind_kph > 300:
+            issues.append(f"Wind speed {wind_kph} kph exceeds reasonable maximum (300 kph)")
+        if wind_kph > 150:
+            logger.warning(f"Hurricane-force winds {wind_kph} kph from {data_source}")
+
+    # Precipitation validation (0-500 mm per period, flash floods can exceed this)
+    if precip_mm is not None:
+        if precip_mm < 0:
+            issues.append(f"Negative precipitation {precip_mm} mm is invalid")
+        if precip_mm > 500:
+            issues.append(f"Precipitation {precip_mm} mm exceeds reasonable maximum (500 mm)")
+        if precip_mm > 200:
+            logger.warning(f"Extreme precipitation {precip_mm} mm from {data_source}")
+
+    return {
+        'valid': len(issues) == 0,
+        'issues': issues
+    }
+
+
+def calculate_hiking_suitability_score(temp_min_c=None, temp_max_c=None, temp_chill_c=None,
+                                       wind_kph=None, gust_kph=None,
+                                       rain_mm=0, snow_cm=0):
+    """Calculate hiking suitability score based on weather conditions.
+
+    Lower scores indicate more dangerous conditions.
+    Score starts at 0 and penalties are added for adverse conditions.
+    The final score is inverted: final_score = max(1, 10 - raw_penalty_score)
+
+    SAFETY-CRITICAL: This function directly impacts user safety decisions.
+    Conservative scoring is required - when in doubt, err on side of caution.
+
+    Args:
+        temp_min_c (float, optional): Minimum temperature in Celsius
+        temp_max_c (float, optional): Maximum temperature in Celsius
+        temp_chill_c (float, optional): Wind chill temperature in Celsius
+        wind_kph (float, optional): Wind speed in kph
+        gust_kph (float, optional): Gust speed in kph
+        rain_mm (float): Rainfall in mm (default 0)
+        snow_cm (float): Snowfall in cm (default 0)
+
+    Returns:
+        float: Hiking suitability score from 1-10
+               10 = Perfect conditions
+               8-9 = Excellent conditions
+               6-7 = Good conditions (caution advised)
+               4-5 = Challenging conditions (experience required)
+               2-3 = Dangerous conditions (avoid)
+               1 = Extreme danger (do not hike)
+
+    Scoring Algorithm:
+        - Cold penalty: +0.8 per degree below 0°C (uses wind chill if available)
+        - Heat penalty: +0.5 per degree above 25°C
+        - Wind penalty: +2.0 per 10kph over 30kph (uses max of wind/gust)
+        - Rain penalty: +1.5 per mm
+        - Snow penalty: +3.0 per cm
+    """
+    penalty_score = 0
+
+    # Temperature penalties (use wind chill if more severe)
+    effective_min_temp = temp_min_c
+    if temp_chill_c is not None:
+        if temp_min_c is not None:
+            effective_min_temp = min(temp_min_c, temp_chill_c)
+        else:
+            effective_min_temp = temp_chill_c
+
+    # Cold penalty (hypothermia risk)
+    if effective_min_temp is not None and effective_min_temp < HIKING_TEMP_COLD_THRESHOLD_C:
+        penalty_score += abs(effective_min_temp - HIKING_TEMP_COLD_THRESHOLD_C) * SCORE_WEIGHT_COLD
+
+    # Heat penalty (heat exhaustion risk)
+    if temp_max_c is not None and temp_max_c > HIKING_TEMP_HOT_THRESHOLD_C:
+        penalty_score += (temp_max_c - HIKING_TEMP_HOT_THRESHOLD_C) * SCORE_WEIGHT_HOT
+
+    # Wind penalty (use maximum of wind/gust)
+    max_wind = 0
+    if wind_kph is not None:
+        max_wind = max(max_wind, wind_kph)
+    if gust_kph is not None:
+        max_wind = max(max_wind, gust_kph)
+
+    if max_wind > 30:  # Wind over 30 kph becomes hazardous
+        penalty_score += ((max_wind - 30) / 10) * SCORE_WEIGHT_WIND
+
+    # Precipitation penalties
+    if rain_mm is not None and rain_mm > 0:
+        penalty_score += rain_mm * SCORE_WEIGHT_RAIN
+
+    if snow_cm is not None and snow_cm > 0:
+        penalty_score += snow_cm * SCORE_WEIGHT_SNOW
+
+    # Convert penalty to 1-10 scale (inverted - lower penalty = higher score)
+    final_score = max(1.0, 10.0 - penalty_score)
+
+    return round(final_score, 1)
+
+
+def fingerprint_forecast_table(soup, location_name):
+    """Generate a fingerprint of the forecast table HTML structure.
+
+    This function creates a structural signature of the HTML forecast table
+    to detect when the website layout changes. Useful for proactive monitoring
+    of scraper health.
+
+    Args:
+        soup (BeautifulSoup): Parsed HTML soup object
+        location_name (str): Name of the location for logging
+
+    Returns:
+        dict or None: Fingerprint dictionary containing:
+            - row_count: Number of table rows
+            - data_row_types: List of data-row attribute values
+            - column_count: Number of columns in thead
+            - has_elevation: Whether elevation data attribute exists
+            - timestamp: ISO timestamp of fingerprint generation
+            Returns None if table not found.
+    """
+    table = soup.select_one('table.forecast-table__table')
+    if not table:
+        logger.warning(f"Could not find forecast table for {location_name} - HTML structure may have changed")
+        return None
+
+    try:
+        # Count rows
+        all_rows = table.find_all('tr')
+        row_count = len(all_rows)
+
+        # Get data-row types
+        data_rows = table.find_all('tr', attrs={'data-row': True})
+        data_row_types = [row.get('data-row') for row in data_rows]
+
+        # Count columns in thead
+        thead = table.find('thead')
+        column_count = len(thead.find_all('td')) if thead else 0
+
+        # Check for elevation attribute
+        has_elevation = bool(soup.find(attrs={'data-elevation': True}))
+
+        fingerprint = {
+            'row_count': row_count,
+            'data_row_types': data_row_types,
+            'column_count': column_count,
+            'has_elevation': has_elevation,
+            'timestamp': datetime.datetime.now().isoformat(),
+            'location': location_name
+        }
+
+        # Log fingerprint for monitoring
+        logger.debug(f"HTML fingerprint for {location_name}: rows={row_count}, cols={column_count}, data_rows={len(data_row_types)}")
+
+        return fingerprint
+
+    except Exception as e:
+        logger.error(f"Error generating HTML fingerprint for {location_name}: {e}")
+        return None
 
 
 def get_html_with_retry(url, max_retries=MAX_RETRIES):

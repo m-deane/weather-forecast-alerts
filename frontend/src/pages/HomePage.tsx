@@ -1,13 +1,15 @@
 import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { MapPinIcon, ClockIcon } from '@heroicons/react/24/outline'
 import { locationApi } from '@/api/client'
 import { useAppStore } from '@/stores/useAppStore'
 import { WeatherCard } from '@/components/WeatherCard'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
+import { LocationMap } from '@/components/LocationMap'
 
 export function HomePage() {
   const { favoriteLocationIds, recentLocationIds } = useAppStore()
+  const navigate = useNavigate()
 
   // Get areas for quick access
   const { data: areas, isLoading: areasLoading } = useQuery({
@@ -32,6 +34,18 @@ export function HomePage() {
       </header>
 
       <div className="px-4 py-6 space-y-6">
+        {/* Interactive Map Section */}
+        <section>
+          <h2 className="text-lg font-semibold mb-3">Mountain Locations</h2>
+          <div className="bg-white rounded-lg shadow-sm p-2">
+            <LocationMap
+              locations={allLocations || []}
+              onLocationSelect={(location) => navigate(`/location/${location.id}`)}
+              className="w-full h-80"
+            />
+          </div>
+        </section>
+
         {/* Favorites Section */}
         {favoriteLocationIds.length > 0 && (
           <section>

@@ -24,7 +24,7 @@ export function useSwipeGesture(options: SwipeGestureOptions) {
     preventScroll = false
   } = options
 
-  const elementRef = useRef<HTMLElement>(null)
+  const elementRef = useRef<HTMLDivElement>(null)
   const [touchStart, setTouchStart] = useState<TouchPosition | null>(null)
   const [touchEnd, setTouchEnd] = useState<TouchPosition | null>(null)
   const [isSwiping, setIsSwiping] = useState(false)
@@ -118,7 +118,7 @@ export function usePullToRefresh(onRefresh: () => Promise<void> | void) {
   const [isPulling, setIsPulling] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [pullDistance, setPullDistance] = useState(0)
-  const elementRef = useRef<HTMLElement>(null)
+  const elementRef = useRef<HTMLDivElement>(null)
   const startY = useRef<number>(0)
   const maxPullDistance = 80
   const triggerDistance = 60
@@ -191,7 +191,7 @@ export function useTouchDrag() {
   const [isDragging, setIsDragging] = useState(false)
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
   const [startPosition, setStartPosition] = useState({ x: 0, y: 0 })
-  const elementRef = useRef<HTMLElement>(null)
+  const elementRef = useRef<HTMLDivElement>(null)
 
   const onTouchStart = (e: TouchEvent) => {
     const touch = e.touches[0]

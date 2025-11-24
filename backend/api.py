@@ -51,17 +51,20 @@ app = FastAPI(
 )
 
 # Configure middleware
+# SECURITY: Import security_config for proper CORS configuration
+from .security import security_config
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=security_config.allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],  # Explicit methods
+    allow_headers=["Content-Type", "Authorization", "X-API-Key"],  # Explicit headers
 )
 
 app.add_middleware(
     TrustedHostMiddleware,
-    allowed_hosts=["*"]  # Configure appropriately for production
+    allowed_hosts=["localhost", "127.0.0.1"]  # Add production domain when deployed
 )
 
 # Initialize services
