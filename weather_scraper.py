@@ -1797,38 +1797,9 @@ def fix_known_url_issues(url):
     Returns:
         str: The corrected URL.
     """
-    # Known fixes for mountain-forecast.com URLs
-    url_fixes = {
-        'Liathach': 'Liathac',  # Common misspelling
-        'An-Teallach-Bidean-a-Ghlas-Thuill': 'An-Teallach-Bidein-a-Ghlas-Thuill',  # Bidean -> Bidein
-        'Maol-Cheann-dearg': 'Maol-Chean-dearg',  # Extra n removed
-        'Beinn-a-Chearcaill': 'Beinn-a-Chearcall',  # ill -> all
-        'Sgurr-an-Fhidhleir': 'Sgurr-an-Fhidhleir-and-Ben-Mor-Coigach',  # Combined page
-        'A-Mhaighdean': 'A-Mhaighdean-and-Ruadh-Stac-Mor',  # Combined page  
-        'Ben-Mor-Coigach': 'Sgurr-an-Fhidhleir-and-Ben-Mor-Coigach',  # Combined page
-        'Beinn-a-Chrulaiste': 'Creise-and-Meall-a-Bhuiridh',  # Different mountain page
-        # Add more fixes as discovered
-    }
-    
-    original_url = url
-    for wrong, correct in url_fixes.items():
-        if wrong in url:
-            fixed_url = url.replace(wrong, correct)
-            logger.info(f"Fixed URL: {original_url} -> {fixed_url}")
-            return fixed_url
-    
-    # Check for mountains that might be listed under different names entirely
-    alternative_names = {
-        'Maol-Chean-Dearg': 'Maol-Chean-dearg',  # Case variations
-        'An-Teallach': 'An-Teallach-Sgurr-Fiona',  # Alternative page
-    }
-    
-    for alt_wrong, alt_correct in alternative_names.items():
-        if alt_wrong in url:
-            fixed_url = url.replace(alt_wrong, alt_correct)
-            logger.info(f"Using alternative URL: {original_url} -> {fixed_url}")
-            return fixed_url
-    
+    # URL fixes removed - config.yaml now contains verified correct URLs
+    # The config should be the source of truth for mountain-forecast.com URLs
+    # Use check_urls.py to validate URLs before adding them to config
     return url
 
 
