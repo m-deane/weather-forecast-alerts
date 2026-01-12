@@ -1,7 +1,10 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
+import Map, { Marker, Popup, NavigationControl, ScaleControl } from 'react-map-gl'
 import { useQuery } from '@tanstack/react-query'
 import { locationApi } from '@/api/client'
 import type { Location } from '@/types'
+import { MapPinIcon } from '@heroicons/react/24/solid'
+import 'mapbox-gl/dist/mapbox-gl.css'
 
 interface LocationMapProps {
   locations?: Location[]
@@ -10,98 +13,223 @@ interface LocationMapProps {
   onLocationSelect?: (location: Location) => void
   selectedLocationId?: string
   className?: string
+  interactive?: boolean
+  showPopups?: boolean
+}
+
+// Free dark map style from CartoDB
+const DARK_MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
+
+// Color based on hiking score
+const getMarkerColor = (score?: number): string => {
+  if (!score) return '#10b981' // emerald-500 default
+  if (score >= 7) return '#22c55e' // green - excellent
+  if (score >= 5) return '#10b981' // emerald - good
+  if (score >= 3) return '#f59e0b' // amber - moderate
+  return '#ef4444' // red - poor/dangerous
+}
+
+// Marker size based on elevation
+const getMarkerSize = (elevation?: number): number => {
+  if (!elevation) return 24
+  if (elevation >= 1200) return 32
+  if (elevation >= 1000) return 28
+  return 24
 }
 
 export function LocationMap({
   locations = [],
   center = [57.0, -5.0], // Center of Scottish Highlands
-  zoom = 8,
+  zoom = 7,
   onLocationSelect,
   selectedLocationId,
-  className = "w-full h-64 rounded-lg"
+  className = "w-full h-80 rounded-xl",
+  interactive = true,
+  showPopups = true
 }: LocationMapProps) {
-  const [mapCenter, setMapCenter] = useState(center)
-  const [mapZoom, setMapZoom] = useState(zoom)
+  const [viewState, setViewState] = useState({
+    latitude: center[0],
+    longitude: center[1],
+    zoom: zoom,
+    bearing: 0,
+    pitch: 0
+  })
 
-  // For now, we'll create a simple placeholder map
-  // In a full implementation, this would use Mapbox GL JS or similar
-  
-  return (
-    <div className={`bg-gray-100 border border-gray-300 relative overflow-hidden ${className}`}>
-      {/* Map placeholder */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-100 via-green-100 to-gray-100">
-        {/* Scotland outline placeholder */}
-        <svg 
-          viewBox="0 0 400 600" 
-          className="absolute inset-0 w-full h-full opacity-20"
-          fill="currentColor"
-        >
-          {/* Simplified Scotland shape */}
-          <path d="M200 50 C150 60 120 100 110 150 C100 200 120 250 140 300 C160 350 180 400 200 450 C220 400 240 350 260 300 C280 250 300 200 290 150 C280 100 250 60 200 50 Z" />
-        </svg>
-        
-        {/* Location markers */}
-        {locations.map((location, index) => {
-          // Convert lat/lng to approximate pixel positions
-          const x = ((location.longitude + 8) / 6) * 100 // Rough conversion for Scottish bounds
-          const y = ((60 - location.latitude) / 4) * 100
-          
-          return (
-            <button
-              key={location.id}
-              onClick={() => onLocationSelect?.(location)}
-              className={`absolute w-3 h-3 rounded-full transform -translate-x-1/2 -translate-y-1/2 transition-all hover:scale-125 ${
-                selectedLocationId === location.id 
-                  ? 'bg-primary-600 ring-2 ring-primary-300' 
-                  : 'bg-red-500 hover:bg-red-600'
-              }`}
-              style={{
-                left: `${Math.max(5, Math.min(95, x))}%`,
-                top: `${Math.max(5, Math.min(95, y))}%`
-              }}
-              title={`${location.name} (${location.elevation_m}m)`}
-            />
-          )
-        })}
-      </div>
+  const [popupInfo, setPopupInfo] = useState<Location | null>(null)
 
-      {/* Map controls */}
-      <div className="absolute top-2 right-2 flex flex-col gap-1">
-        <button
-          onClick={() => setMapZoom(Math.min(12, mapZoom + 1))}
-          className="w-8 h-8 bg-white shadow-md rounded flex items-center justify-center text-gray-600 hover:text-gray-900"
-        >
-          +
-        </button>
-        <button
-          onClick={() => setMapZoom(Math.max(6, mapZoom - 1))}
-          className="w-8 h-8 bg-white shadow-md rounded flex items-center justify-center text-gray-600 hover:text-gray-900"
-        >
-          −
-        </button>
-      </div>
+  const handleMarkerClick = useCallback((location: Location) => {
+    if (showPopups) {
+      setPopupInfo(location)
+    }
+    onLocationSelect?.(location)
+  }, [onLocationSelect, showPopups])
 
-      {/* Legend */}
-      <div className="absolute bottom-2 left-2 bg-white bg-opacity-90 rounded px-2 py-1 text-xs">
-        <div className="flex items-center gap-1">
-          <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-          <span>Mountains</span>
-        </div>
-        {selectedLocationId && (
-          <div className="flex items-center gap-1 mt-1">
-            <div className="w-2 h-2 bg-primary-600 rounded-full"></div>
-            <span>Selected</span>
+  // Group locations by area for clustering effect
+  const markers = useMemo(() => {
+    return locations.map((location) => {
+      const isSelected = selectedLocationId === location.id
+      const color = getMarkerColor(location.current_score)
+      const size = getMarkerSize(location.elevation_m)
+
+      return (
+        <Marker
+          key={location.id}
+          latitude={location.latitude}
+          longitude={location.longitude}
+          anchor="bottom"
+          onClick={(e) => {
+            e.originalEvent.stopPropagation()
+            handleMarkerClick(location)
+          }}
+        >
+          <div
+            className={`
+              cursor-pointer transition-all duration-200
+              hover:scale-110 hover:z-10
+              ${isSelected ? 'scale-125 z-20' : ''}
+            `}
+            title={`${location.name} (${location.elevation_m}m)`}
+          >
+            {/* Glow effect for selected */}
+            {isSelected && (
+              <div
+                className="absolute inset-0 rounded-full animate-pulse"
+                style={{
+                  background: `radial-gradient(circle, ${color}40 0%, transparent 70%)`,
+                  transform: 'scale(2)',
+                }}
+              />
+            )}
+
+            {/* Mountain marker icon */}
+            <div
+              className={`
+                relative flex items-center justify-center
+                ${isSelected ? 'drop-shadow-lg' : 'drop-shadow-md'}
+              `}
+              style={{ width: size, height: size }}
+            >
+              <MapPinIcon
+                className="w-full h-full"
+                style={{
+                  color: color,
+                  filter: isSelected ? `drop-shadow(0 0 8px ${color})` : 'none'
+                }}
+              />
+
+              {/* Elevation indicator dot */}
+              <div
+                className="absolute top-1 w-2 h-2 rounded-full bg-white/90"
+                style={{
+                  boxShadow: `0 0 4px ${color}`
+                }}
+              />
+            </div>
           </div>
+        </Marker>
+      )
+    })
+  }, [locations, selectedLocationId, handleMarkerClick])
+
+  return (
+    <div className={`map-container relative ${className}`}>
+      <Map
+        {...viewState}
+        onMove={evt => interactive && setViewState(evt.viewState)}
+        style={{ width: '100%', height: '100%' }}
+        mapStyle={DARK_MAP_STYLE}
+        interactive={interactive}
+        attributionControl={false}
+        onClick={() => setPopupInfo(null)}
+      >
+        {/* Navigation controls */}
+        {interactive && (
+          <NavigationControl
+            position="top-right"
+            showCompass={true}
+            visualizePitch={true}
+          />
         )}
+
+        {/* Scale */}
+        <ScaleControl position="bottom-left" />
+
+        {/* Location markers */}
+        {markers}
+
+        {/* Popup for selected location */}
+        {popupInfo && showPopups && (
+          <Popup
+            latitude={popupInfo.latitude}
+            longitude={popupInfo.longitude}
+            anchor="top"
+            onClose={() => setPopupInfo(null)}
+            closeButton={true}
+            closeOnClick={false}
+            className="location-popup"
+          >
+            <div className="p-1">
+              <h3 className="font-semibold text-slate-100 text-sm">
+                {popupInfo.name}
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {popupInfo.area} • {popupInfo.elevation_m}m
+              </p>
+              {popupInfo.current_score !== undefined && (
+                <div className="mt-2 flex items-center gap-2">
+                  <span
+                    className={`
+                      text-xs font-medium px-2 py-0.5 rounded-full
+                      ${popupInfo.current_score >= 7 ? 'bg-emerald-500/20 text-emerald-400' :
+                        popupInfo.current_score >= 5 ? 'bg-emerald-600/20 text-emerald-300' :
+                        popupInfo.current_score >= 3 ? 'bg-warning-500/20 text-warning-400' :
+                        'bg-danger-500/20 text-danger-400'}
+                    `}
+                  >
+                    Score: {popupInfo.current_score}/10
+                  </span>
+                </div>
+              )}
+              {onLocationSelect && (
+                <button
+                  onClick={() => onLocationSelect(popupInfo)}
+                  className="mt-2 w-full text-xs bg-emerald-600 hover:bg-emerald-500 text-white rounded px-2 py-1 transition-colors"
+                >
+                  View Details
+                </button>
+              )}
+            </div>
+          </Popup>
+        )}
+      </Map>
+
+      {/* Map legend */}
+      <div className="absolute bottom-3 right-3 bg-slate-800/90 backdrop-blur-sm rounded-lg px-3 py-2 border border-slate-700/50 text-xs">
+        <div className="text-slate-400 font-medium mb-1.5">Hiking Conditions</div>
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+            <span className="text-slate-300">Excellent (7+)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+            <span className="text-slate-300">Good (5-7)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+            <span className="text-slate-300">Moderate (3-5)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+            <span className="text-slate-300">Poor (&lt;3)</span>
+          </div>
+        </div>
       </div>
 
-      {/* Loading overlay for future map implementation */}
-      <div className="absolute inset-0 flex items-center justify-center text-gray-500 text-sm">
-        {locations.length === 0 ? (
-          'Loading locations...'
-        ) : (
-          `${locations.length} locations`
-        )}
+      {/* Location count badge */}
+      <div className="absolute top-3 left-3 bg-slate-800/90 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-slate-700/50">
+        <span className="text-emerald-400 font-semibold">{locations.length}</span>
+        <span className="text-slate-400 text-sm ml-1">locations</span>
       </div>
     </div>
   )

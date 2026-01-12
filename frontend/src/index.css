@@ -2,13 +2,31 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Highland Dark Theme - Scottish Mountain Weather */
+
 @layer base {
+  :root {
+    /* Theme colors as CSS variables */
+    --color-bg-primary: #0f172a;
+    --color-bg-secondary: #1e293b;
+    --color-bg-tertiary: #334155;
+    --color-text-primary: #e2e8f0;
+    --color-text-secondary: #94a3b8;
+    --color-text-muted: #64748b;
+    --color-accent: #10b981;
+    --color-accent-hover: #059669;
+    --color-border: #334155;
+  }
+
   html {
     -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
   }
 
   body {
-    @apply bg-gray-50 text-gray-900 antialiased;
+    @apply bg-slate-900 text-slate-200 antialiased;
+    background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+    min-height: 100vh;
   }
 
   /* Better touch targets for mobile */
@@ -16,39 +34,128 @@
     @apply min-h-[44px] min-w-[44px];
   }
 
-  /* Smooth scrolling */
-  html {
-    scroll-behavior: smooth;
-  }
-
   /* Disable pull-to-refresh on Chrome Android */
   body {
     overscroll-behavior-y: none;
   }
+
+  /* Selection colors */
+  ::selection {
+    @apply bg-emerald-600/40 text-white;
+  }
+
+  /* Scrollbar styling for dark theme */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-slate-800;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-600 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-slate-500;
+  }
 }
 
 @layer components {
-  /* Card component */
+  /* Dark Card component */
   .card {
-    @apply bg-white rounded-lg shadow-sm border border-gray-200 p-4;
+    @apply bg-slate-800/80 backdrop-blur-sm rounded-xl border border-slate-700/50 p-4;
+    @apply transition-all duration-200;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.2);
   }
 
-  /* Weather condition badges */
+  .card:hover {
+    @apply border-slate-600/50;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+  }
+
+  .card-elevated {
+    @apply bg-slate-800 rounded-xl border border-slate-700 p-4;
+    @apply shadow-lg;
+  }
+
+  /* Glass card effect */
+  .card-glass {
+    @apply bg-slate-800/60 backdrop-blur-md rounded-xl border border-slate-700/30 p-4;
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%);
+  }
+
+  /* Emerald accent card */
+  .card-accent {
+    @apply bg-emerald-900/20 rounded-xl border border-emerald-700/30 p-4;
+  }
+
+  /* Weather condition badges - dark theme */
   .weather-good {
-    @apply bg-success-50 text-success-700 border-success-200;
+    @apply bg-emerald-900/40 text-emerald-400 border border-emerald-700/50 rounded-full px-3 py-1;
   }
 
   .weather-moderate {
-    @apply bg-warning-50 text-warning-700 border-warning-200;
+    @apply bg-warning-500/20 text-warning-400 border border-warning-600/50 rounded-full px-3 py-1;
   }
 
   .weather-poor {
-    @apply bg-danger-50 text-danger-700 border-danger-200;
+    @apply bg-danger-500/20 text-danger-400 border border-danger-600/50 rounded-full px-3 py-1;
   }
 
-  /* Loading skeleton */
+  /* Hiking score badge */
+  .score-excellent {
+    @apply bg-emerald-500/20 text-emerald-400 border border-emerald-500/30;
+  }
+
+  .score-good {
+    @apply bg-emerald-600/20 text-emerald-300 border border-emerald-600/30;
+  }
+
+  .score-moderate {
+    @apply bg-warning-500/20 text-warning-400 border border-warning-500/30;
+  }
+
+  .score-poor {
+    @apply bg-danger-500/20 text-danger-400 border border-danger-500/30;
+  }
+
+  /* Button styles */
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:ring-offset-2 focus:ring-offset-slate-900;
+  }
+
+  .btn-primary {
+    @apply bg-emerald-600 text-white hover:bg-emerald-500;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+  }
+
+  .btn-primary:hover {
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+  }
+
+  .btn-secondary {
+    @apply bg-slate-700 text-slate-200 hover:bg-slate-600 border border-slate-600;
+  }
+
+  .btn-ghost {
+    @apply bg-transparent text-slate-300 hover:bg-slate-800 hover:text-white;
+  }
+
+  /* Input styles */
+  .input {
+    @apply w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-3;
+    @apply text-slate-200 placeholder-slate-500;
+    @apply focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50;
+    @apply transition-colors duration-200;
+  }
+
+  /* Loading skeleton - dark */
   .skeleton {
-    @apply animate-pulse bg-gray-200 rounded;
+    @apply animate-pulse bg-slate-700 rounded;
   }
 
   /* Safe area padding for iOS */
@@ -58,6 +165,64 @@
 
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Header gradient */
+  .header-gradient {
+    background: linear-gradient(135deg, #059669 0%, #047857 50%, #065f46 100%);
+  }
+
+  /* Map container styles */
+  .map-container {
+    @apply rounded-xl overflow-hidden border border-slate-700/50;
+    @apply shadow-lg;
+  }
+
+  /* Divider */
+  .divider {
+    @apply border-t border-slate-700/50;
+  }
+
+  /* Section title */
+  .section-title {
+    @apply text-lg font-semibold text-slate-100 mb-4;
+  }
+
+  /* Stat card */
+  .stat-card {
+    @apply bg-slate-800/60 rounded-lg p-4 border border-slate-700/30;
+  }
+
+  .stat-value {
+    @apply text-2xl font-bold text-white;
+  }
+
+  .stat-label {
+    @apply text-sm text-slate-400;
+  }
+
+  /* Toggle switch styles */
+  .toggle {
+    @apply relative inline-flex h-6 w-11 items-center rounded-full;
+    @apply transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/50;
+  }
+
+  .toggle-enabled {
+    @apply bg-emerald-600;
+  }
+
+  .toggle-disabled {
+    @apply bg-slate-600;
+  }
+
+  /* Navigation active state */
+  .nav-active {
+    @apply text-emerald-400 border-b-2 border-emerald-400;
+  }
+
+  /* Subtle text gradient */
+  .text-gradient {
+    @apply bg-gradient-to-r from-emerald-400 to-emerald-300 bg-clip-text text-transparent;
   }
 }
 
@@ -76,4 +241,65 @@
   .touch-scroll {
     -webkit-overflow-scrolling: touch;
   }
+
+  /* Glow effects */
+  .glow-emerald {
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+  }
+
+  /* Glass effect */
+  .glass {
+    @apply bg-white/5 backdrop-blur-md;
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    @apply bg-gradient-to-r from-emerald-400 via-emerald-300 to-emerald-400;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Noise texture overlay */
+  .noise-overlay {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    opacity: 0.03;
+    pointer-events: none;
+  }
+}
+
+/* Mapbox overrides for dark theme */
+.mapboxgl-popup-content {
+  @apply bg-slate-800 text-slate-200 rounded-lg shadow-xl border border-slate-700 !important;
+  padding: 12px 16px !important;
+}
+
+.mapboxgl-popup-tip {
+  border-top-color: #1e293b !important;
+}
+
+.mapboxgl-ctrl-group {
+  @apply bg-slate-800 border-slate-700 !important;
+}
+
+.mapboxgl-ctrl-group button {
+  @apply text-slate-300 hover:text-white !important;
+}
+
+.mapboxgl-ctrl-attrib {
+  @apply bg-slate-900/80 text-slate-500 !important;
+}
+
+/* Recharts customization for dark theme */
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+  stroke: #334155 !important;
+}
+
+.recharts-text {
+  fill: #94a3b8 !important;
+}
+
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  @apply bg-slate-800 border-slate-700 rounded-lg shadow-xl !important;
 }

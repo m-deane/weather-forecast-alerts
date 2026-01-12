@@ -23,8 +23,8 @@ function ToggleSwitch({ enabled, onChange, disabled = false }: ToggleSwitchProps
       type="button"
       onClick={() => !disabled && onChange(!enabled)}
       className={cn(
-        'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
-        enabled ? 'bg-blue-600' : 'bg-gray-200',
+        'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-slate-900',
+        enabled ? 'bg-emerald-600' : 'bg-slate-600',
         disabled && 'opacity-50 cursor-not-allowed'
       )}
       disabled={disabled}
@@ -50,7 +50,7 @@ interface SegmentedControlProps<T extends string> {
 
 function SegmentedControl<T extends string>({ options, value, onChange }: SegmentedControlProps<T>) {
   return (
-    <div className="inline-flex rounded-lg bg-gray-100 p-1">
+    <div className="inline-flex rounded-lg bg-slate-700 p-1">
       {options.map((option) => (
         <button
           key={option.value}
@@ -58,8 +58,8 @@ function SegmentedControl<T extends string>({ options, value, onChange }: Segmen
           className={cn(
             'px-4 py-2 text-sm font-medium rounded-md transition-all duration-200',
             value === option.value
-              ? 'bg-white text-gray-900 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'
+              ? 'bg-slate-600 text-slate-100 shadow-sm'
+              : 'text-slate-400 hover:text-slate-200'
           )}
         >
           {option.label}
@@ -79,16 +79,16 @@ interface SettingsSectionProps {
 
 function SettingsSection({ icon: Icon, title, description, children }: SettingsSectionProps) {
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-      <div className="px-4 py-4 sm:px-6 border-b border-gray-100">
+    <div className="card overflow-hidden">
+      <div className="px-4 py-4 sm:px-6 border-b border-slate-700/50">
         <div className="flex items-center gap-3">
           <div className="flex-shrink-0">
-            <Icon className="h-6 w-6 text-blue-600" />
+            <Icon className="h-6 w-6 text-emerald-500" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+            <h3 className="text-lg font-semibold text-slate-100">{title}</h3>
             {description && (
-              <p className="text-sm text-gray-500 mt-0.5">{description}</p>
+              <p className="text-sm text-slate-400 mt-0.5">{description}</p>
             )}
           </div>
         </div>
@@ -111,9 +111,9 @@ function SettingRow({ label, description, children }: SettingRowProps) {
   return (
     <div className="flex items-center justify-between gap-4">
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-gray-900">{label}</p>
+        <p className="text-sm font-medium text-slate-200">{label}</p>
         {description && (
-          <p className="text-sm text-gray-500 mt-0.5">{description}</p>
+          <p className="text-sm text-slate-500 mt-0.5">{description}</p>
         )}
       </div>
       <div className="flex-shrink-0">
@@ -205,12 +205,12 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200">
+      <div className="border-b border-slate-700/50">
         <div className="max-w-2xl mx-auto px-4 py-6">
-          <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-          <p className="text-gray-600 mt-1">Customize your weather app experience</p>
+          <h1 className="text-2xl font-bold text-slate-100">Settings</h1>
+          <p className="text-slate-400 mt-1">Customize your weather app experience</p>
         </div>
       </div>
 
@@ -309,8 +309,8 @@ export function SettingsPage() {
                 className={cn(
                   'flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all',
                   preferences.riskTolerance === level
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-200 hover:border-gray-300 bg-white'
+                    ? 'border-emerald-500 bg-emerald-900/20'
+                    : 'border-slate-600 hover:border-slate-500 bg-slate-800/50'
                 )}
               >
                 <input
@@ -319,11 +319,11 @@ export function SettingsPage() {
                   value={level}
                   checked={preferences.riskTolerance === level}
                   onChange={() => handleRiskToleranceChange(level)}
-                  className="mt-1 h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                  className="mt-1 h-4 w-4 text-emerald-600 border-slate-500 focus:ring-emerald-500 bg-slate-700"
                 />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 capitalize">{level}</p>
-                  <p className="text-sm text-gray-500 mt-0.5">
+                  <p className="text-sm font-medium text-slate-200 capitalize">{level}</p>
+                  <p className="text-sm text-slate-500 mt-0.5">
                     {riskToleranceDescriptions[level]}
                   </p>
                 </div>
@@ -342,7 +342,7 @@ export function SettingsPage() {
             label="Cache Size"
             description="Weather data stored for offline access"
           >
-            <span className="text-sm font-medium text-gray-600">{cacheSize}</span>
+            <span className="text-sm font-medium text-slate-400">{cacheSize}</span>
           </SettingRow>
 
           <div className="pt-2">
@@ -351,8 +351,8 @@ export function SettingsPage() {
               disabled={isClearingCache}
               className={cn(
                 'inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-                'border border-red-200 text-red-600 hover:bg-red-50',
-                'focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2',
+                'border border-danger-600/50 text-danger-400 hover:bg-danger-900/20',
+                'focus:outline-none focus:ring-2 focus:ring-danger-500 focus:ring-offset-2 focus:ring-offset-slate-900',
                 isClearingCache && 'opacity-50 cursor-not-allowed'
               )}
             >
@@ -370,15 +370,15 @@ export function SettingsPage() {
         >
           <div className="space-y-3">
             <SettingRow label="Version">
-              <span className="text-sm font-medium text-gray-600">0.1.0</span>
+              <span className="text-sm font-medium text-slate-400">0.1.0</span>
             </SettingRow>
 
             <SettingRow label="Data Sources">
-              <span className="text-sm text-gray-600">mountain-forecast.com</span>
+              <span className="text-sm text-slate-400">mountain-forecast.com</span>
             </SettingRow>
 
-            <div className="pt-2 border-t border-gray-100">
-              <p className="text-xs text-gray-500 leading-relaxed">
+            <div className="pt-2 border-t border-slate-700/50">
+              <p className="text-xs text-slate-400 leading-relaxed">
                 Scottish Mountain Weather provides weather forecasts and hiking suitability
                 scores to help you make informed decisions. Always exercise caution and
                 check multiple sources before heading into the mountains.
@@ -386,7 +386,7 @@ export function SettingsPage() {
             </div>
 
             <div className="pt-2">
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-slate-500">
                 Weather data is refreshed every 4-6 hours. Forecasts are provided for
                 informational purposes only.
               </p>
