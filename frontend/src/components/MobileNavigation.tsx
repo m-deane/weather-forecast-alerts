@@ -139,7 +139,7 @@ export function MobileNavigation() {
                   {item.label}
                 </span>
                 {isActive && (
-                  <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-8 h-1 bg-emerald-500 rounded-t-full shadow-glow-emerald-sm" />
+                  <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-8 h-1 bg-emerald-500 rounded-t-full" style={{ boxShadow: '0 0 10px rgba(16, 185, 129, 0.4)' }} />
                 )}
               </button>
             )
