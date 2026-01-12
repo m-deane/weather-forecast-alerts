@@ -1,23 +1,25 @@
 import React from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { 
-  ArrowLeftIcon, 
+import {
+  ArrowLeftIcon,
   HeartIcon,
   ShareIcon,
   ExclamationTriangleIcon,
   CloudIcon,
   EyeIcon,
-  SunIcon
+  SunIcon,
+  BeakerIcon
 } from '@heroicons/react/24/outline'
 import { HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid'
 import { weatherApi, locationApi } from '@/api/client'
 import { useAppStore } from '@/stores/useAppStore'
+import { useDataStalenessStore } from '@/stores/useDataStalenessStore'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { cn } from '@/utils/cn'
-import { 
-  formatTemperature, 
-  formatWindSpeed, 
+import {
+  formatTemperature,
+  formatWindSpeed,
   getHikingScoreColor,
   getHikingScoreDescription,
   getRiskLevelColor,
@@ -25,7 +27,11 @@ import {
   getVisibilityDescription,
   getCloudBaseDescription,
   getPeriodLabel,
-  getWindDescription
+  getWindDescription,
+  formatFreezingLevel,
+  formatCloudBase,
+  isAboveFreezingLevel,
+  isInCloud
 } from '@/utils/weather'
 import { CustomizableDashboard } from '@/components/CustomizableDashboard'
 import { ExportWeatherData } from '@/components/ExportWeatherData'
@@ -35,6 +41,7 @@ export function LocationPage() {
   const { locationId } = useParams<{ locationId: string }>()
   const navigate = useNavigate()
   const { preferences, isFavorite, addFavorite, removeFavorite, addRecent } = useAppStore()
+  const setLastUpdated = useDataStalenessStore((state) => state.setLastUpdated)
 
   // Get weather forecast
   const { data: forecast, isLoading: forecastLoading, error: forecastError } = useQuery({
@@ -42,6 +49,13 @@ export function LocationPage() {
     queryFn: () => weatherApi.getForecast(locationId!),
     enabled: !!locationId,
   })
+
+  // Update data staleness store when forecast is loaded
+  React.useEffect(() => {
+    if (forecast?.last_updated) {
+      setLastUpdated(forecast.last_updated)
+    }
+  }, [forecast?.last_updated, setLastUpdated])
 
   // Add to recent on load
   React.useEffect(() => {
@@ -202,7 +216,11 @@ export function LocationPage() {
 
 function CurrentConditionsCard({ day, preferences }: { day: DailyForecast; preferences: any }) {
   const currentPeriod = day.periods[0] // Assuming first period is current
-  
+
+  // Calculate wind chill difference for display emphasis
+  const windChillDiff = currentPeriod.temperature_c - currentPeriod.feels_like_c
+  const significantWindChill = windChillDiff >= 3
+
   return (
     <div className="card">
       <div className="flex items-center justify-between mb-4">
@@ -214,8 +232,12 @@ function CurrentConditionsCard({ day, preferences }: { day: DailyForecast; prefe
           <div className="text-3xl font-bold">
             {formatTemperature(currentPeriod.temperature_c, preferences)}
           </div>
-          <div className="text-sm text-gray-500">
+          <div className={cn(
+            'text-sm',
+            significantWindChill ? 'text-blue-600 font-medium' : 'text-gray-500'
+          )}>
             Feels like {formatTemperature(currentPeriod.feels_like_c, preferences)}
+            {significantWindChill && ' (wind chill)'}
           </div>
         </div>
       </div>
@@ -250,13 +272,63 @@ function CurrentConditionsCard({ day, preferences }: { day: DailyForecast; prefe
           <span>{getVisibilityDescription(currentPeriod.visibility_m)}</span>
         </div>
 
-        {currentPeriod.cloud_base_m && (
+        {currentPeriod.cloud_base_m !== undefined && (
           <div className="flex items-center justify-between">
-            <span className="text-gray-600">Cloud Base</span>
-            <span>{getCloudBaseDescription(currentPeriod.cloud_base_m)}</span>
+            <span className="text-gray-600 flex items-center gap-1">
+              <CloudIcon className="w-4 h-4" />
+              Cloud Base
+            </span>
+            <span>{formatCloudBase(currentPeriod.cloud_base_m)} ({getCloudBaseDescription(currentPeriod.cloud_base_m)})</span>
+          </div>
+        )}
+
+        {currentPeriod.freezing_level_m !== undefined && (
+          <div className="flex items-center justify-between">
+            <span className="text-blue-600 flex items-center gap-1">
+              <BeakerIcon className="w-4 h-4" />
+              Freezing Level
+            </span>
+            <span className="text-blue-600 font-medium">
+              {formatFreezingLevel(currentPeriod.freezing_level_m)}
+            </span>
           </div>
         )}
       </div>
+
+      {/* Safety-Critical Conditions Banner */}
+      {(currentPeriod.freezing_level_m !== undefined || currentPeriod.cloud_base_m !== undefined) && (
+        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <h4 className="text-sm font-semibold text-blue-800 mb-2">Safety Conditions</h4>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            {currentPeriod.freezing_level_m !== undefined && (
+              <div className="flex items-center gap-2">
+                <BeakerIcon className="w-4 h-4 text-blue-600" />
+                <div>
+                  <div className="text-blue-800 font-medium">Freezing: {formatFreezingLevel(currentPeriod.freezing_level_m)}</div>
+                  <div className="text-blue-600 text-xs">
+                    {currentPeriod.freezing_level_m < 500 ? 'Winter conditions likely' :
+                     currentPeriod.freezing_level_m < 1000 ? 'Ice possible on summits' :
+                     'Above most peaks'}
+                  </div>
+                </div>
+              </div>
+            )}
+            {currentPeriod.cloud_base_m !== undefined && (
+              <div className="flex items-center gap-2">
+                <CloudIcon className="w-4 h-4 text-gray-600" />
+                <div>
+                  <div className="text-gray-800 font-medium">Cloud: {formatCloudBase(currentPeriod.cloud_base_m)}</div>
+                  <div className="text-gray-600 text-xs">
+                    {currentPeriod.cloud_base_m < 500 ? 'Low visibility on hills' :
+                     currentPeriod.cloud_base_m < 1000 ? 'Cloud on higher peaks' :
+                     'Clear above most summits'}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="mt-4 p-3 bg-gray-50 rounded-lg">
         <p className="text-sm">{currentPeriod.weather_description}</p>
@@ -265,14 +337,23 @@ function CurrentConditionsCard({ day, preferences }: { day: DailyForecast; prefe
   )
 }
 
-function DayForecastCard({ day, preferences, isToday }: { 
-  day: DailyForecast; 
-  preferences: any; 
-  isToday: boolean 
+function DayForecastCard({ day, preferences, isToday }: {
+  day: DailyForecast;
+  preferences: any;
+  isToday: boolean
 }) {
   const date = new Date(day.date)
   const dayName = isToday ? 'Today' : date.toLocaleDateString('en-GB', { weekday: 'short' })
   const dateStr = date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+
+  // Get representative period for freezing level and cloud base (use midday/afternoon period if available)
+  const representativePeriod = day.periods.find(p => p.period_type === 'pm') || day.periods[0]
+  const freezingLevel = representativePeriod?.freezing_level_m
+  const cloudBase = representativePeriod?.cloud_base_m
+
+  // Calculate min feels_like across all periods for wind chill display
+  const minFeelsLike = Math.min(...day.periods.map(p => p.feels_like_c))
+  const significantWindChill = day.summary.min_temp_c - minFeelsLike >= 3
 
   return (
     <div className="card">
@@ -288,6 +369,11 @@ function DayForecastCard({ day, preferences, isToday }: {
             <div className="font-medium">
               {formatTemperature(day.summary.max_temp_c, preferences)} / {formatTemperature(day.summary.min_temp_c, preferences)}
             </div>
+            {significantWindChill && (
+              <div className="text-xs text-blue-600">
+                Feels {formatTemperature(minFeelsLike, preferences)}
+              </div>
+            )}
           </div>
 
           <div className="text-center">
@@ -306,9 +392,33 @@ function DayForecastCard({ day, preferences, isToday }: {
         </div>
       </div>
 
-      {day.summary.total_precipitation_mm > 0 && (
-        <div className="mt-2 text-sm text-gray-600">
-          Rain: {formatPrecipitation(day.summary.total_precipitation_mm)}
+      {/* Safety-critical weather conditions row */}
+      <div className="mt-2 flex flex-wrap gap-3 text-sm">
+        {day.summary.total_precipitation_mm > 0 && (
+          <span className="text-gray-600">
+            Rain: {formatPrecipitation(day.summary.total_precipitation_mm)}
+          </span>
+        )}
+
+        {freezingLevel !== undefined && (
+          <span className="text-blue-600 flex items-center gap-1">
+            <BeakerIcon className="w-3.5 h-3.5" />
+            Freezing: {formatFreezingLevel(freezingLevel)}
+          </span>
+        )}
+
+        {cloudBase !== undefined && (
+          <span className="text-gray-600 flex items-center gap-1">
+            <CloudIcon className="w-3.5 h-3.5" />
+            Cloud: {formatCloudBase(cloudBase)}
+          </span>
+        )}
+      </div>
+
+      {/* Warning for very low freezing level */}
+      {freezingLevel !== undefined && freezingLevel < 500 && (
+        <div className="mt-2 text-xs text-blue-700 bg-blue-50 px-2 py-1 rounded inline-block">
+          Winter conditions expected - ice/snow likely on higher ground
         </div>
       )}
     </div>
@@ -316,6 +426,10 @@ function DayForecastCard({ day, preferences, isToday }: {
 }
 
 function PeriodCard({ period, preferences }: { period: WeatherPeriod; preferences: any }) {
+  // Calculate wind chill difference for display emphasis
+  const windChillDiff = period.temperature_c - period.feels_like_c
+  const significantWindChill = windChillDiff >= 3
+
   return (
     <div className="card">
       <div className="flex items-center justify-between mb-3">
@@ -335,10 +449,17 @@ function PeriodCard({ period, preferences }: { period: WeatherPeriod; preference
             {formatTemperature(period.temperature_c, preferences)}
           </span>
         </div>
-        
+
         <div>
-          <span className="text-gray-600">Feels like:</span><br />
-          <span className="font-medium">
+          <span className={cn(
+            significantWindChill ? 'text-blue-600' : 'text-gray-600'
+          )}>
+            Feels like{significantWindChill ? ' (wind chill)' : ''}:
+          </span><br />
+          <span className={cn(
+            'font-medium',
+            significantWindChill && 'text-blue-600'
+          )}>
             {formatTemperature(period.feels_like_c, preferences)}
           </span>
         </div>
@@ -356,7 +477,45 @@ function PeriodCard({ period, preferences }: { period: WeatherPeriod; preference
             {period.hiking_score}/10
           </span>
         </div>
+
+        {/* Safety-critical fields */}
+        {period.freezing_level_m !== undefined && (
+          <div>
+            <span className="text-blue-600 flex items-center gap-1">
+              <BeakerIcon className="w-3.5 h-3.5" />
+              Freezing Level:
+            </span>
+            <span className="font-medium text-blue-600">
+              {formatFreezingLevel(period.freezing_level_m)}
+            </span>
+          </div>
+        )}
+
+        {period.cloud_base_m !== undefined && (
+          <div>
+            <span className="text-gray-600 flex items-center gap-1">
+              <CloudIcon className="w-3.5 h-3.5" />
+              Cloud Base:
+            </span>
+            <span className="font-medium">
+              {formatCloudBase(period.cloud_base_m)}
+            </span>
+          </div>
+        )}
       </div>
+
+      {/* Safety warnings */}
+      {(period.freezing_level_m !== undefined && period.freezing_level_m < 500) && (
+        <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-700">
+          <strong>Winter Conditions:</strong> Freezing level at {formatFreezingLevel(period.freezing_level_m)} - expect ice, snow, and winter conditions on higher ground. Crampons and ice axe may be required.
+        </div>
+      )}
+
+      {(period.cloud_base_m !== undefined && period.cloud_base_m < 500) && (
+        <div className="mt-3 p-2 bg-gray-100 border border-gray-200 rounded text-xs text-gray-700">
+          <strong>Navigation Warning:</strong> Cloud base at {formatCloudBase(period.cloud_base_m)} - expect poor visibility on hills. Ensure competent navigation skills.
+        </div>
+      )}
 
       <div className="mt-3 text-sm text-gray-600">
         {period.weather_description}

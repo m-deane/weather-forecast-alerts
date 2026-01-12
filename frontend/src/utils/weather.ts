@@ -84,11 +84,45 @@ export function getVisibilityDescription(visibilityM?: number): string {
 
 export function getCloudBaseDescription(cloudBaseM?: number): string {
   if (!cloudBaseM) return 'Unknown'
-  
+
   if (cloudBaseM > 2000) return 'High (>2000m)'
   if (cloudBaseM > 1000) return 'Medium (1000-2000m)'
   if (cloudBaseM > 500) return 'Low (500-1000m)'
   return 'Very Low (<500m)'
+}
+
+export function formatFreezingLevel(freezingLevelM?: number): string {
+  if (freezingLevelM === undefined || freezingLevelM === null) return 'Unknown'
+
+  if (freezingLevelM <= 0) return 'At sea level'
+  return `${Math.round(freezingLevelM)}m`
+}
+
+export function getFreezingLevelDescription(freezingLevelM?: number, elevationM?: number): string {
+  if (freezingLevelM === undefined || freezingLevelM === null) return 'Unknown'
+
+  if (freezingLevelM <= 0) return 'Below sea level - Full winter conditions'
+  if (freezingLevelM < 500) return 'Very low - Winter conditions on most hills'
+  if (freezingLevelM < 800) return 'Low - Winter conditions on higher ground'
+  if (freezingLevelM < 1000) return 'Moderate - Above most Munro summits'
+  if (freezingLevelM < 1200) return 'High - Above Munro summits'
+  return 'Very high - Above all Scottish peaks'
+}
+
+export function formatCloudBase(cloudBaseM?: number): string {
+  if (cloudBaseM === undefined || cloudBaseM === null) return 'Unknown'
+
+  return `${Math.round(cloudBaseM)}m`
+}
+
+export function isAboveFreezingLevel(elevationM: number, freezingLevelM?: number): boolean {
+  if (freezingLevelM === undefined || freezingLevelM === null) return false
+  return elevationM > freezingLevelM
+}
+
+export function isInCloud(elevationM: number, cloudBaseM?: number): boolean {
+  if (cloudBaseM === undefined || cloudBaseM === null) return false
+  return elevationM > cloudBaseM
 }
 
 export function calculateWindChill(tempC: number, windKph: number): number {

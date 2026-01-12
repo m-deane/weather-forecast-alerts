@@ -1,7 +1,9 @@
+import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { weatherApi } from '@/api/client'
 import { useAppStore } from '@/stores/useAppStore'
+import { useDataStalenessStore } from '@/stores/useDataStalenessStore'
 import { cn } from '@/utils/cn'
 import { LoadingSkeleton } from './LoadingSkeleton'
 import { 
@@ -26,12 +28,20 @@ interface WeatherCardProps {
 
 export function WeatherCard({ locationId, compact = false, showDetails = false }: WeatherCardProps) {
   const { preferences } = useAppStore()
-  
+  const setLastUpdated = useDataStalenessStore((state) => state.setLastUpdated)
+
   const { data, isLoading, error } = useQuery({
     queryKey: ['weather', locationId],
     queryFn: () => weatherApi.getForecast(locationId),
     staleTime: 5 * 60 * 1000, // 5 minutes
   })
+
+  // Update data staleness store when weather data is loaded
+  useEffect(() => {
+    if (data?.last_updated) {
+      setLastUpdated(data.last_updated)
+    }
+  }, [data?.last_updated, setLastUpdated])
 
   if (isLoading) {
     return <LoadingSkeleton height={compact ? 80 : 120} />

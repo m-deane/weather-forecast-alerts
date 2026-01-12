@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { MobileNavigation } from '@/components/MobileNavigation'
+import { DataStalenessWarning } from '@/components/DataStalenessWarning'
 import { useOfflineStatus } from '@/utils/offlineCache'
 import { setupApiInterceptor } from '@/utils/monitoring'
 import { useEffect } from 'react'
@@ -22,6 +23,9 @@ export function Layout() {
             You're offline. Some features may be limited.
           </div>
         )}
+
+        {/* Data staleness warning - shows when weather data is old */}
+        <DataStalenessWarning />
 
         {/* Mobile Navigation */}
         <MobileNavigation />
