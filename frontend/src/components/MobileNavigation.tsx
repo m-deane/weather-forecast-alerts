@@ -18,6 +18,7 @@ import {
 } from '@heroicons/react/24/solid'
 import { cn } from '@/utils/cn'
 import { useSwipeGesture } from '@/hooks/useSwipeGesture'
+import { useAppStore } from '@/stores/useAppStore'
 
 interface NavigationItem {
   id: string
@@ -70,6 +71,9 @@ export function MobileNavigation() {
   const navigate = useNavigate()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
+  const [tappedIndex, setTappedIndex] = useState<number | null>(null)
+  const { favoriteLocationIds } = useAppStore()
+  const favoritesCount = favoriteLocationIds?.length || 0
 
   // Update active index based on current path
   useEffect(() => {
@@ -99,6 +103,10 @@ export function MobileNavigation() {
   })
 
   const handleNavigation = (item: NavigationItem, index: number) => {
+    // Visual tap feedback
+    setTappedIndex(index)
+    setTimeout(() => setTappedIndex(null), 150)
+
     navigate(item.path)
     setActiveIndex(index)
     setIsMenuOpen(false)
@@ -114,7 +122,9 @@ export function MobileNavigation() {
         >
           {navigationItems.map((item, index) => {
             const isActive = activeIndex === index
+            const isTapped = tappedIndex === index
             const Icon = isActive ? item.activeIcon : item.icon
+            const showBadge = item.id === 'favorites' && favoritesCount > 0
 
             return (
               <button
@@ -124,14 +134,23 @@ export function MobileNavigation() {
                   'relative flex flex-col items-center justify-center min-w-0 flex-1 px-2 py-2 transition-all duration-200',
                   isActive
                     ? 'text-emerald-400'
-                    : 'text-slate-400 hover:text-slate-200'
+                    : 'text-slate-400 hover:text-slate-200',
+                  isTapped && 'scale-95'
                 )}
-                aria-label={item.label}
+                aria-label={`${item.label}${showBadge ? `, ${favoritesCount} saved` : ''}`}
+                aria-current={isActive ? 'page' : undefined}
               >
-                <Icon className={cn(
-                  "w-6 h-6 mb-1 transition-transform",
-                  isActive && "scale-110"
-                )} />
+                <div className="relative">
+                  <Icon className={cn(
+                    "w-6 h-6 mb-1 transition-transform",
+                    isActive && "scale-110"
+                  )} aria-hidden="true" />
+                  {showBadge && (
+                    <span className="absolute -top-1 -right-2 min-w-[18px] h-[18px] px-1 flex items-center justify-center text-[10px] font-bold text-white bg-red-500 rounded-full">
+                      {favoritesCount > 9 ? '9+' : favoritesCount}
+                    </span>
+                  )}
+                </div>
                 <span className={cn(
                   'text-xs font-medium truncate',
                   isActive ? 'text-emerald-400' : 'text-slate-500'
@@ -139,7 +158,7 @@ export function MobileNavigation() {
                   {item.label}
                 </span>
                 {isActive && (
-                  <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-8 h-1 bg-emerald-500 rounded-t-full" style={{ boxShadow: '0 0 10px rgba(16, 185, 129, 0.4)' }} />
+                  <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-8 h-1 bg-emerald-500 rounded-t-full animate-pulse" style={{ boxShadow: '0 0 10px rgba(16, 185, 129, 0.4)' }} />
                 )}
               </button>
             )
@@ -167,10 +186,11 @@ export function MobileNavigation() {
             </div>
           </div>
 
-          <nav className="flex-1 px-3 py-6 space-y-1">
+          <nav className="flex-1 px-3 py-6 space-y-1" role="navigation" aria-label="Main navigation">
             {navigationItems.map((item, index) => {
               const isActive = activeIndex === index
               const Icon = isActive ? item.activeIcon : item.icon
+              const showBadge = item.id === 'favorites' && favoritesCount > 0
 
               return (
                 <button
@@ -182,9 +202,15 @@ export function MobileNavigation() {
                       ? 'bg-emerald-600/20 text-emerald-400 border-l-2 border-emerald-500'
                       : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                   )}
+                  aria-current={isActive ? 'page' : undefined}
                 >
-                  <Icon className="w-5 h-5 mr-3" />
+                  <Icon className="w-5 h-5 mr-3" aria-hidden="true" />
                   {item.label}
+                  {showBadge && (
+                    <span className="ml-auto min-w-[20px] h-5 px-1.5 flex items-center justify-center text-xs font-bold text-white bg-red-500 rounded-full">
+                      {favoritesCount > 9 ? '9+' : favoritesCount}
+                    </span>
+                  )}
                 </button>
               )
             })}
@@ -229,10 +255,10 @@ export function MobileNavigation() {
       {isMenuOpen && (
         <div className="lg:hidden fixed inset-0 z-50">
           <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm fade-in"
             onClick={() => setIsMenuOpen(false)}
           />
-          <div className="fixed inset-y-0 right-0 w-72 bg-slate-900 shadow-2xl border-l border-slate-700/50">
+          <div className="fixed inset-y-0 right-0 w-72 bg-slate-900 shadow-2xl border-l border-slate-700/50 slide-in-right">
             <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700/50 header-gradient">
               <h2 className="text-lg font-semibold text-white">Menu</h2>
               <button
@@ -244,25 +270,32 @@ export function MobileNavigation() {
               </button>
             </div>
 
-            <nav className="px-3 py-6 space-y-1">
+            <nav className="px-3 py-6 space-y-1 stagger-children" role="navigation" aria-label="Mobile menu navigation">
               {navigationItems.map((item, index) => {
                 const isActive = activeIndex === index
                 const Icon = isActive ? item.activeIcon : item.icon
+                const showBadge = item.id === 'favorites' && favoritesCount > 0
 
                 return (
                   <button
                     key={item.id}
                     onClick={() => handleNavigation(item, index)}
                     className={cn(
-                      'w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200',
+                      'w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ripple',
                       isActive
                         ? 'bg-emerald-600/20 text-emerald-400'
                         : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                     )}
+                    aria-current={isActive ? 'page' : undefined}
                   >
-                    <Icon className="w-5 h-5 mr-3" />
+                    <Icon className="w-5 h-5 mr-3" aria-hidden="true" />
                     {item.label}
-                    {isActive && (
+                    {showBadge && (
+                      <span className="ml-2 min-w-[20px] h-5 px-1.5 flex items-center justify-center text-xs font-bold text-white bg-red-500 rounded-full">
+                        {favoritesCount > 9 ? '9+' : favoritesCount}
+                      </span>
+                    )}
+                    {isActive && !showBadge && (
                       <div className="ml-auto w-2 h-2 rounded-full bg-emerald-500" />
                     )}
                   </button>
@@ -271,7 +304,7 @@ export function MobileNavigation() {
             </nav>
 
             {/* Quick Info */}
-            <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-700/50">
+            <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-700/50 fade-in-up" style={{ animationDelay: '0.3s' }}>
               <div className="card-glass p-3">
                 <div className="text-xs text-slate-400 mb-1">Current Conditions</div>
                 <div className="text-sm text-slate-200">Check weather before heading out</div>

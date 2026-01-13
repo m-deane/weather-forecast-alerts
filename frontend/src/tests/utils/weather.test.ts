@@ -12,7 +12,7 @@ import {
   getWindDescription,
   calculateWindChill,
   getWeatherIcon,
-  isWeatherConditionSafe
+  isConditionSafe
 } from '@/utils/weather'
 
 describe('Weather Utilities', () => {
@@ -159,38 +159,45 @@ describe('Weather Utilities', () => {
     })
   })
 
-  describe('isWeatherConditionSafe', () => {
-    it('should identify safe weather conditions', () => {
-      const safeCondition = {
-        temperature_c: 15,
-        wind_speed_kph: 20,
-        precipitation_mm: 0,
-        visibility_m: 10000,
-        hiking_score: 8
-      }
-      expect(isWeatherConditionSafe(safeCondition)).toBe(true)
+  describe('isConditionSafe', () => {
+    const createPeriod = (overrides: Partial<{
+      wind_speed_kph: number
+      hiking_score: number
+      risk_level: 'low' | 'moderate' | 'high' | 'extreme'
+    }>) => ({
+      period_type: 'am' as const,
+      temperature_c: 10,
+      feels_like_c: 8,
+      wind_speed_kph: 20,
+      wind_direction: 'NW',
+      precipitation_mm: 0,
+      precipitation_type: 'none' as const,
+      weather_description: 'Clear',
+      hiking_score: 7,
+      risk_level: 'low' as const,
+      ...overrides
     })
 
-    it('should identify unsafe weather conditions', () => {
-      const unsafeCondition = {
-        temperature_c: -15,
-        wind_speed_kph: 60,
-        precipitation_mm: 15,
-        visibility_m: 500,
-        hiking_score: 2
-      }
-      expect(isWeatherConditionSafe(unsafeCondition)).toBe(false)
+    it('should identify safe conditions for conservative users', () => {
+      const safePeriod = createPeriod({ wind_speed_kph: 20, hiking_score: 8, risk_level: 'low' })
+      expect(isConditionSafe(safePeriod, 'conservative')).toBe(true)
     })
 
-    it('should handle edge cases', () => {
-      const edgeCondition = {
-        temperature_c: 5,
-        wind_speed_kph: 50,
-        precipitation_mm: 10,
-        visibility_m: 1000,
-        hiking_score: 4
-      }
-      expect(isWeatherConditionSafe(edgeCondition)).toBe(false)
+    it('should identify unsafe conditions for conservative users', () => {
+      const unsafePeriod = createPeriod({ wind_speed_kph: 60, hiking_score: 2, risk_level: 'high' })
+      expect(isConditionSafe(unsafePeriod, 'conservative')).toBe(false)
+    })
+
+    it('should be more permissive for moderate users', () => {
+      const period = createPeriod({ wind_speed_kph: 40, hiking_score: 5, risk_level: 'moderate' })
+      expect(isConditionSafe(period, 'conservative')).toBe(false)
+      expect(isConditionSafe(period, 'moderate')).toBe(true)
+    })
+
+    it('should be most permissive for aggressive users', () => {
+      const period = createPeriod({ wind_speed_kph: 55, hiking_score: 3, risk_level: 'high' })
+      expect(isConditionSafe(period, 'moderate')).toBe(false)
+      expect(isConditionSafe(period, 'aggressive')).toBe(true)
     })
   })
 })

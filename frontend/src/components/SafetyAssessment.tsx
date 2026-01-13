@@ -1,12 +1,10 @@
 import { useState } from 'react'
 import { cn } from '@/utils/cn'
-import { 
+import {
   ExclamationTriangleIcon,
   ShieldCheckIcon,
   PhoneIcon,
   MapIcon,
-  ClockIcon,
-  UserGroupIcon,
   LightBulbIcon
 } from '@heroicons/react/24/outline'
 import type { RiskFactor } from '@/utils/hiking'

@@ -17,6 +17,11 @@ export function Layout() {
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-slate-900">
+        {/* Skip to main content link for keyboard navigation */}
+        <a href="#main-content" className="skip-link">
+          Skip to main content
+        </a>
+
         {/* Subtle gradient overlay */}
         <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950/20 pointer-events-none" />
 
@@ -41,7 +46,7 @@ export function Layout() {
           <MobileNavigation />
 
           {/* Main content - adjust for desktop sidebar */}
-          <main className="lg:ml-64 pb-20 lg:pb-0">
+          <main id="main-content" className="lg:ml-64 pb-20 lg:pb-0" tabIndex={-1}>
             <ErrorBoundary fallback={
               <div className="min-h-screen flex items-center justify-center p-4">
                 <div className="text-center max-w-md">

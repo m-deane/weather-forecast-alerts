@@ -9,8 +9,6 @@ import { LoadingSkeleton } from './LoadingSkeleton'
 import {
   formatTemperature,
   formatWindSpeed,
-  getHikingScoreColor,
-  getHikingScoreDescription,
   formatPrecipitation,
   isConditionSafe
 } from '@/utils/weather'
@@ -81,23 +79,40 @@ export function WeatherCard({ locationId, compact = false, showDetails = false }
     <Link
       to={`/location/${locationId}`}
       className={cn(
-        'card block transition-all duration-200 group',
+        'card block transition-all duration-300 group relative overflow-hidden hover-lift fade-in',
         compact ? 'p-3' : 'p-4',
-        hasAlerts && 'border-warning-600/50 bg-warning-900/10',
-        !isSafe && !hasAlerts && 'border-danger-600/50 bg-danger-900/10'
+        hasAlerts && 'bg-warning-900/10',
+        !isSafe && !hasAlerts && 'bg-danger-900/10'
       )}
     >
+      {/* Left accent bar for condition status */}
+      {(hasAlerts || !isSafe) && (
+        <div
+          className={cn(
+            'absolute left-0 top-0 bottom-0 w-1 rounded-l-xl transition-all duration-300 group-hover:w-1.5',
+            hasAlerts ? 'bg-warning-500' : 'bg-danger-500'
+          )}
+        />
+      )}
+
+      {/* Hover arrow indicator */}
+      <div className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 translate-x-2 transition-all duration-300">
+        <svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      </div>
+
       {/* Header */}
       <div className="flex justify-between items-start mb-3">
         <div className="min-w-0 flex-1">
-          <h3 className="font-semibold text-slate-100 truncate group-hover:text-emerald-400 transition-colors">
+          <h3 className="font-semibold text-slate-100 truncate group-hover:text-emerald-400 transition-colors duration-200">
             {location.name}
           </h3>
-          <p className="text-sm text-slate-400">{location.area} • {location.elevation_m}m</p>
+          <p className="text-sm text-slate-400 group-hover:text-slate-300 transition-colors duration-200">{location.area} • {location.elevation_m}m</p>
         </div>
 
-        <div className="text-right ml-3">
-          <div className="text-2xl font-semibold text-slate-100">
+        <div className="text-right ml-3 mr-6">
+          <div className="text-2xl font-semibold text-slate-100 group-hover:scale-105 transition-transform duration-200 origin-right mono-nums">
             {formatTemperature(currentPeriod.temperature_c, preferences)}
           </div>
           <div className="text-sm text-slate-400">
@@ -107,24 +122,24 @@ export function WeatherCard({ locationId, compact = false, showDetails = false }
       </div>
 
       {/* Weather details */}
-      <div className="grid grid-cols-3 gap-3 text-sm">
+      <div className="grid grid-cols-3 gap-3 text-sm stagger-children">
         <div>
-          <span className="text-slate-500">Wind:</span>
-          <div className="font-medium text-slate-200">
+          <span className="text-slate-500 data-label">Wind</span>
+          <div className="font-medium text-slate-200 mono-nums">
             {formatWindSpeed(currentPeriod.wind_speed_kph, preferences)}
           </div>
         </div>
 
         <div>
-          <span className="text-slate-500">Rain:</span>
-          <div className="font-medium text-slate-200">
+          <span className="text-slate-500 data-label">Rain</span>
+          <div className="font-medium text-slate-200 mono-nums">
             {formatPrecipitation(currentPeriod.precipitation_mm)}
           </div>
         </div>
 
         <div>
-          <span className="text-slate-500">Hiking:</span>
-          <div className={cn('font-semibold', getScoreStyles(currentPeriod.hiking_score))}>
+          <span className="text-slate-500 data-label">Score</span>
+          <div className={cn('font-semibold mono-nums', getScoreStyles(currentPeriod.hiking_score))}>
             {currentPeriod.hiking_score}/10
           </div>
         </div>
@@ -132,26 +147,26 @@ export function WeatherCard({ locationId, compact = false, showDetails = false }
 
       {/* Status indicators */}
       {!compact && (
-        <div className="mt-3 flex items-center justify-between">
+        <div className="mt-3 flex items-center justify-between fade-in-up" style={{ animationDelay: '0.2s' }}>
           <div className="flex items-center gap-2">
             {isSafe ? (
-              <div className="flex items-center gap-1 text-emerald-400">
+              <span className="safety-badge safety-badge-safe">
                 <CheckCircleIcon className="w-4 h-4" />
                 <span className="text-xs">Good conditions</span>
-              </div>
+              </span>
             ) : (
-              <div className="flex items-center gap-1 text-danger-400">
+              <span className="safety-badge safety-badge-danger">
                 <ExclamationTriangleIcon className="w-4 h-4" />
-                <span className="text-xs">Challenging conditions</span>
-              </div>
+                <span className="text-xs">Challenging</span>
+              </span>
             )}
           </div>
 
           {hasAlerts && (
-            <div className="flex items-center gap-1 text-warning-400">
+            <span className="safety-badge safety-badge-warning">
               <InformationCircleIcon className="w-4 h-4" />
-              <span className="text-xs">{data.alerts!.length} alert{data.alerts!.length !== 1 ? 's' : ''}</span>
-            </div>
+              <span className="text-xs mono-nums">{data.alerts!.length} alert{data.alerts!.length !== 1 ? 's' : ''}</span>
+            </span>
           )}
         </div>
       )}

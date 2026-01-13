@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
-import { MapPinIcon, ClockIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
+import { MapPinIcon, ClockIcon, ChevronRightIcon, HeartIcon } from '@heroicons/react/24/outline'
 import { locationApi } from '@/api/client'
 import { useAppStore } from '@/stores/useAppStore'
 import { WeatherCard } from '@/components/WeatherCard'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { LocationMap } from '@/components/LocationMap'
+import { NoFavorites, NoRecentLocations, EmptyState } from '@/components/EmptyState'
 
 export function HomePage() {
   const { favoriteLocationIds, recentLocationIds } = useAppStore()
@@ -40,22 +41,22 @@ export function HomePage() {
         </div>
 
         <div className="relative px-4 py-8">
-          <h1 className="text-2xl font-bold">Scottish Mountain Weather</h1>
-          <p className="text-emerald-100 mt-1">Accurate forecasts for safe adventures</p>
+          <h1 className="hero-title fade-in-down text-balance">Scottish Mountain Weather</h1>
+          <p className="hero-subtitle mt-2 fade-in-down" style={{ animationDelay: '0.1s' }}>Accurate forecasts for safe adventures</p>
 
           {/* Quick stats */}
-          <div className="flex gap-4 mt-4">
+          <div className="flex gap-4 mt-4 stagger-children">
             <div className="bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2">
-              <div className="text-xl font-bold">{allLocations?.length || 0}</div>
-              <div className="text-xs text-emerald-100">Locations</div>
+              <div className="text-xl font-bold mono-nums">{allLocations?.length || 0}</div>
+              <div className="text-xs text-emerald-100 tracking-wider-custom uppercase">Locations</div>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2">
-              <div className="text-xl font-bold">{areas?.length || 0}</div>
-              <div className="text-xs text-emerald-100">Areas</div>
+              <div className="text-xl font-bold mono-nums">{areas?.length || 0}</div>
+              <div className="text-xs text-emerald-100 tracking-wider-custom uppercase">Areas</div>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2">
-              <div className="text-xl font-bold">{favoriteLocationIds.length}</div>
-              <div className="text-xs text-emerald-100">Favorites</div>
+              <div className="text-xl font-bold mono-nums">{favoriteLocationIds.length}</div>
+              <div className="text-xs text-emerald-100 tracking-wider-custom uppercase">Favorites</div>
             </div>
           </div>
         </div>
@@ -63,9 +64,9 @@ export function HomePage() {
 
       <div className="px-4 py-6 space-y-6">
         {/* Interactive Map Section */}
-        <section>
+        <section className="fade-in-up" style={{ animationDelay: '0.2s' }}>
           <h2 className="section-title flex items-center gap-2">
-            <MapPinIcon className="w-5 h-5 text-emerald-400" />
+            <MapPinIcon className="w-5 h-5 text-emerald-400 pulse" />
             Mountain Locations
           </h2>
           <LocationMap
@@ -76,47 +77,57 @@ export function HomePage() {
         </section>
 
         {/* Favorites Section */}
-        {favoriteLocationIds.length > 0 && (
-          <section>
-            <h2 className="section-title flex items-center gap-2">
-              <span className="text-red-400">♥</span>
-              Favorite Locations
-            </h2>
-            <div className="space-y-3">
+        <section className="fade-in-up" style={{ animationDelay: '0.3s' }}>
+          <h2 className="section-title flex items-center gap-2">
+            <HeartIcon className="w-5 h-5 text-red-400" />
+            Favorite Locations
+          </h2>
+          {favoriteLocationIds.length > 0 ? (
+            <div className="space-y-3 stagger-children">
               {favoriteLocationIds.map(locationId => (
                 <WeatherCard key={locationId} locationId={locationId} />
               ))}
             </div>
-          </section>
-        )}
+          ) : (
+            <NoFavorites />
+          )}
+        </section>
 
         {/* Recent Locations */}
-        {recentLocationIds.length > 0 && (
-          <section>
-            <h2 className="section-title flex items-center gap-2">
-              <ClockIcon className="w-5 h-5 text-slate-400" />
-              Recent Locations
-            </h2>
-            <div className="space-y-3">
+        <section className="fade-in-up" style={{ animationDelay: '0.4s' }}>
+          <h2 className="section-title flex items-center gap-2">
+            <ClockIcon className="w-5 h-5 text-slate-400" />
+            Recent Locations
+          </h2>
+          {recentLocationIds.length > 0 ? (
+            <div className="space-y-3 stagger-children">
               {recentLocationIds.slice(0, 3).map(locationId => (
                 <WeatherCard key={locationId} locationId={locationId} compact />
               ))}
             </div>
-          </section>
-        )}
+          ) : (
+            <NoRecentLocations />
+          )}
+        </section>
 
         {/* All Locations */}
-        <section>
+        <section className="fade-in-up" style={{ animationDelay: '0.5s' }}>
           <h2 className="section-title">All Locations</h2>
           {locationsLoading ? (
             <LoadingSkeleton count={5} height={80} />
+          ) : !allLocations || allLocations.length === 0 ? (
+            <EmptyState
+              variant="no-locations"
+              title="No locations available"
+              description="Weather data is being loaded. Please check back soon."
+            />
           ) : (
-            <div className="space-y-3">
-              {allLocations?.map(location => (
+            <div className="space-y-3 stagger-children">
+              {allLocations.map(location => (
                 <Link
                   key={location.id}
                   to={`/location/${location.id}`}
-                  className="block card group"
+                  className="block card group hover-lift"
                 >
                   <div className="flex justify-between items-start">
                     <div>
@@ -142,17 +153,23 @@ export function HomePage() {
         </section>
 
         {/* Browse by Area */}
-        <section>
+        <section className="fade-in-up" style={{ animationDelay: '0.6s' }}>
           <h2 className="section-title">Browse by Area</h2>
           {areasLoading ? (
             <LoadingSkeleton count={5} height={60} />
+          ) : !areas || areas.length === 0 ? (
+            <EmptyState
+              variant="no-data"
+              title="No areas available"
+              description="Area data is being loaded."
+            />
           ) : (
-            <div className="grid grid-cols-2 gap-3">
-              {areas?.map(area => (
+            <div className="grid grid-cols-2 gap-3 stagger-children">
+              {areas.map(area => (
                 <Link
                   key={area.id}
                   to={`/search?area=${area.name}`}
-                  className="card group hover:border-emerald-600/50"
+                  className="card group hover:border-emerald-600/50 hover-scale"
                 >
                   <h3 className="font-medium text-slate-100 group-hover:text-emerald-400 transition-colors">
                     {area.name}
@@ -165,10 +182,10 @@ export function HomePage() {
         </section>
 
         {/* Quick Actions */}
-        <section className="pt-4 pb-8">
+        <section className="pt-4 pb-8 fade-in-up" style={{ animationDelay: '0.7s' }}>
           <Link
             to="/search"
-            className="btn btn-primary w-full flex items-center justify-center gap-2 py-3"
+            className="btn btn-primary w-full flex items-center justify-center gap-2 py-3 ripple hover-scale"
           >
             <MapPinIcon className="w-5 h-5" />
             Search All Mountains

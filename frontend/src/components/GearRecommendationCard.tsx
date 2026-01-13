@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import { cn } from '@/utils/cn'
-import { 
-  CheckIcon, 
-  XMarkIcon,
+import {
+  CheckIcon,
   InformationCircleIcon,
   ExclamationTriangleIcon
 } from '@heroicons/react/24/outline'

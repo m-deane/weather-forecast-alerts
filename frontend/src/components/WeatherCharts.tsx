@@ -2,9 +2,7 @@ import React, { useState } from 'react'
 import {
   LineChart,
   Line,
-  AreaChart,
   Area,
-  BarChart,
   Bar,
   XAxis,
   YAxis,
@@ -22,8 +20,7 @@ import {
   ArrowPathIcon
 } from '@heroicons/react/24/outline'
 import { cn } from '@/utils/cn'
-import { formatTemperature, formatWindSpeed, formatPrecipitation } from '@/utils/weather'
-import type { DailyForecast, WeatherPeriod } from '@/types'
+import type { DailyForecast } from '@/types'
 
 interface WeatherChartsProps {
   forecasts: DailyForecast[]
@@ -100,15 +97,15 @@ export function WeatherCharts({ forecasts, preferences }: WeatherChartsProps) {
   ] as const
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 fade-in">
       {/* Chart selector */}
-      <div className="card">
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <ChartBarIcon className="w-6 h-6" />
+      <div className="chart-container">
+        <h2 className="chart-title flex items-center gap-2">
+          <ChartBarIcon className="w-6 h-6 text-emerald-400" />
           Weather Trends
         </h2>
-        
-        <div className="flex flex-wrap gap-2 mb-4">
+
+        <div className="flex flex-wrap gap-2 mb-4 stagger-children">
           {chartOptions.map(option => {
             const Icon = option.icon
             return (
@@ -116,10 +113,10 @@ export function WeatherCharts({ forecasts, preferences }: WeatherChartsProps) {
                 key={option.id}
                 onClick={() => setActiveChart(option.id as any)}
                 className={cn(
-                  'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                  'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200',
                   activeChart === option.id
-                    ? 'bg-primary-100 text-primary-700 border border-primary-200'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                    : 'bg-slate-700/50 text-slate-400 hover:bg-slate-700 hover:text-slate-200 border border-slate-600/50'
                 )}
               >
                 <Icon className="w-4 h-4" />
@@ -131,23 +128,23 @@ export function WeatherCharts({ forecasts, preferences }: WeatherChartsProps) {
 
         {/* Day selector for period view */}
         {activeChart === 'periods' && (
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-2">Select Day for Detailed View:</label>
+          <div className="mb-4 fade-in">
+            <label className="block text-sm font-medium text-slate-300 mb-2">Select Day for Detailed View:</label>
             <select
               value={selectedDay?.date || ''}
               onChange={(e) => {
                 const day = forecasts.find(f => f.date === e.target.value)
                 setSelectedDay(day || null)
               }}
-              className="text-sm border border-gray-300 rounded-md px-3 py-2"
+              className="text-sm bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-slate-200 focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-colors"
             >
               <option value="">Choose a day...</option>
               {forecasts.map((forecast, index) => (
                 <option key={forecast.date} value={forecast.date}>
-                  {index === 0 ? 'Today' : new Date(forecast.date).toLocaleDateString('en-GB', { 
-                    weekday: 'long', 
-                    month: 'short', 
-                    day: 'numeric' 
+                  {index === 0 ? 'Today' : new Date(forecast.date).toLocaleDateString('en-GB', {
+                    weekday: 'long',
+                    month: 'short',
+                    day: 'numeric'
                   })}
                 </option>
               ))}
@@ -163,10 +160,10 @@ export function WeatherCharts({ forecasts, preferences }: WeatherChartsProps) {
           {activeChart === 'wind' && <WindVisibilityChart data={dailyData} preferences={preferences} />}
           {activeChart === 'periods' && selectedDay && <PeriodDetailChart data={periodData} preferences={preferences} />}
           {activeChart === 'periods' && !selectedDay && (
-            <div className="h-full flex items-center justify-center text-gray-500">
-              <div className="text-center">
-                <ArrowPathIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                <p>Select a day to view detailed period breakdown</p>
+            <div className="h-full flex items-center justify-center text-slate-500">
+              <div className="text-center fade-in-scale">
+                <ArrowPathIcon className="w-12 h-12 mx-auto mb-2 opacity-50 text-slate-600" />
+                <p className="text-slate-400">Select a day to view detailed period breakdown</p>
               </div>
             </div>
           )}
@@ -200,12 +197,13 @@ function OverviewChart({ data, preferences }: { data: ChartDataPoint[]; preferen
           axisLine={false}
           label={{ value: 'Hiking Score', angle: 90, position: 'insideRight' }}
         />
-        <Tooltip 
-          contentStyle={{ 
-            backgroundColor: 'white', 
-            border: '1px solid #e5e7eb',
+        <Tooltip
+          contentStyle={{
+            backgroundColor: 'rgb(30, 41, 59)',
+            border: '1px solid rgb(71, 85, 105)',
             borderRadius: '8px',
-            fontSize: '12px'
+            fontSize: '12px',
+            color: 'rgb(226, 232, 240)'
           }}
           formatter={(value: any, name: string) => {
             if (name === 'maxTemp' || name === 'minTemp') {
@@ -263,12 +261,13 @@ function TemperatureChart({ data, preferences }: { data: ChartDataPoint[]; prefe
           axisLine={false}
           label={{ value: `Temperature (°${preferences?.units?.temperature || 'C'})`, angle: -90, position: 'insideLeft' }}
         />
-        <Tooltip 
-          contentStyle={{ 
-            backgroundColor: 'white', 
-            border: '1px solid #e5e7eb',
+        <Tooltip
+          contentStyle={{
+            backgroundColor: 'rgb(30, 41, 59)',
+            border: '1px solid rgb(71, 85, 105)',
             borderRadius: '8px',
-            fontSize: '12px'
+            fontSize: '12px',
+            color: 'rgb(226, 232, 240)'
           }}
           formatter={(value: any, name: string) => {
             const tempUnit = preferences?.units?.temperature || 'C'
@@ -333,12 +332,13 @@ function PrecipitationChart({ data }: { data: ChartDataPoint[] }) {
           axisLine={false}
           label={{ value: 'Humidity (%)', angle: 90, position: 'insideRight' }}
         />
-        <Tooltip 
-          contentStyle={{ 
-            backgroundColor: 'white', 
-            border: '1px solid #e5e7eb',
+        <Tooltip
+          contentStyle={{
+            backgroundColor: 'rgb(30, 41, 59)',
+            border: '1px solid rgb(71, 85, 105)',
             borderRadius: '8px',
-            fontSize: '12px'
+            fontSize: '12px',
+            color: 'rgb(226, 232, 240)'
           }}
           formatter={(value: any, name: string) => {
             if (name === 'precipitation') return [`${value}mm`, 'Precipitation']
@@ -392,12 +392,13 @@ function WindVisibilityChart({ data, preferences }: { data: ChartDataPoint[]; pr
           axisLine={false}
           label={{ value: 'Visibility (km)', angle: 90, position: 'insideRight' }}
         />
-        <Tooltip 
-          contentStyle={{ 
-            backgroundColor: 'white', 
-            border: '1px solid #e5e7eb',
+        <Tooltip
+          contentStyle={{
+            backgroundColor: 'rgb(30, 41, 59)',
+            border: '1px solid rgb(71, 85, 105)',
             borderRadius: '8px',
-            fontSize: '12px'
+            fontSize: '12px',
+            color: 'rgb(226, 232, 240)'
           }}
           formatter={(value: any, name: string) => {
             if (name === 'windSpeed') return [`${value} ${preferences?.units?.wind || 'km/h'}`, 'Wind Speed']
@@ -452,12 +453,13 @@ function PeriodDetailChart({ data, preferences }: { data: PeriodDataPoint[]; pre
           axisLine={false}
           label={{ value: 'Hiking Score', angle: 90, position: 'insideRight' }}
         />
-        <Tooltip 
-          contentStyle={{ 
-            backgroundColor: 'white', 
-            border: '1px solid #e5e7eb',
+        <Tooltip
+          contentStyle={{
+            backgroundColor: 'rgb(30, 41, 59)',
+            border: '1px solid rgb(71, 85, 105)',
             borderRadius: '8px',
-            fontSize: '12px'
+            fontSize: '12px',
+            color: 'rgb(226, 232, 240)'
           }}
           formatter={(value: any, name: string) => {
             const tempUnit = preferences?.units?.temperature || 'C'

@@ -147,22 +147,22 @@ export class ErrorBoundary extends Component<Props, State> {
       const isDevelopment = import.meta.env.DEV
 
       return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-          <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-6">
+        <div className="min-h-screen flex items-center justify-center p-4">
+          <div className="max-w-md w-full card p-6">
             <div className="text-center mb-6">
-              <ExclamationTriangleIcon className="w-16 h-16 text-red-500 mx-auto mb-4" />
-              <h1 className="text-xl font-bold text-gray-900 mb-2">
+              <ExclamationTriangleIcon className="w-16 h-16 text-danger-500 mx-auto mb-4" />
+              <h1 className="text-xl font-bold text-slate-100 mb-2">
                 Something went wrong
               </h1>
-              <p className="text-gray-600">
+              <p className="text-slate-400">
                 We apologize for the inconvenience. The application encountered an unexpected error.
               </p>
             </div>
 
             {/* Error ID for support */}
-            <div className="bg-gray-50 rounded-lg p-3 mb-6">
-              <div className="text-xs text-gray-500 mb-1">Error ID:</div>
-              <div className="font-mono text-sm text-gray-700">
+            <div className="bg-slate-700/50 rounded-lg p-3 mb-6">
+              <div className="text-xs text-slate-500 mb-1">Error ID:</div>
+              <div className="font-mono text-sm text-slate-300">
                 {this.state.errorId}
               </div>
             </div>
@@ -172,7 +172,7 @@ export class ErrorBoundary extends Component<Props, State> {
               {canRetry && (
                 <button
                   onClick={this.handleRetry}
-                  className="w-full flex items-center justify-center gap-2 bg-primary-600 text-white px-4 py-3 rounded-lg hover:bg-primary-700 transition-colors"
+                  className="w-full flex items-center justify-center gap-2 btn btn-primary"
                 >
                   <ArrowPathIcon className="w-5 h-5" />
                   Try Again ({this.maxRetries - this.retryCount} attempts left)
@@ -181,7 +181,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
               <button
                 onClick={this.handleReload}
-                className="w-full flex items-center justify-center gap-2 bg-gray-600 text-white px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors"
+                className="w-full flex items-center justify-center gap-2 btn btn-secondary"
               >
                 <ArrowPathIcon className="w-5 h-5" />
                 Reload Page
@@ -189,7 +189,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
               <button
                 onClick={this.handleGoHome}
-                className="w-full flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-colors"
+                className="w-full flex items-center justify-center gap-2 bg-emerald-600 text-white px-4 py-3 rounded-lg hover:bg-emerald-500 transition-colors"
               >
                 <HomeIcon className="w-5 h-5" />
                 Go to Home
@@ -198,24 +198,24 @@ export class ErrorBoundary extends Component<Props, State> {
 
             {/* Developer information */}
             {isDevelopment && this.state.error && (
-              <div className="mt-6 pt-6 border-t border-gray-200">
+              <div className="mt-6 pt-6 border-t border-slate-700/50">
                 <button
                   onClick={this.copyErrorDetails}
-                  className="w-full flex items-center justify-center gap-2 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors text-sm"
+                  className="w-full flex items-center justify-center gap-2 bg-warning-600 text-white px-4 py-2 rounded-lg hover:bg-warning-500 transition-colors text-sm"
                 >
                   <BugAntIcon className="w-4 h-4" />
                   Copy Error Details
                 </button>
-                
+
                 <details className="mt-4">
-                  <summary className="text-sm font-medium text-gray-700 cursor-pointer hover:text-gray-900">
+                  <summary className="text-sm font-medium text-slate-300 cursor-pointer hover:text-slate-100">
                     Show Error Details
                   </summary>
-                  <div className="mt-2 p-3 bg-red-50 rounded-lg">
-                    <div className="text-sm text-red-800 font-medium mb-2">
+                  <div className="mt-2 p-3 bg-danger-900/30 border border-danger-700/50 rounded-lg">
+                    <div className="text-sm text-danger-400 font-medium mb-2">
                       {this.state.error.message}
                     </div>
-                    <pre className="text-xs text-red-700 whitespace-pre-wrap break-all">
+                    <pre className="text-xs text-danger-300 whitespace-pre-wrap break-all">
                       {this.state.error.stack}
                     </pre>
                   </div>
@@ -224,11 +224,11 @@ export class ErrorBoundary extends Component<Props, State> {
             )}
 
             {/* Support information */}
-            <div className="mt-6 pt-6 border-t border-gray-200 text-center">
-              <p className="text-xs text-gray-500 mb-2">
+            <div className="mt-6 pt-6 border-t border-slate-700/50 text-center">
+              <p className="text-xs text-slate-500 mb-2">
                 If this problem persists, please contact support with the error ID above.
               </p>
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-slate-600">
                 Scottish Mountain Weather v1.0.0
               </p>
             </div>

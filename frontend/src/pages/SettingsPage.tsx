@@ -23,20 +23,15 @@ function ToggleSwitch({ enabled, onChange, disabled = false }: ToggleSwitchProps
       type="button"
       onClick={() => !disabled && onChange(!enabled)}
       className={cn(
-        'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-slate-900',
-        enabled ? 'bg-emerald-600' : 'bg-slate-600',
+        'toggle',
+        enabled ? 'toggle-enabled' : 'toggle-disabled',
         disabled && 'opacity-50 cursor-not-allowed'
       )}
       disabled={disabled}
       role="switch"
       aria-checked={enabled}
     >
-      <span
-        className={cn(
-          'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
-          enabled ? 'translate-x-5' : 'translate-x-0'
-        )}
-      />
+      <span className="toggle-thumb" />
     </button>
   )
 }
@@ -50,16 +45,14 @@ interface SegmentedControlProps<T extends string> {
 
 function SegmentedControl<T extends string>({ options, value, onChange }: SegmentedControlProps<T>) {
   return (
-    <div className="inline-flex rounded-lg bg-slate-700 p-1">
+    <div className="tab-group">
       {options.map((option) => (
         <button
           key={option.value}
           onClick={() => onChange(option.value)}
           className={cn(
-            'px-4 py-2 text-sm font-medium rounded-md transition-all duration-200',
-            value === option.value
-              ? 'bg-slate-600 text-slate-100 shadow-sm'
-              : 'text-slate-400 hover:text-slate-200'
+            'tab-button-emerald',
+            value === option.value && 'tab-button-active'
           )}
         >
           {option.label}
@@ -302,15 +295,15 @@ export function SettingsPage() {
           title="Risk Tolerance"
           description="Adjust how conditions are assessed for hiking"
         >
-          <div className="space-y-3">
+          <div className="space-y-3 stagger-children">
             {(['conservative', 'moderate', 'aggressive'] as const).map((level) => (
               <label
                 key={level}
                 className={cn(
-                  'flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all',
+                  'flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all duration-200',
                   preferences.riskTolerance === level
-                    ? 'border-emerald-500 bg-emerald-900/20'
-                    : 'border-slate-600 hover:border-slate-500 bg-slate-800/50'
+                    ? 'border-emerald-500 bg-emerald-900/20 ring-1 ring-emerald-500/20'
+                    : 'border-slate-600 hover:border-slate-500 bg-slate-800/50 hover:bg-slate-800'
                 )}
               >
                 <input
@@ -319,11 +312,14 @@ export function SettingsPage() {
                   value={level}
                   checked={preferences.riskTolerance === level}
                   onChange={() => handleRiskToleranceChange(level)}
-                  className="mt-1 h-4 w-4 text-emerald-600 border-slate-500 focus:ring-emerald-500 bg-slate-700"
+                  className="radio mt-0.5"
                 />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-200 capitalize">{level}</p>
-                  <p className="text-sm text-slate-500 mt-0.5">
+                  <p className={cn(
+                    'text-sm font-medium capitalize',
+                    preferences.riskTolerance === level ? 'text-emerald-400' : 'text-slate-200'
+                  )}>{level}</p>
+                  <p className="text-sm text-slate-500 mt-1 leading-relaxed">
                     {riskToleranceDescriptions[level]}
                   </p>
                 </div>
@@ -350,10 +346,8 @@ export function SettingsPage() {
               onClick={handleClearCache}
               disabled={isClearingCache}
               className={cn(
-                'inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-                'border border-danger-600/50 text-danger-400 hover:bg-danger-900/20',
-                'focus:outline-none focus:ring-2 focus:ring-danger-500 focus:ring-offset-2 focus:ring-offset-slate-900',
-                isClearingCache && 'opacity-50 cursor-not-allowed'
+                'btn btn-outline-danger inline-flex items-center gap-2',
+                isClearingCache && 'btn-loading'
               )}
             >
               <TrashIcon className="h-4 w-4" />

@@ -1,26 +1,21 @@
 import React, { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { 
+import {
   CameraIcon,
-  SunIcon,
-  MoonIcon,
   CloudIcon,
   EyeIcon,
   ClockIcon,
-  LightBulbIcon,
-  MapPinIcon
+  LightBulbIcon
 } from '@heroicons/react/24/outline'
 import { weatherApi } from '@/api/client'
 import { cn } from '@/utils/cn'
-import { 
-  assessPhotographyConditions, 
+import {
+  assessPhotographyConditions,
   formatTimeRange,
   getOpportunityColor,
   getOpportunityIcon,
   type PhotographyConditions,
-  type PhotographyOpportunity,
-  type SunTimes,
-  type MoonInfo
+  type PhotographyOpportunity
 } from '@/utils/photography'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 

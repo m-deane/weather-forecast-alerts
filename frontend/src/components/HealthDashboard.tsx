@@ -92,29 +92,29 @@ export function HealthDashboard() {
     switch (status) {
       case 'pass':
       case 'healthy':
-        return 'bg-green-50 border-green-200 text-green-800'
+        return 'bg-emerald-900/20 border-emerald-700/50 text-emerald-300'
       case 'warn':
       case 'degraded':
-        return 'bg-yellow-50 border-yellow-200 text-yellow-800'
+        return 'bg-amber-900/20 border-amber-700/50 text-amber-300'
       case 'fail':
       case 'unhealthy':
-        return 'bg-red-50 border-red-200 text-red-800'
+        return 'bg-red-900/20 border-red-700/50 text-red-300'
       default:
-        return 'bg-gray-50 border-gray-200 text-gray-800'
+        return 'bg-slate-700/30 border-slate-600/50 text-slate-300'
     }
   }
 
   if (!healthStatus && !isLoading) {
     return (
-      <div className="card text-center py-8">
-        <ChartBarIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">Health Dashboard</h3>
-        <p className="text-gray-500 mb-4">
+      <div className="card text-center py-8 fade-in">
+        <ChartBarIcon className="w-12 h-12 text-slate-600 mx-auto mb-4" />
+        <h3 className="text-lg font-medium text-slate-100 mb-2">Health Dashboard</h3>
+        <p className="text-slate-500 mb-4">
           Monitor application health, performance, and accessibility
         </p>
         <button
           onClick={runHealthCheck}
-          className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors"
+          className="btn btn-primary"
         >
           Run Health Check
         </button>
@@ -123,40 +123,40 @@ export function HealthDashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 fade-in">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold flex items-center gap-2">
-            <ChartBarIcon className="w-6 h-6" />
+          <h2 className="text-xl font-semibold flex items-center gap-2 text-slate-100">
+            <ChartBarIcon className="w-6 h-6 text-emerald-400" />
             System Health Dashboard
           </h2>
           {lastCheck && (
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-slate-500 mt-1 mono-nums">
               Last updated: {lastCheck.toLocaleTimeString()}
             </p>
           )}
         </div>
 
         <div className="flex items-center gap-3">
-          <label className="flex items-center gap-2 text-sm">
+          <label className="flex items-center gap-2 text-sm text-slate-400">
             <input
               type="checkbox"
               checked={autoRefresh}
               onChange={(e) => setAutoRefresh(e.target.checked)}
-              className="rounded border-gray-300"
+              className="rounded border-slate-600 bg-slate-700 text-emerald-500 focus:ring-emerald-500"
             />
             Auto-refresh
           </label>
-          
+
           <button
             onClick={runHealthCheck}
             disabled={isLoading}
             className={cn(
-              'flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors',
+              'flex items-center gap-2 px-3 py-2 rounded-lg border transition-all duration-200',
               isLoading
-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                ? 'bg-slate-700/50 text-slate-500 cursor-not-allowed border-slate-600/50'
+                : 'bg-slate-700/50 text-slate-300 border-slate-600 hover:bg-slate-700 hover:text-slate-100'
             )}
           >
             <ArrowPathIcon className={cn('w-4 h-4', isLoading && 'animate-spin')} />
@@ -186,43 +186,43 @@ export function HealthDashboard() {
       )}
 
       {/* Network Status */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="data-grid stagger-children">
         <div className="card">
           <div className="flex items-center gap-3 mb-2">
-            <SignalIcon className={cn('w-5 h-5', isOnline ? 'text-green-600' : 'text-red-600')} />
-            <h4 className="font-medium">Network</h4>
+            <SignalIcon className={cn('w-5 h-5', isOnline ? 'text-emerald-400' : 'text-red-400')} />
+            <h4 className="font-medium text-slate-200">Network</h4>
           </div>
-          <div className={cn('text-sm', isOnline ? 'text-green-700' : 'text-red-700')}>
+          <div className={cn('text-sm font-medium', isOnline ? 'text-emerald-400' : 'text-red-400')}>
             {isOnline ? 'Online' : 'Offline'}
           </div>
         </div>
 
         <div className="card">
           <div className="flex items-center gap-3 mb-2">
-            <CpuChipIcon className="w-5 h-5 text-blue-600" />
-            <h4 className="font-medium">Performance</h4>
+            <CpuChipIcon className="w-5 h-5 text-blue-400" />
+            <h4 className="font-medium text-slate-200">Performance</h4>
           </div>
-          <div className="text-sm text-gray-700">
+          <div className="text-sm text-slate-400 mono-nums">
             {metrics?.loadTime ? `${Math.round(metrics.loadTime)}ms load` : 'No data'}
           </div>
         </div>
 
         <div className="card">
           <div className="flex items-center gap-3 mb-2">
-            <CloudIcon className="w-5 h-5 text-purple-600" />
-            <h4 className="font-medium">API</h4>
+            <CloudIcon className="w-5 h-5 text-purple-400" />
+            <h4 className="font-medium text-slate-200">API</h4>
           </div>
-          <div className="text-sm text-gray-700">
+          <div className="text-sm text-slate-400 mono-nums">
             {metrics?.apiCallCount || 0} requests
           </div>
         </div>
 
         <div className="card">
           <div className="flex items-center gap-3 mb-2">
-            <ClockIcon className="w-5 h-5 text-orange-600" />
-            <h4 className="font-medium">Accessibility</h4>
+            <ClockIcon className="w-5 h-5 text-orange-400" />
+            <h4 className="font-medium text-slate-200">Accessibility</h4>
           </div>
-          <div className="text-sm text-gray-700">
+          <div className="text-sm text-slate-400">
             Grade: {healthStatus?.accessibility?.grade || 'N/A'}
           </div>
         </div>
@@ -230,14 +230,14 @@ export function HealthDashboard() {
 
       {/* Detailed Health Checks */}
       {healthStatus && (
-        <div className="card">
-          <h3 className="font-semibold mb-4">Health Checks</h3>
-          <div className="space-y-3">
+        <div className="card fade-in-up">
+          <h3 className="font-semibold mb-4 text-slate-100">Health Checks</h3>
+          <div className="space-y-3 stagger-children">
             {healthStatus.checks.map((check, index) => (
               <div
                 key={index}
                 className={cn(
-                  'flex items-center justify-between p-3 rounded-lg border',
+                  'flex items-center justify-between p-3 rounded-xl border transition-all duration-200',
                   getStatusColor(check.status)
                 )}
               >
@@ -250,9 +250,9 @@ export function HealthDashboard() {
                     )}
                   </div>
                 </div>
-                
+
                 {check.duration > 0 && (
-                  <div className="text-sm opacity-75">
+                  <div className="text-sm opacity-75 mono-nums">
                     {Math.round(check.duration)}ms
                   </div>
                 )}
@@ -264,35 +264,35 @@ export function HealthDashboard() {
 
       {/* Performance Metrics */}
       {metrics && (
-        <div className="card">
-          <h3 className="font-semibold mb-4">Performance Metrics</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">
+        <div className="card fade-in-up">
+          <h3 className="font-semibold mb-4 text-slate-100">Performance Metrics</h3>
+          <div className="data-grid">
+            <div className="data-cell text-center p-4 bg-slate-700/30 rounded-xl border border-slate-600/30">
+              <div className="text-2xl font-bold text-blue-400 mono-nums">
                 {Math.round(metrics.loadTime || 0)}ms
               </div>
-              <div className="text-sm text-gray-500">Load Time</div>
+              <div className="text-sm text-slate-500">Load Time</div>
             </div>
-            
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">
+
+            <div className="data-cell text-center p-4 bg-slate-700/30 rounded-xl border border-slate-600/30">
+              <div className="text-2xl font-bold text-emerald-400 mono-nums">
                 {Math.round(metrics.firstContentfulPaint || 0)}ms
               </div>
-              <div className="text-sm text-gray-500">First Paint</div>
+              <div className="text-sm text-slate-500">First Paint</div>
             </div>
-            
-            <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">
+
+            <div className="data-cell text-center p-4 bg-slate-700/30 rounded-xl border border-slate-600/30">
+              <div className="text-2xl font-bold text-purple-400 mono-nums">
                 {Math.round(metrics.avgApiResponseTime || 0)}ms
               </div>
-              <div className="text-sm text-gray-500">Avg API Time</div>
+              <div className="text-sm text-slate-500">Avg API Time</div>
             </div>
-            
-            <div className="text-center">
-              <div className="text-2xl font-bold text-orange-600">
+
+            <div className="data-cell text-center p-4 bg-slate-700/30 rounded-xl border border-slate-600/30">
+              <div className="text-2xl font-bold text-orange-400 mono-nums">
                 {Math.round((metrics.memoryUsage || 0) / 1024 / 1024)}MB
               </div>
-              <div className="text-sm text-gray-500">Memory Usage</div>
+              <div className="text-sm text-slate-500">Memory Usage</div>
             </div>
           </div>
         </div>
@@ -300,26 +300,26 @@ export function HealthDashboard() {
 
       {/* Accessibility Report */}
       {healthStatus?.accessibility && (
-        <div className="card">
-          <h3 className="font-semibold mb-4">Accessibility Report</h3>
+        <div className="card fade-in-up">
+          <h3 className="font-semibold mb-4 text-slate-100">Accessibility Report</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <div className="flex items-center gap-3 mb-3">
                 <div className={cn(
-                  'w-12 h-12 rounded-full flex items-center justify-center text-2xl font-bold',
-                  healthStatus.accessibility.grade === 'A' ? 'bg-green-100 text-green-800' :
-                  healthStatus.accessibility.grade === 'B' ? 'bg-blue-100 text-blue-800' :
-                  healthStatus.accessibility.grade === 'C' ? 'bg-yellow-100 text-yellow-800' :
-                  healthStatus.accessibility.grade === 'D' ? 'bg-orange-100 text-orange-800' :
-                  'bg-red-100 text-red-800'
+                  'w-12 h-12 rounded-full flex items-center justify-center text-2xl font-bold border',
+                  healthStatus.accessibility.grade === 'A' ? 'bg-emerald-900/30 text-emerald-400 border-emerald-700/50' :
+                  healthStatus.accessibility.grade === 'B' ? 'bg-blue-900/30 text-blue-400 border-blue-700/50' :
+                  healthStatus.accessibility.grade === 'C' ? 'bg-amber-900/30 text-amber-400 border-amber-700/50' :
+                  healthStatus.accessibility.grade === 'D' ? 'bg-orange-900/30 text-orange-400 border-orange-700/50' :
+                  'bg-red-900/30 text-red-400 border-red-700/50'
                 )}>
                   {healthStatus.accessibility.grade}
                 </div>
                 <div>
-                  <div className="text-lg font-semibold">
+                  <div className="text-lg font-semibold text-slate-200 mono-nums">
                     Score: {healthStatus.accessibility.score}/100
                   </div>
-                  <div className="text-sm text-gray-500">
+                  <div className="text-sm text-slate-500">
                     WCAG 2.1 Compliance
                   </div>
                 </div>
@@ -327,24 +327,24 @@ export function HealthDashboard() {
             </div>
 
             <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-red-600">Errors:</span>
-                <span className="font-medium">{healthStatus.accessibility.summary.errors}</span>
+              <div className="flex justify-between text-sm p-2 bg-slate-700/20 rounded-lg">
+                <span className="text-red-400">Errors:</span>
+                <span className="font-medium text-red-300 mono-nums">{healthStatus.accessibility.summary.errors}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-yellow-600">Warnings:</span>
-                <span className="font-medium">{healthStatus.accessibility.summary.warnings}</span>
+              <div className="flex justify-between text-sm p-2 bg-slate-700/20 rounded-lg">
+                <span className="text-amber-400">Warnings:</span>
+                <span className="font-medium text-amber-300 mono-nums">{healthStatus.accessibility.summary.warnings}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-blue-600">Info:</span>
-                <span className="font-medium">{healthStatus.accessibility.summary.info}</span>
+              <div className="flex justify-between text-sm p-2 bg-slate-700/20 rounded-lg">
+                <span className="text-blue-400">Info:</span>
+                <span className="font-medium text-blue-300 mono-nums">{healthStatus.accessibility.summary.info}</span>
               </div>
             </div>
           </div>
 
           {healthStatus.accessibility.issues.length > 0 && (
             <details className="mt-4">
-              <summary className="cursor-pointer font-medium text-gray-700 hover:text-gray-900">
+              <summary className="cursor-pointer font-medium text-slate-300 hover:text-slate-100 transition-colors">
                 View Issues ({healthStatus.accessibility.issues.length})
               </summary>
               <div className="mt-3 space-y-2 max-h-64 overflow-y-auto">
@@ -352,10 +352,10 @@ export function HealthDashboard() {
                   <div
                     key={index}
                     className={cn(
-                      'p-2 rounded text-sm',
-                      issue.severity === 'error' ? 'bg-red-50 text-red-800' :
-                      issue.severity === 'warning' ? 'bg-yellow-50 text-yellow-800' :
-                      'bg-blue-50 text-blue-800'
+                      'p-2 rounded-lg text-sm border',
+                      issue.severity === 'error' ? 'bg-red-900/20 text-red-300 border-red-700/30' :
+                      issue.severity === 'warning' ? 'bg-amber-900/20 text-amber-300 border-amber-700/30' :
+                      'bg-blue-900/20 text-blue-300 border-blue-700/30'
                     )}
                   >
                     <div className="font-medium">{issue.type}: {issue.element}</div>
@@ -363,7 +363,7 @@ export function HealthDashboard() {
                   </div>
                 ))}
                 {healthStatus.accessibility.issues.length > 10 && (
-                  <div className="text-sm text-gray-500 text-center py-2">
+                  <div className="text-sm text-slate-500 text-center py-2">
                     ... and {healthStatus.accessibility.issues.length - 10} more issues
                   </div>
                 )}
@@ -420,41 +420,41 @@ function ProductionReadinessChecklist({ healthStatus }: { healthStatus: HealthSt
   )
 
   return (
-    <div className="card">
+    <div className="card fade-in-up">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold">Production Readiness</h3>
+        <h3 className="font-semibold text-slate-100">Production Readiness</h3>
         <div className={cn(
-          'px-3 py-1 rounded-full text-sm font-medium',
-          overallReadiness 
-            ? 'bg-green-100 text-green-800' 
-            : 'bg-red-100 text-red-800'
+          'px-3 py-1 rounded-full text-sm font-medium border',
+          overallReadiness
+            ? 'bg-emerald-900/30 text-emerald-400 border-emerald-700/50'
+            : 'bg-red-900/30 text-red-400 border-red-700/50'
         )}>
           {overallReadiness ? 'Ready' : 'Not Ready'}
         </div>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-4 stagger-children">
         {checklistItems.map((category, index) => (
           <div key={index}>
-            <h4 className="font-medium text-gray-700 mb-2">{category.category}</h4>
+            <h4 className="font-medium text-slate-300 mb-2">{category.category}</h4>
             <div className="space-y-2">
               {category.items.map((item, itemIndex) => (
-                <div key={itemIndex} className="flex items-center justify-between">
+                <div key={itemIndex} className="flex items-center justify-between p-2 bg-slate-700/20 rounded-lg">
                   <div className="flex items-center gap-2">
                     {item.status ? (
-                      <CheckCircleIcon className="w-4 h-4 text-green-600" />
+                      <CheckCircleIcon className="w-4 h-4 text-emerald-400" />
                     ) : (
-                      <XCircleIcon className="w-4 h-4 text-red-600" />
+                      <XCircleIcon className="w-4 h-4 text-red-400" />
                     )}
                     <span className={cn(
                       'text-sm',
-                      item.critical && !item.status && 'font-medium text-red-700'
+                      item.status ? 'text-slate-300' : item.critical ? 'font-medium text-red-300' : 'text-slate-400'
                     )}>
                       {item.name}
                     </span>
                   </div>
                   {item.critical && (
-                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                    <span className="text-xs bg-slate-700 text-slate-400 px-2 py-1 rounded border border-slate-600">
                       Critical
                     </span>
                   )}

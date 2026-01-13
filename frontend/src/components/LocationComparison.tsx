@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { weatherApi } from '@/api/client'
 import { useAppStore } from '@/stores/useAppStore'
@@ -46,8 +45,8 @@ export function LocationComparison({
 
   if (!forecasts || forecasts.length === 0) {
     return (
-      <div className="text-center py-8">
-        <p className="text-gray-500">No locations to compare</p>
+      <div className="text-center py-8 fade-in">
+        <p className="text-slate-500">No locations to compare</p>
       </div>
     )
   }
@@ -60,14 +59,14 @@ export function LocationComparison({
   })
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 fade-in">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Location Comparison</h3>
+        <h3 className="text-lg font-semibold text-slate-100">Location Comparison</h3>
         {locationIds.length < maxLocations && onLocationAdd && (
           <button
             onClick={onLocationAdd}
-            className="flex items-center gap-1 px-3 py-1 text-sm bg-primary-100 text-primary-700 rounded-lg hover:bg-primary-200"
+            className="flex items-center gap-1 px-3 py-1.5 text-sm bg-emerald-500/20 text-emerald-400 rounded-lg hover:bg-emerald-500/30 border border-emerald-500/30 transition-all duration-200"
           >
             <PlusIcon className="w-4 h-4" />
             Add Location
@@ -76,27 +75,27 @@ export function LocationComparison({
       </div>
 
       {/* Comparison grid */}
-      <div className="grid gap-4">
+      <div className="grid gap-4 stagger-children">
         {forecasts.map(forecast => {
           const location = forecast.location
           const currentPeriod = forecast.forecasts[0]?.periods[0]
           const isBest = location.id === bestLocation.location.id
-          
+
           if (!currentPeriod) return null
 
           return (
             <div
               key={location.id}
               className={cn(
-                'card relative',
-                isBest && 'ring-2 ring-success-500 bg-success-50'
+                'card relative hover-lift transition-all duration-200',
+                isBest && 'ring-2 ring-emerald-500/50 bg-emerald-900/10'
               )}
             >
               {/* Remove button */}
               {onLocationRemove && (
                 <button
                   onClick={() => onLocationRemove(location.id)}
-                  className="absolute top-2 right-2 p-1 text-gray-400 hover:text-red-500 transition-colors"
+                  className="absolute top-2 right-2 p-1 text-slate-500 hover:text-red-400 transition-colors"
                 >
                   <XMarkIcon className="w-4 h-4" />
                 </button>
@@ -104,70 +103,70 @@ export function LocationComparison({
 
               {/* Best location badge */}
               {isBest && (
-                <div className="absolute -top-2 left-4 bg-success-500 text-white text-xs px-2 py-1 rounded-full">
+                <div className="absolute -top-2 left-4 bg-emerald-500 text-white text-xs px-2 py-1 rounded-full font-medium bounce-in">
                   Best Conditions
                 </div>
               )}
 
               {/* Location info */}
               <div className="mb-3">
-                <h4 className="font-semibold text-gray-900">{location.name}</h4>
-                <p className="text-sm text-gray-500">
+                <h4 className="font-semibold text-slate-100">{location.name}</h4>
+                <p className="text-sm text-slate-500">
                   {location.area} • {location.elevation_m}m
                 </p>
               </div>
 
               {/* Weather summary */}
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-gray-500">Temperature:</span>
-                  <div className="font-medium">
+              <div className="data-grid text-sm">
+                <div className="data-cell">
+                  <span className="data-cell-label">Temperature:</span>
+                  <div className="data-cell-value mono-nums">
                     {formatTemperature(currentPeriod.temperature_c, preferences)}
                   </div>
-                  <div className="text-xs text-gray-400">
+                  <div className="text-xs text-slate-500 mono-nums">
                     Feels {formatTemperature(currentPeriod.feels_like_c, preferences)}
                   </div>
                 </div>
 
-                <div>
-                  <span className="text-gray-500">Wind:</span>
-                  <div className="font-medium">
+                <div className="data-cell">
+                  <span className="data-cell-label">Wind:</span>
+                  <div className="data-cell-value mono-nums">
                     {formatWindSpeed(currentPeriod.wind_speed_kph, preferences)}
                   </div>
-                  <div className="text-xs text-gray-400">
+                  <div className="text-xs text-slate-500">
                     {currentPeriod.wind_direction || 'Variable'}
                   </div>
                 </div>
 
-                <div>
-                  <span className="text-gray-500">Precipitation:</span>
-                  <div className="font-medium">
+                <div className="data-cell">
+                  <span className="data-cell-label">Precipitation:</span>
+                  <div className="data-cell-value mono-nums">
                     {formatPrecipitation(currentPeriod.precipitation_mm)}
                   </div>
                 </div>
 
-                <div>
-                  <span className="text-gray-500">Hiking Score:</span>
-                  <div className={cn('font-semibold text-lg', getHikingScoreColor(currentPeriod.hiking_score))}>
+                <div className="data-cell">
+                  <span className="data-cell-label">Hiking Score:</span>
+                  <div className={cn('font-semibold text-lg mono-nums', getHikingScoreColor(currentPeriod.hiking_score))}>
                     {currentPeriod.hiking_score}/10
                   </div>
                 </div>
               </div>
 
               {/* Weather description */}
-              <div className="mt-3 p-2 bg-gray-50 rounded text-sm">
+              <div className="mt-3 p-2 bg-slate-700/30 rounded-lg text-sm text-slate-300">
                 {currentPeriod.weather_description}
               </div>
 
               {/* Risk level */}
               <div className="mt-2 flex items-center justify-between">
-                <span className="text-xs text-gray-500">Risk Level:</span>
+                <span className="text-xs text-slate-500">Risk Level:</span>
                 <span className={cn(
-                  'px-2 py-1 text-xs rounded-full font-medium',
-                  currentPeriod.risk_level === 'low' && 'bg-green-100 text-green-800',
-                  currentPeriod.risk_level === 'moderate' && 'bg-yellow-100 text-yellow-800',
-                  currentPeriod.risk_level === 'high' && 'bg-orange-100 text-orange-800',
-                  currentPeriod.risk_level === 'extreme' && 'bg-red-100 text-red-800'
+                  'px-2 py-1 text-xs rounded-full font-medium border',
+                  currentPeriod.risk_level === 'low' && 'bg-emerald-900/30 text-emerald-400 border-emerald-700/50',
+                  currentPeriod.risk_level === 'moderate' && 'bg-amber-900/30 text-amber-400 border-amber-700/50',
+                  currentPeriod.risk_level === 'high' && 'bg-orange-900/30 text-orange-400 border-orange-700/50',
+                  currentPeriod.risk_level === 'extreme' && 'bg-red-900/30 text-red-400 border-red-700/50'
                 )}>
                   {currentPeriod.risk_level}
                 </span>
@@ -179,26 +178,33 @@ export function LocationComparison({
 
       {/* Summary */}
       {forecasts.length > 1 && (
-        <div className="card bg-primary-50 border-primary-200">
-          <h4 className="font-medium text-primary-900 mb-2">Comparison Summary</h4>
-          <div className="text-sm text-primary-800 space-y-1">
-            <p>
-              <strong>Best conditions:</strong> {bestLocation.location.name} 
-              (Score: {bestLocation.forecasts[0]?.periods[0]?.hiking_score}/10)
+        <div className="card bg-emerald-900/20 border-emerald-700/30 fade-in-up">
+          <h4 className="font-medium text-emerald-400 mb-3">Comparison Summary</h4>
+          <div className="text-sm text-emerald-200 space-y-2">
+            <p className="flex items-center gap-2">
+              <span className="data-pill data-pill-positive">Best</span>
+              <span>{bestLocation.location.name}</span>
+              <span className="text-emerald-300 mono-nums">
+                (Score: {bestLocation.forecasts[0]?.periods[0]?.hiking_score}/10)
+              </span>
             </p>
-            
-            <div className="mt-2">
-              <strong>Temperature range:</strong>{' '}
-              {Math.min(...forecasts.map(f => f.forecasts[0]?.periods[0]?.temperature_c || 0))}°C 
-              {' to '}
-              {Math.max(...forecasts.map(f => f.forecasts[0]?.periods[0]?.temperature_c || 0))}°C
+
+            <div className="flex items-center gap-2">
+              <span className="text-emerald-300">Temperature range:</span>
+              <span className="mono-nums">
+                {Math.min(...forecasts.map(f => f.forecasts[0]?.periods[0]?.temperature_c || 0))}°C
+                {' to '}
+                {Math.max(...forecasts.map(f => f.forecasts[0]?.periods[0]?.temperature_c || 0))}°C
+              </span>
             </div>
-            
-            <div>
-              <strong>Wind range:</strong>{' '}
-              {Math.min(...forecasts.map(f => f.forecasts[0]?.periods[0]?.wind_speed_kph || 0))} 
-              {' to '}
-              {Math.max(...forecasts.map(f => f.forecasts[0]?.periods[0]?.wind_speed_kph || 0))} kph
+
+            <div className="flex items-center gap-2">
+              <span className="text-emerald-300">Wind range:</span>
+              <span className="mono-nums">
+                {Math.min(...forecasts.map(f => f.forecasts[0]?.periods[0]?.wind_speed_kph || 0))}
+                {' to '}
+                {Math.max(...forecasts.map(f => f.forecasts[0]?.periods[0]?.wind_speed_kph || 0))} kph
+              </span>
             </div>
           </div>
         </div>

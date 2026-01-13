@@ -1,10 +1,15 @@
-import { useState, useCallback, useMemo } from 'react'
-import Map, { Marker, Popup, NavigationControl, ScaleControl } from 'react-map-gl'
+import { useState, useCallback, useMemo, useRef } from 'react'
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
+import { DivIcon } from 'leaflet'
 import { useQuery } from '@tanstack/react-query'
 import { locationApi } from '@/api/client'
 import type { Location } from '@/types'
-import { MapPinIcon } from '@heroicons/react/24/solid'
-import 'mapbox-gl/dist/mapbox-gl.css'
+import 'leaflet/dist/leaflet.css'
+import {
+  ArrowsPointingOutIcon,
+  ArrowsPointingInIcon,
+  MapIcon
+} from '@heroicons/react/24/outline'
 
 interface LocationMapProps {
   locations?: Location[]
@@ -17,9 +22,6 @@ interface LocationMapProps {
   showPopups?: boolean
 }
 
-// Free dark map style from CartoDB
-const DARK_MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
-
 // Color based on hiking score
 const getMarkerColor = (score?: number): string => {
   if (!score) return '#10b981' // emerald-500 default
@@ -29,12 +31,88 @@ const getMarkerColor = (score?: number): string => {
   return '#ef4444' // red - poor/dangerous
 }
 
-// Marker size based on elevation
-const getMarkerSize = (elevation?: number): number => {
-  if (!elevation) return 24
-  if (elevation >= 1200) return 32
-  if (elevation >= 1000) return 28
-  return 24
+// Create custom marker icon
+const createMarkerIcon = (color: string, isSelected: boolean, elevation?: number): DivIcon => {
+  const size = elevation && elevation >= 1200 ? 32 : elevation && elevation >= 1000 ? 28 : 24
+  const glowSize = isSelected ? size * 2 : 0
+
+  return new DivIcon({
+    className: 'custom-marker',
+    html: `
+      <div style="position: relative; width: ${size}px; height: ${size}px; cursor: pointer;">
+        ${isSelected ? `
+          <div style="
+            position: absolute;
+            inset: -${glowSize/4}px;
+            background: radial-gradient(circle, ${color}40 0%, transparent 70%);
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+          "></div>
+        ` : ''}
+        <svg viewBox="0 0 24 24" style="
+          width: 100%;
+          height: 100%;
+          fill: ${color};
+          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4)) ${isSelected ? `drop-shadow(0 0 8px ${color})` : ''};
+        ">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+        </svg>
+        <div style="
+          position: absolute;
+          top: 4px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 6px;
+          height: 6px;
+          background: rgba(255,255,255,0.9);
+          border-radius: 50%;
+          box-shadow: 0 0 4px ${color};
+        "></div>
+      </div>
+    `,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size],
+    popupAnchor: [0, -size],
+  })
+}
+
+// Map bounds handler
+function MapBounds({ locations }: { locations: Location[] }) {
+  const map = useMap()
+
+  useMemo(() => {
+    if (locations.length > 0) {
+      const bounds = locations.map(loc => [loc.latitude, loc.longitude] as [number, number])
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 10 })
+    }
+  }, [locations, map])
+
+  return null
+}
+
+// Reset view control component
+function ResetViewControl({ locations, center, zoom }: { locations: Location[], center: [number, number], zoom: number }) {
+  const map = useMap()
+
+  const handleResetView = () => {
+    if (locations.length > 1) {
+      const bounds = locations.map(loc => [loc.latitude, loc.longitude] as [number, number])
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 10, animate: true })
+    } else {
+      map.setView(center, zoom, { animate: true })
+    }
+  }
+
+  return (
+    <button
+      onClick={handleResetView}
+      className="absolute top-14 left-3 bg-slate-800/90 backdrop-blur-sm rounded-lg p-2 border border-slate-700/50 z-[1000] hover:bg-slate-700/90 transition-colors"
+      title="Reset map view"
+      aria-label="Reset map view"
+    >
+      <MapIcon className="w-4 h-4 text-slate-300" />
+    </button>
+  )
 }
 
 export function LocationMap({
@@ -47,164 +125,119 @@ export function LocationMap({
   interactive = true,
   showPopups = true
 }: LocationMapProps) {
-  const [viewState, setViewState] = useState({
-    latitude: center[0],
-    longitude: center[1],
-    zoom: zoom,
-    bearing: 0,
-    pitch: 0
-  })
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_activePopup, setActivePopup] = useState<string | null>(null)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
 
-  const [popupInfo, setPopupInfo] = useState<Location | null>(null)
+  // Toggle fullscreen
+  const toggleFullscreen = useCallback(() => {
+    if (!containerRef.current) return
+
+    if (!isFullscreen) {
+      if (containerRef.current.requestFullscreen) {
+        containerRef.current.requestFullscreen()
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen()
+      }
+    }
+    setIsFullscreen(!isFullscreen)
+  }, [isFullscreen])
 
   const handleMarkerClick = useCallback((location: Location) => {
     if (showPopups) {
-      setPopupInfo(location)
+      setActivePopup(location.id)
     }
     onLocationSelect?.(location)
   }, [onLocationSelect, showPopups])
 
-  // Group locations by area for clustering effect
-  const markers = useMemo(() => {
-    return locations.map((location) => {
-      const isSelected = selectedLocationId === location.id
-      const color = getMarkerColor(location.current_score)
-      const size = getMarkerSize(location.elevation_m)
-
-      return (
-        <Marker
-          key={location.id}
-          latitude={location.latitude}
-          longitude={location.longitude}
-          anchor="bottom"
-          onClick={(e) => {
-            e.originalEvent.stopPropagation()
-            handleMarkerClick(location)
-          }}
-        >
-          <div
-            className={`
-              cursor-pointer transition-all duration-200
-              hover:scale-110 hover:z-10
-              ${isSelected ? 'scale-125 z-20' : ''}
-            `}
-            title={`${location.name} (${location.elevation_m}m)`}
-          >
-            {/* Glow effect for selected */}
-            {isSelected && (
-              <div
-                className="absolute inset-0 rounded-full animate-pulse"
-                style={{
-                  background: `radial-gradient(circle, ${color}40 0%, transparent 70%)`,
-                  transform: 'scale(2)',
-                }}
-              />
-            )}
-
-            {/* Mountain marker icon */}
-            <div
-              className={`
-                relative flex items-center justify-center
-                ${isSelected ? 'drop-shadow-lg' : 'drop-shadow-md'}
-              `}
-              style={{ width: size, height: size }}
-            >
-              <MapPinIcon
-                className="w-full h-full"
-                style={{
-                  color: color,
-                  filter: isSelected ? `drop-shadow(0 0 8px ${color})` : 'none'
-                }}
-              />
-
-              {/* Elevation indicator dot */}
-              <div
-                className="absolute top-1 w-2 h-2 rounded-full bg-white/90"
-                style={{
-                  boxShadow: `0 0 4px ${color}`
-                }}
-              />
-            </div>
-          </div>
-        </Marker>
-      )
-    })
-  }, [locations, selectedLocationId, handleMarkerClick])
+  // Dark tile layers (free, no API key required)
+  const darkTileUrl = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+  const attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
 
   return (
-    <div className={`map-container relative ${className}`}>
-      <Map
-        {...viewState}
-        onMove={evt => interactive && setViewState(evt.viewState)}
-        style={{ width: '100%', height: '100%' }}
-        mapStyle={DARK_MAP_STYLE}
-        interactive={interactive}
-        attributionControl={false}
-        onClick={() => setPopupInfo(null)}
+    <div
+      ref={containerRef}
+      className={`map-container relative ${className} ${isFullscreen ? 'fixed inset-0 z-[9999] !h-screen !w-screen !rounded-none' : ''}`}
+    >
+      <MapContainer
+        center={center}
+        zoom={zoom}
+        style={{ width: '100%', height: '100%', borderRadius: isFullscreen ? '0' : '0.75rem' }}
+        scrollWheelZoom={interactive}
+        dragging={interactive}
+        zoomControl={interactive}
+        attributionControl={true}
       >
-        {/* Navigation controls */}
-        {interactive && (
-          <NavigationControl
-            position="top-right"
-            showCompass={true}
-            visualizePitch={true}
-          />
-        )}
+        <TileLayer
+          url={darkTileUrl}
+          attribution={attribution}
+        />
 
-        {/* Scale */}
-        <ScaleControl position="bottom-left" />
+        {locations.length > 1 && <MapBounds locations={locations} />}
+        {interactive && <ResetViewControl locations={locations} center={center} zoom={zoom} />}
 
-        {/* Location markers */}
-        {markers}
+        {locations.map((location) => {
+          const isSelected = selectedLocationId === location.id
+          const color = getMarkerColor(location.current_score)
+          const icon = createMarkerIcon(color, isSelected, location.elevation_m)
 
-        {/* Popup for selected location */}
-        {popupInfo && showPopups && (
-          <Popup
-            latitude={popupInfo.latitude}
-            longitude={popupInfo.longitude}
-            anchor="top"
-            onClose={() => setPopupInfo(null)}
-            closeButton={true}
-            closeOnClick={false}
-            className="location-popup"
-          >
-            <div className="p-1">
-              <h3 className="font-semibold text-slate-100 text-sm">
-                {popupInfo.name}
-              </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
-                {popupInfo.area} • {popupInfo.elevation_m}m
-              </p>
-              {popupInfo.current_score !== undefined && (
-                <div className="mt-2 flex items-center gap-2">
-                  <span
-                    className={`
-                      text-xs font-medium px-2 py-0.5 rounded-full
-                      ${popupInfo.current_score >= 7 ? 'bg-emerald-500/20 text-emerald-400' :
-                        popupInfo.current_score >= 5 ? 'bg-emerald-600/20 text-emerald-300' :
-                        popupInfo.current_score >= 3 ? 'bg-warning-500/20 text-warning-400' :
-                        'bg-danger-500/20 text-danger-400'}
-                    `}
-                  >
-                    Score: {popupInfo.current_score}/10
-                  </span>
-                </div>
+          return (
+            <Marker
+              key={location.id}
+              position={[location.latitude, location.longitude]}
+              icon={icon}
+              eventHandlers={{
+                click: () => handleMarkerClick(location),
+              }}
+            >
+              {showPopups && (
+                <Popup className="dark-popup">
+                  <div className="p-1 min-w-[150px]">
+                    <h3 className="font-semibold text-slate-900 text-sm">
+                      {location.name}
+                    </h3>
+                    <p className="text-xs text-slate-600 mt-0.5">
+                      {location.area} &bull; {location.elevation_m}m
+                    </p>
+                    {location.current_score !== undefined && (
+                      <div className="mt-2 flex items-center gap-2">
+                        <span
+                          className={`
+                            text-xs font-medium px-2 py-0.5 rounded-full
+                            ${location.current_score >= 7 ? 'bg-green-100 text-green-700' :
+                              location.current_score >= 5 ? 'bg-emerald-100 text-emerald-700' :
+                              location.current_score >= 3 ? 'bg-amber-100 text-amber-700' :
+                              'bg-red-100 text-red-700'}
+                          `}
+                        >
+                          Score: {location.current_score}/10
+                        </span>
+                      </div>
+                    )}
+                    {onLocationSelect && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onLocationSelect(location)
+                        }}
+                        className="mt-2 w-full text-xs bg-emerald-600 hover:bg-emerald-500 text-white rounded px-2 py-1 transition-colors"
+                      >
+                        View Details
+                      </button>
+                    )}
+                  </div>
+                </Popup>
               )}
-              {onLocationSelect && (
-                <button
-                  onClick={() => onLocationSelect(popupInfo)}
-                  className="mt-2 w-full text-xs bg-emerald-600 hover:bg-emerald-500 text-white rounded px-2 py-1 transition-colors"
-                >
-                  View Details
-                </button>
-              )}
-            </div>
-          </Popup>
-        )}
-      </Map>
+            </Marker>
+          )
+        })}
+      </MapContainer>
 
       {/* Map legend */}
-      <div className="absolute bottom-3 right-3 bg-slate-800/90 backdrop-blur-sm rounded-lg px-3 py-2 border border-slate-700/50 text-xs">
+      <div className="absolute bottom-3 right-3 bg-slate-800/90 backdrop-blur-sm rounded-lg px-3 py-2 border border-slate-700/50 text-xs z-[1000]">
         <div className="text-slate-400 font-medium mb-1.5">Hiking Conditions</div>
         <div className="space-y-1">
           <div className="flex items-center gap-2">
@@ -227,10 +260,107 @@ export function LocationMap({
       </div>
 
       {/* Location count badge */}
-      <div className="absolute top-3 left-3 bg-slate-800/90 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-slate-700/50">
+      <div className="absolute top-3 left-3 bg-slate-800/90 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-slate-700/50 z-[1000]">
         <span className="text-emerald-400 font-semibold">{locations.length}</span>
         <span className="text-slate-400 text-sm ml-1">locations</span>
       </div>
+
+      {/* Fullscreen toggle button */}
+      {interactive && (
+        <button
+          onClick={toggleFullscreen}
+          className="absolute top-3 right-3 bg-slate-800/90 backdrop-blur-sm rounded-lg p-2 border border-slate-700/50 z-[1000] hover:bg-slate-700/90 transition-colors"
+          title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+          aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+        >
+          {isFullscreen ? (
+            <ArrowsPointingInIcon className="w-4 h-4 text-slate-300" />
+          ) : (
+            <ArrowsPointingOutIcon className="w-4 h-4 text-slate-300" />
+          )}
+        </button>
+      )}
+
+      {/* Add CSS for marker animation */}
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+        @keyframes marker-bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-4px); }
+        }
+        .custom-marker {
+          background: none !important;
+          border: none !important;
+          transition: transform 0.2s ease;
+        }
+        .custom-marker:hover {
+          transform: scale(1.15);
+          z-index: 1000 !important;
+        }
+        .leaflet-popup-content-wrapper {
+          background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
+          color: #e2e8f0;
+          border-radius: 0.75rem;
+          border: 1px solid #334155;
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        }
+        .leaflet-popup-tip {
+          background: #1e293b;
+          border: 1px solid #334155;
+          border-top: none;
+          border-left: none;
+        }
+        .leaflet-popup-content {
+          margin: 10px 14px;
+        }
+        .leaflet-popup-content h3 {
+          color: #f1f5f9;
+        }
+        .leaflet-popup-content p {
+          color: #94a3b8;
+        }
+        .leaflet-popup-close-button {
+          color: #64748b !important;
+        }
+        .leaflet-popup-close-button:hover {
+          color: #e2e8f0 !important;
+        }
+        .leaflet-control-zoom {
+          border: none !important;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+        }
+        .leaflet-control-zoom a {
+          background: #1e293b !important;
+          color: #e2e8f0 !important;
+          border: 1px solid #334155 !important;
+          transition: all 0.2s ease !important;
+        }
+        .leaflet-control-zoom a:hover {
+          background: #334155 !important;
+          color: #10b981 !important;
+        }
+        .leaflet-control-attribution {
+          background: rgba(15, 23, 42, 0.9) !important;
+          color: #64748b !important;
+          backdrop-filter: blur(4px);
+        }
+        .leaflet-control-attribution a {
+          color: #94a3b8 !important;
+        }
+        .leaflet-control-attribution a:hover {
+          color: #10b981 !important;
+        }
+        /* Fullscreen specific styles */
+        .map-container:fullscreen .leaflet-container {
+          border-radius: 0 !important;
+        }
+        .map-container:fullscreen {
+          background: #0f172a;
+        }
+      `}</style>
     </div>
   )
 }

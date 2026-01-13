@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import type { WeatherPeriod, PhotographyOpportunity } from '../types'
+import type { PhotographyOpportunity } from '../types'
 
 // Import the function we want to test - since it's not exported, we'll need to export it
 // For now, we'll test via the public API that uses it

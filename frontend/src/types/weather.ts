@@ -7,6 +7,13 @@ export interface Location {
   longitude: number
   classification: 'munro' | 'corbett' | 'graham' | 'hill'
   difficulty: 'easy' | 'moderate' | 'challenging' | 'extreme'
+  current_score?: number // Current hiking score (1-10), if available
+}
+
+export interface PhotographyOpportunity {
+  type: 'sunrise' | 'sunset' | 'golden_hour' | 'cloud_inversion' | 'clear_sky'
+  probability: number
+  description: string
 }
 
 export interface WeatherPeriod {

@@ -22,7 +22,7 @@ export function PullToRefresh({
     isRefreshing,
     pullDistance,
     triggerDistance,
-    maxPullDistance
+    maxPullDistance: _maxPullDistance
   } = usePullToRefresh(onRefresh)
 
   const pullProgress = Math.min(pullDistance / triggerDistance, 1)
@@ -39,10 +39,10 @@ export function PullToRefresh({
       }}
     >
       {/* Pull indicator */}
-      <div 
+      <div
         className={cn(
           'absolute top-0 left-0 right-0 flex items-center justify-center transition-all duration-200 z-10',
-          showIndicator ? 'opacity-100' : 'opacity-0'
+          showIndicator ? 'opacity-100' : 'opacity-0 pointer-events-none'
         )}
         style={{
           transform: `translateY(${isPulling ? -60 + pullDistance * 0.5 : -60}px)`,
@@ -51,9 +51,9 @@ export function PullToRefresh({
       >
         <div className={cn(
           'flex items-center gap-2 px-4 py-2 rounded-full shadow-lg transition-all duration-200',
-          canTrigger 
-            ? 'bg-primary-500 text-white' 
-            : 'bg-white text-gray-600 border border-gray-200'
+          canTrigger
+            ? 'bg-emerald-500 text-white glow-breathe'
+            : 'bg-slate-700 text-slate-300 border border-slate-600'
         )}>
           <ArrowPathIcon 
             className={cn(
@@ -72,8 +72,8 @@ export function PullToRefresh({
 
       {/* Progress indicator */}
       {isPulling && (
-        <div 
-          className="absolute top-0 left-0 right-0 h-1 bg-primary-500 origin-left transition-transform duration-100 z-10"
+        <div
+          className="absolute top-0 left-0 right-0 h-1 bg-emerald-500 origin-left transition-transform duration-100 z-10 progress-bar-animate"
           style={{
             transform: `scaleX(${pullProgress})`,
             opacity: pullProgress
