@@ -52,10 +52,10 @@ export function WeatherMaps({ forecasts, currentLocation }: WeatherMapsProps) {
 
   // Get precipitation level and color
   const getPrecipitationLevel = (amount: number): PrecipitationLevel => {
-    if (amount === 0) return { level: 'none', amount, color: '#f3f4f6' }
-    if (amount <= 2) return { level: 'light', amount, color: '#dbeafe' }
-    if (amount <= 10) return { level: 'moderate', amount, color: '#3b82f6' }
-    return { level: 'heavy', amount, color: '#1e40af' }
+    if (amount === 0) return { level: 'none', amount, color: '#334155' }
+    if (amount <= 2) return { level: 'light', amount, color: '#1e3a5f' }
+    if (amount <= 10) return { level: 'moderate', amount, color: '#1e40af' }
+    return { level: 'heavy', amount, color: '#1e3a8a' }
   }
 
   // Get visibility color
@@ -97,7 +97,7 @@ export function WeatherMaps({ forecasts, currentLocation }: WeatherMapsProps) {
             <MapPinIcon className="w-6 h-6" />
             Weather Maps
           </h2>
-          <div className="text-sm text-gray-500">
+          <div className="text-sm text-slate-400">
             {currentLocation.area} • {currentLocation.name}
           </div>
         </div>
@@ -113,8 +113,8 @@ export function WeatherMaps({ forecasts, currentLocation }: WeatherMapsProps) {
                 className={cn(
                   'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
                   mapType === type.id
-                    ? 'bg-primary-100 text-primary-700 border border-primary-200'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-700'
+                    : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
                 )}
               >
                 <Icon className="w-4 h-4" />
@@ -127,11 +127,11 @@ export function WeatherMaps({ forecasts, currentLocation }: WeatherMapsProps) {
         {/* Time selectors */}
         <div className="grid grid-cols-2 gap-4 mb-6">
           <div>
-            <label className="block text-sm font-medium mb-1">Day:</label>
+            <label className="block text-sm font-medium mb-1 text-slate-300">Day:</label>
             <select
               value={selectedDay}
               onChange={(e) => setSelectedDay(Number(e.target.value))}
-              className="w-full text-sm border border-gray-300 rounded-md px-3 py-2"
+              className="w-full text-sm bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-slate-200"
             >
               {forecasts.map((forecast, index) => (
                 <option key={forecast.date} value={index}>
@@ -146,11 +146,11 @@ export function WeatherMaps({ forecasts, currentLocation }: WeatherMapsProps) {
           </div>
           
           <div>
-            <label className="block text-sm font-medium mb-1">Period:</label>
+            <label className="block text-sm font-medium mb-1 text-slate-300">Period:</label>
             <select
               value={selectedPeriod}
               onChange={(e) => setSelectedPeriod(Number(e.target.value))}
-              className="w-full text-sm border border-gray-300 rounded-md px-3 py-2"
+              className="w-full text-sm bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-slate-200"
             >
               {currentForecast?.periods.map((period, index) => (
                 <option key={index} value={index}>
@@ -175,7 +175,7 @@ export function WeatherMaps({ forecasts, currentLocation }: WeatherMapsProps) {
         </div>
 
         {/* Legend */}
-        <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+        <div className="mt-4 p-3 bg-slate-800/50 rounded-lg border border-slate-700">
           {mapType === 'wind' && <WindLegend />}
           {mapType === 'precipitation' && <PrecipitationLegend />}
           {mapType === 'visibility' && <VisibilityLegend />}
@@ -223,13 +223,13 @@ function WindMap({ windData, location }: { windData: WindData; location: any }) 
   }
 
   return (
-    <div className="relative bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-6 h-64 overflow-hidden">
+    <div className="relative bg-gradient-to-br from-slate-800 to-slate-700 rounded-lg p-6 h-64 overflow-hidden">
       {/* Topographic-style background */}
       <div className="absolute inset-0 opacity-20">
         <svg width="100%" height="100%" viewBox="0 0 400 300">
           <defs>
             <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-              <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#6b7280" strokeWidth="0.5"/>
+              <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#94a3b8" strokeWidth="0.5"/>
             </pattern>
           </defs>
           <rect width="100%" height="100%" fill="url(#grid)" />
@@ -241,17 +241,17 @@ function WindMap({ windData, location }: { windData: WindData; location: any }) 
 
       {/* Location marker */}
       <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-        <div className="bg-red-500 rounded-full w-3 h-3 border-2 border-white shadow-lg"></div>
-        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white px-2 py-1 rounded text-xs font-medium shadow">
+        <div className="bg-red-500 rounded-full w-3 h-3 border-2 border-slate-800 shadow-lg"></div>
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-slate-800 px-2 py-1 rounded text-xs font-medium shadow text-slate-200">
           {location.name}
         </div>
       </div>
 
       {/* Wind info */}
-      <div className="absolute top-4 right-4 bg-white bg-opacity-90 p-3 rounded-lg shadow">
-        <div className="text-sm font-medium">Wind</div>
-        <div className="text-lg font-bold">{windData.speed} km/h</div>
-        <div className="text-sm text-gray-600">{windData.direction}</div>
+      <div className="absolute top-4 right-4 bg-slate-800 bg-opacity-95 p-3 rounded-lg shadow border border-slate-600">
+        <div className="text-sm font-medium text-slate-300">Wind</div>
+        <div className="text-lg font-bold text-slate-100">{windData.speed} km/h</div>
+        <div className="text-sm text-slate-400">{windData.direction}</div>
       </div>
     </div>
   )
@@ -320,17 +320,17 @@ function PrecipitationMap({ precipData, location }: { precipData: PrecipitationL
 
       {/* Location marker */}
       <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-        <div className="bg-red-500 rounded-full w-3 h-3 border-2 border-white shadow-lg"></div>
-        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white px-2 py-1 rounded text-xs font-medium shadow">
+        <div className="bg-red-500 rounded-full w-3 h-3 border-2 border-slate-800 shadow-lg"></div>
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-slate-800 px-2 py-1 rounded text-xs font-medium shadow text-slate-200">
           {location.name}
         </div>
       </div>
 
       {/* Precipitation info */}
-      <div className="absolute top-4 right-4 bg-white bg-opacity-90 p-3 rounded-lg shadow">
-        <div className="text-sm font-medium">Precipitation</div>
-        <div className="text-lg font-bold">{precipData.amount}mm</div>
-        <div className="text-sm text-gray-600 capitalize">{precipData.level}</div>
+      <div className="absolute top-4 right-4 bg-slate-800 bg-opacity-95 p-3 rounded-lg shadow border border-slate-600">
+        <div className="text-sm font-medium text-slate-300">Precipitation</div>
+        <div className="text-lg font-bold text-slate-100">{precipData.amount}mm</div>
+        <div className="text-sm text-slate-400 capitalize">{precipData.level}</div>
       </div>
     </div>
   )
@@ -340,13 +340,13 @@ function VisibilityMap({ visibilityData, location }: { visibilityData: { distanc
   const visibilityKm = Math.round(visibilityData.distance / 1000)
   
   return (
-    <div className="relative bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg p-6 h-64 overflow-hidden">
+    <div className="relative bg-gradient-to-br from-slate-800 to-slate-700 rounded-lg p-6 h-64 overflow-hidden">
       {/* Visibility circles showing range */}
       <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
         {[1, 2, 3, 4].map(radius => (
           <div
             key={radius}
-            className="absolute border-2 border-dashed opacity-30 rounded-full"
+            className="absolute border-2 border-dashed opacity-40 rounded-full"
             style={{
               width: `${radius * 40}px`,
               height: `${radius * 40}px`,
@@ -360,26 +360,26 @@ function VisibilityMap({ visibilityData, location }: { visibilityData: { distanc
       </div>
 
       {/* Visibility gradient overlay */}
-      <div 
+      <div
         className="absolute inset-0 rounded-lg"
         style={{
-          background: `radial-gradient(circle at center, transparent 20%, ${visibilityData.color}20 60%, ${visibilityData.color}40 100%)`
+          background: `radial-gradient(circle at center, transparent 20%, ${visibilityData.color}30 60%, ${visibilityData.color}50 100%)`
         }}
       />
 
       {/* Location marker */}
       <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-        <div className="bg-red-500 rounded-full w-3 h-3 border-2 border-white shadow-lg"></div>
-        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white px-2 py-1 rounded text-xs font-medium shadow">
+        <div className="bg-red-500 rounded-full w-3 h-3 border-2 border-slate-800 shadow-lg"></div>
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-slate-800 px-2 py-1 rounded text-xs font-medium shadow text-slate-200">
           {location.name}
         </div>
       </div>
 
       {/* Visibility info */}
-      <div className="absolute top-4 right-4 bg-white bg-opacity-90 p-3 rounded-lg shadow">
-        <div className="text-sm font-medium">Visibility</div>
-        <div className="text-lg font-bold">{visibilityKm}km</div>
-        <div className="text-sm text-gray-600">
+      <div className="absolute top-4 right-4 bg-slate-800 bg-opacity-95 p-3 rounded-lg shadow border border-slate-600">
+        <div className="text-sm font-medium text-slate-300">Visibility</div>
+        <div className="text-lg font-bold text-slate-100">{visibilityKm}km</div>
+        <div className="text-sm text-slate-400">
           {visibilityKm >= 20 ? 'Excellent' :
            visibilityKm >= 10 ? 'Good' :
            visibilityKm >= 5 ? 'Moderate' : 'Poor'}
@@ -392,22 +392,22 @@ function VisibilityMap({ visibilityData, location }: { visibilityData: { distanc
 function WindLegend() {
   return (
     <div>
-      <h4 className="font-medium text-sm mb-2">Wind Speed (km/h)</h4>
-      <div className="flex flex-wrap gap-4 text-xs">
+      <h4 className="font-medium text-sm mb-2 text-slate-200">Wind Speed (km/h)</h4>
+      <div className="flex flex-wrap gap-4 text-xs text-slate-300">
         <div className="flex items-center gap-2">
-          <ArrowRightIcon className="w-3 h-3 text-green-500" />
+          <ArrowRightIcon className="w-3 h-3 text-green-400" />
           <span>0-15 (Light)</span>
         </div>
         <div className="flex items-center gap-2">
-          <ArrowRightIcon className="w-3 h-3 text-yellow-500" />
+          <ArrowRightIcon className="w-3 h-3 text-yellow-400" />
           <span>15-30 (Moderate)</span>
         </div>
         <div className="flex items-center gap-2">
-          <ArrowRightIcon className="w-3 h-3 text-orange-500" />
+          <ArrowRightIcon className="w-3 h-3 text-orange-400" />
           <span>30-50 (Strong)</span>
         </div>
         <div className="flex items-center gap-2">
-          <ArrowRightIcon className="w-3 h-3 text-red-500" />
+          <ArrowRightIcon className="w-3 h-3 text-red-400" />
           <span>50+ (Severe)</span>
         </div>
       </div>
@@ -418,22 +418,22 @@ function WindLegend() {
 function PrecipitationLegend() {
   return (
     <div>
-      <h4 className="font-medium text-sm mb-2">Precipitation Levels</h4>
-      <div className="flex flex-wrap gap-4 text-xs">
+      <h4 className="font-medium text-sm mb-2 text-slate-200">Precipitation Levels</h4>
+      <div className="flex flex-wrap gap-4 text-xs text-slate-300">
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 bg-gray-200 rounded"></div>
+          <div className="w-3 h-3 bg-slate-600 rounded"></div>
           <span>None (0mm)</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 bg-blue-200 rounded"></div>
+          <div className="w-3 h-3 bg-sky-800 rounded"></div>
           <span>Light (0-2mm)</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 bg-blue-400 rounded"></div>
+          <div className="w-3 h-3 bg-blue-600 rounded"></div>
           <span>Moderate (2-10mm)</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 bg-blue-700 rounded"></div>
+          <div className="w-3 h-3 bg-blue-800 rounded"></div>
           <span>Heavy (10mm+)</span>
         </div>
       </div>
@@ -444,10 +444,10 @@ function PrecipitationLegend() {
 function VisibilityLegend() {
   return (
     <div>
-      <h4 className="font-medium text-sm mb-2">Visibility Range</h4>
-      <div className="flex flex-wrap gap-4 text-xs">
+      <h4 className="font-medium text-sm mb-2 text-slate-200">Visibility Range</h4>
+      <div className="flex flex-wrap gap-4 text-xs text-slate-300">
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 bg-green-500 rounded"></div>
+          <div className="w-3 h-3 bg-emerald-500 rounded"></div>
           <span>Excellent (20km+)</span>
         </div>
         <div className="flex items-center gap-2">

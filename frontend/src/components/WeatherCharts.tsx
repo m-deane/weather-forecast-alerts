@@ -220,7 +220,7 @@ function OverviewChart({ data, preferences }: { data: ChartDataPoint[]; preferen
           dataKey="maxTemp"
           stackId="1"
           stroke="#ef4444"
-          fill="#fee2e2"
+          fill="rgba(239, 68, 68, 0.2)"
           name="High Temp"
         />
         <Area
@@ -229,7 +229,7 @@ function OverviewChart({ data, preferences }: { data: ChartDataPoint[]; preferen
           dataKey="minTemp"
           stackId="1"
           stroke="#3b82f6"
-          fill="#dbeafe"
+          fill="rgba(59, 130, 246, 0.2)"
           name="Low Temp"
         />
         <Line
@@ -412,7 +412,7 @@ function WindVisibilityChart({ data, preferences }: { data: ChartDataPoint[]; pr
           type="monotone"
           dataKey="windSpeed"
           stroke="#f59e0b"
-          fill="#fef3c7"
+          fill="rgba(245, 158, 11, 0.2)"
           name="Wind Speed"
         />
         <Line

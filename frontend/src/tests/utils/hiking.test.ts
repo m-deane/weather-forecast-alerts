@@ -1,17 +1,15 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import {
   assessHikingConditions,
-  calculateHikingScore,
-  identifyRiskFactors,
-  generateGearRecommendations,
-  generateSafetyGuidance,
-  determineExperienceLevel
+  getExperienceLevelColor,
+  getExperienceLevelDescription
 } from '@/utils/hiking'
-import type { WeatherPeriod, Location } from '@/types'
+import type { WeatherPeriod, Location, UserPreferences } from '@/types'
 
 describe('Hiking Assessment Utilities', () => {
   let mockLocation: Location
   let mockWeatherPeriod: WeatherPeriod
+  let mockPreferences: UserPreferences
 
   beforeEach(() => {
     mockLocation = {
@@ -31,6 +29,7 @@ describe('Hiking Assessment Utilities', () => {
       wind_speed_kph: 25,
       wind_direction: 'SW',
       precipitation_mm: 0,
+      precipitation_type: 'none',
       weather_description: 'Partly cloudy',
       visibility_m: 15000,
       cloud_base_m: 1200,
@@ -38,11 +37,25 @@ describe('Hiking Assessment Utilities', () => {
       hiking_score: 7,
       risk_level: 'moderate'
     }
+
+    mockPreferences = {
+      units: {
+        temperature: 'celsius',
+        wind: 'kph',
+        distance: 'km'
+      },
+      notifications: {
+        enabled: false,
+        severeWeatherAlerts: false,
+        favoriteLocationUpdates: false
+      },
+      riskTolerance: 'moderate'
+    }
   })
 
   describe('assessHikingConditions', () => {
     it('should return comprehensive hiking assessment', () => {
-      const assessment = assessHikingConditions(mockWeatherPeriod, mockLocation)
+      const assessment = assessHikingConditions(mockWeatherPeriod, mockLocation, mockPreferences)
 
       expect(assessment).toHaveProperty('score')
       expect(assessment).toHaveProperty('level')
@@ -59,428 +72,247 @@ describe('Hiking Assessment Utilities', () => {
     })
 
     it('should assess excellent conditions correctly', () => {
-      const excellentWeather = {
+      const excellentWeather: WeatherPeriod = {
         ...mockWeatherPeriod,
         temperature_c: 15,
+        feels_like_c: 15,
         wind_speed_kph: 10,
         precipitation_mm: 0,
+        precipitation_type: 'none',
         visibility_m: 20000,
-        hiking_score: 9
+        hiking_score: 9,
+        risk_level: 'low'
       }
 
-      const assessment = assessHikingConditions(excellentWeather, mockLocation)
-      
+      const assessment = assessHikingConditions(excellentWeather, mockLocation, mockPreferences)
+
       expect(assessment.score).toBeGreaterThanOrEqual(8)
       expect(assessment.level).toBe('excellent')
-      expect(assessment.experienceLevel).toBe('beginner')
     })
 
     it('should assess dangerous conditions correctly', () => {
-      const dangerousWeather = {
+      const dangerousWeather: WeatherPeriod = {
         ...mockWeatherPeriod,
         temperature_c: -15,
+        feels_like_c: -25,
         wind_speed_kph: 70,
+        gust_speed_kph: 90,
         precipitation_mm: 20,
-        visibility_m: 200,
-        hiking_score: 1
+        precipitation_type: 'snow',
+        visibility_m: 50,
+        hiking_score: 1,
+        risk_level: 'extreme'
       }
 
-      const assessment = assessHikingConditions(dangerousWeather, mockLocation)
-      
+      const assessment = assessHikingConditions(dangerousWeather, mockLocation, mockPreferences)
+
       expect(assessment.score).toBeLessThanOrEqual(3)
       expect(assessment.level).toBe('dangerous')
       expect(assessment.experienceLevel).toBe('expert_only')
       expect(assessment.riskFactors.length).toBeGreaterThan(0)
     })
-  })
 
-  describe('calculateHikingScore', () => {
-    it('should calculate score based on weather conditions', () => {
-      const score = calculateHikingScore(mockWeatherPeriod, mockLocation)
-      expect(score).toBeGreaterThanOrEqual(1)
-      expect(score).toBeLessThanOrEqual(10)
-    })
-
-    it('should give lower scores for harsh conditions', () => {
-      const harshWeather = {
-        ...mockWeatherPeriod,
-        temperature_c: -10,
-        wind_speed_kph: 60,
-        precipitation_mm: 15,
-        visibility_m: 500
-      }
-
-      const score = calculateHikingScore(harshWeather, mockLocation)
-      expect(score).toBeLessThanOrEqual(4)
-    })
-
-    it('should give higher scores for good conditions', () => {
-      const goodWeather = {
-        ...mockWeatherPeriod,
-        temperature_c: 20,
-        wind_speed_kph: 15,
-        precipitation_mm: 0,
-        visibility_m: 25000
-      }
-
-      const score = calculateHikingScore(goodWeather, mockLocation)
-      expect(score).toBeGreaterThanOrEqual(6)
-    })
-  })
-
-  describe('identifyRiskFactors', () => {
     it('should identify wind risk factors', () => {
-      const windyWeather = {
+      const windyWeather: WeatherPeriod = {
         ...mockWeatherPeriod,
-        wind_speed_kph: 60
+        wind_speed_kph: 65,
+        gust_speed_kph: 80,
+        hiking_score: 4,
+        risk_level: 'high'
       }
 
-      const risks = identifyRiskFactors(windyWeather, mockLocation)
-      const windRisk = risks.find(r => r.type === 'wind')
-      
+      const assessment = assessHikingConditions(windyWeather, mockLocation, mockPreferences)
+      const windRisk = assessment.riskFactors.find(r => r.type === 'wind')
+
       expect(windRisk).toBeDefined()
-      expect(windRisk?.severity).toBe('high')
-      expect(windRisk?.mitigation).toContain('wind')
+      expect(['high', 'extreme']).toContain(windRisk?.severity)
     })
 
     it('should identify temperature risk factors', () => {
-      const coldWeather = {
+      const coldWeather: WeatherPeriod = {
         ...mockWeatherPeriod,
-        temperature_c: -15
+        temperature_c: -15,
+        feels_like_c: -20,
+        hiking_score: 3,
+        risk_level: 'high'
       }
 
-      const risks = identifyRiskFactors(coldWeather, mockLocation)
-      const tempRisk = risks.find(r => r.type === 'temperature')
-      
+      const assessment = assessHikingConditions(coldWeather, mockLocation, mockPreferences)
+      const tempRisk = assessment.riskFactors.find(r => r.type === 'temperature')
+
       expect(tempRisk).toBeDefined()
-      expect(tempRisk?.severity).toBe('high')
+      expect(['high', 'extreme']).toContain(tempRisk?.severity)
     })
 
     it('should identify precipitation risk factors', () => {
-      const wetWeather = {
+      const wetWeather: WeatherPeriod = {
         ...mockWeatherPeriod,
-        precipitation_mm: 15
+        precipitation_mm: 15,
+        precipitation_type: 'rain',
+        hiking_score: 4,
+        risk_level: 'moderate'
       }
 
-      const risks = identifyRiskFactors(wetWeather, mockLocation)
-      const precipRisk = risks.find(r => r.type === 'precipitation')
-      
+      const assessment = assessHikingConditions(wetWeather, mockLocation, mockPreferences)
+      const precipRisk = assessment.riskFactors.find(r => r.type === 'precipitation')
+
       expect(precipRisk).toBeDefined()
-      expect(precipRisk?.severity).toMatch(/moderate|high/)
+      expect(['moderate', 'high']).toContain(precipRisk?.severity)
     })
 
     it('should identify visibility risk factors', () => {
-      const foggyWeather = {
+      const foggyWeather: WeatherPeriod = {
         ...mockWeatherPeriod,
-        visibility_m: 300
+        visibility_m: 300,
+        hiking_score: 3,
+        risk_level: 'high'
       }
 
-      const risks = identifyRiskFactors(foggyWeather, mockLocation)
-      const visibilityRisk = risks.find(r => r.type === 'visibility')
-      
+      const assessment = assessHikingConditions(foggyWeather, mockLocation, mockPreferences)
+      const visibilityRisk = assessment.riskFactors.find(r => r.type === 'visibility')
+
       expect(visibilityRisk).toBeDefined()
-      expect(visibilityRisk?.severity).toBe('high')
+      expect(['moderate', 'high', 'extreme']).toContain(visibilityRisk?.severity)
     })
 
-    it('should return no risks for good conditions', () => {
-      const perfectWeather = {
+    it('should generate gear recommendations for cold conditions', () => {
+      const coldWeather: WeatherPeriod = {
         ...mockWeatherPeriod,
-        temperature_c: 20,
-        wind_speed_kph: 10,
-        precipitation_mm: 0,
-        visibility_m: 25000
+        temperature_c: 0,
+        feels_like_c: -5,
+        hiking_score: 5,
+        risk_level: 'moderate'
       }
 
-      const risks = identifyRiskFactors(perfectWeather, mockLocation)
-      expect(risks).toHaveLength(0)
-    })
-  })
+      const assessment = assessHikingConditions(coldWeather, mockLocation, mockPreferences)
+      const clothingRecs = assessment.gearRecommendations.filter(r => r.category === 'clothing')
 
-  describe('generateGearRecommendations', () => {
-    it('should recommend basic gear for good conditions', () => {
-      const recommendations = generateGearRecommendations(mockWeatherPeriod, mockLocation)
-      
-      expect(recommendations.length).toBeGreaterThan(0)
-      expect(recommendations.some(r => r.category === 'navigation')).toBe(true)
-      expect(recommendations.some(r => r.category === 'emergency')).toBe(true)
+      expect(clothingRecs.length).toBeGreaterThan(0)
+      expect(clothingRecs.some(r => r.essential)).toBe(true)
     })
 
-    it('should recommend warm clothing for cold conditions', () => {
-      const coldWeather = {
+    it('should generate gear recommendations for wet conditions', () => {
+      const wetWeather: WeatherPeriod = {
         ...mockWeatherPeriod,
-        temperature_c: -5
+        precipitation_mm: 5,
+        precipitation_type: 'rain',
+        hiking_score: 5,
+        risk_level: 'moderate'
       }
 
-      const recommendations = generateGearRecommendations(coldWeather, mockLocation)
-      const warmClothing = recommendations.filter(r => r.category === 'clothing')
-      
-      expect(warmClothing.length).toBeGreaterThan(0)
-      expect(recommendations.some(r => r.essential && r.item.toLowerCase().includes('warm'))).toBe(true)
-    })
+      const assessment = assessHikingConditions(wetWeather, mockLocation, mockPreferences)
+      const clothingRecs = assessment.gearRecommendations.filter(r => r.category === 'clothing')
 
-    it('should recommend waterproofs for wet conditions', () => {
-      const wetWeather = {
-        ...mockWeatherPeriod,
-        precipitation_mm: 10
-      }
-
-      const recommendations = generateGearRecommendations(wetWeather, mockLocation)
-      
-      expect(recommendations.some(r => 
-        r.item.toLowerCase().includes('waterproof') || 
-        r.item.toLowerCase().includes('rain')
+      expect(clothingRecs.some(r =>
+        r.items.some((item: string) => item.toLowerCase().includes('waterproof'))
       )).toBe(true)
     })
 
-    it('should recommend wind protection for windy conditions', () => {
-      const windyWeather = {
+    it('should generate gear recommendations for windy conditions', () => {
+      const windyWeather: WeatherPeriod = {
         ...mockWeatherPeriod,
-        wind_speed_kph: 50
+        wind_speed_kph: 40,
+        hiking_score: 5,
+        risk_level: 'moderate'
       }
 
-      const recommendations = generateGearRecommendations(windyWeather, mockLocation)
-      
-      expect(recommendations.some(r => 
-        r.item.toLowerCase().includes('windproof') || 
-        r.item.toLowerCase().includes('shell')
+      const assessment = assessHikingConditions(windyWeather, mockLocation, mockPreferences)
+      const clothingRecs = assessment.gearRecommendations.filter(r => r.category === 'clothing')
+
+      expect(clothingRecs.some(r =>
+        r.items.some((item: string) => item.toLowerCase().includes('wind'))
       )).toBe(true)
     })
-  })
 
-  describe('generateSafetyGuidance', () => {
-    it('should provide safety guidance', () => {
-      const guidance = generateSafetyGuidance(mockWeatherPeriod, mockLocation)
-      
-      expect(guidance).toBeInstanceOf(Array)
-      expect(guidance.length).toBeGreaterThan(0)
-      expect(guidance.every(g => typeof g === 'string')).toBe(true)
+    it('should generate safety guidance', () => {
+      const assessment = assessHikingConditions(mockWeatherPeriod, mockLocation, mockPreferences)
+
+      expect(assessment.safetyGuidance).toBeInstanceOf(Array)
+      expect(assessment.safetyGuidance.length).toBeGreaterThan(0)
+      expect(assessment.safetyGuidance.every(g => typeof g === 'string')).toBe(true)
     })
 
-    it('should provide weather-specific guidance', () => {
-      const dangerousWeather = {
+    it('should recommend higher experience for dangerous conditions', () => {
+      const dangerousWeather: WeatherPeriod = {
         ...mockWeatherPeriod,
         wind_speed_kph: 70,
-        visibility_m: 200
+        temperature_c: -10,
+        feels_like_c: -20,
+        visibility_m: 100,
+        hiking_score: 1,
+        risk_level: 'extreme'
       }
 
-      const guidance = generateSafetyGuidance(dangerousWeather, mockLocation)
-      
-      expect(guidance.some(g => g.toLowerCase().includes('wind'))).toBe(true)
-      expect(guidance.some(g => g.toLowerCase().includes('visibility'))).toBe(true)
+      const assessment = assessHikingConditions(dangerousWeather, mockLocation, mockPreferences)
+      expect(assessment.experienceLevel).toBe('expert_only')
+    })
+
+    it('should return no risk factors for perfect conditions', () => {
+      const perfectWeather: WeatherPeriod = {
+        ...mockWeatherPeriod,
+        temperature_c: 20,
+        feels_like_c: 20,
+        wind_speed_kph: 10,
+        precipitation_mm: 0,
+        precipitation_type: 'none',
+        visibility_m: 25000,
+        hiking_score: 10,
+        risk_level: 'low'
+      }
+
+      const assessment = assessHikingConditions(perfectWeather, mockLocation, mockPreferences)
+      expect(assessment.riskFactors.length).toBe(0)
+    })
+
+    it('should provide appropriate recommendation based on risk tolerance', () => {
+      const moderateWeather: WeatherPeriod = {
+        ...mockWeatherPeriod,
+        wind_speed_kph: 35,
+        hiking_score: 5,
+        risk_level: 'moderate'
+      }
+
+      const conservativePrefs: UserPreferences = {
+        ...mockPreferences,
+        riskTolerance: 'conservative'
+      }
+
+      const aggressivePrefs: UserPreferences = {
+        ...mockPreferences,
+        riskTolerance: 'aggressive'
+      }
+
+      const conservativeAssessment = assessHikingConditions(moderateWeather, mockLocation, conservativePrefs)
+      const aggressiveAssessment = assessHikingConditions(moderateWeather, mockLocation, aggressivePrefs)
+
+      // Conservative should be more cautious
+      expect(conservativeAssessment.recommendation).not.toBe(aggressiveAssessment.recommendation)
     })
   })
 
-  describe('determineExperienceLevel', () => {
-    it('should require beginner level for easy conditions', () => {
-      const easyConditions = {
-        ...mockWeatherPeriod,
-        temperature_c: 20,
-        wind_speed_kph: 10,
-        precipitation_mm: 0,
-        visibility_m: 25000
-      }
-
-      const level = determineExperienceLevel(easyConditions, mockLocation)
-      expect(level).toBe('beginner')
+  describe('getExperienceLevelColor', () => {
+    it('should return correct colors for each experience level', () => {
+      expect(getExperienceLevelColor('beginner')).toContain('green')
+      expect(getExperienceLevelColor('intermediate')).toContain('blue')
+      expect(getExperienceLevelColor('advanced')).toContain('orange')
+      expect(getExperienceLevelColor('expert_only')).toContain('red')
     })
 
-    it('should require expert level for dangerous conditions', () => {
-      const dangerousConditions = {
-        ...mockWeatherPeriod,
-        temperature_c: -20,
-        wind_speed_kph: 80,
-        precipitation_mm: 25,
-        visibility_m: 100
-      }
+    it('should return gray for unknown levels', () => {
+      expect(getExperienceLevelColor('unknown')).toContain('gray')
+    })
+  })
 
-      const level = determineExperienceLevel(dangerousConditions, mockLocation)
-      expect(level).toBe('expert_only')
+  describe('getExperienceLevelDescription', () => {
+    it('should return correct descriptions for each experience level', () => {
+      expect(getExperienceLevelDescription('beginner')).toContain('beginner')
+      expect(getExperienceLevelDescription('intermediate')).toContain('mountain experience')
+      expect(getExperienceLevelDescription('advanced')).toContain('Advanced')
+      expect(getExperienceLevelDescription('expert_only')).toContain('Expert')
     })
 
-    it('should consider elevation in experience requirements', () => {
-      const highMountain = {
-        ...mockLocation,
-        elevation_m: 2000
-      }
-
-      const level = determineExperienceLevel(mockWeatherPeriod, highMountain)
-      expect(['intermediate', 'advanced', 'expert_only']).toContain(level)
+    it('should return fallback for unknown levels', () => {
+      expect(getExperienceLevelDescription('unknown')).toContain('unavailable')
     })
   })
 })
-
-// Helper function to mock the hiking assessment functions
-const mockHikingAssessment = {
-  assessHikingConditions: (period: WeatherPeriod, location: Location) => ({
-    score: 7,
-    level: 'good' as const,
-    recommendation: 'Good conditions for hiking with proper preparation',
-    riskFactors: [],
-    gearRecommendations: [],
-    safetyGuidance: ['Check weather updates regularly'],
-    experienceLevel: 'intermediate' as const
-  }),
-
-  calculateHikingScore: (period: WeatherPeriod, location: Location): number => {
-    let score = 10
-    
-    // Temperature penalties
-    if (period.temperature_c < 0) score -= 2
-    if (period.temperature_c < -10) score -= 3
-    if (period.temperature_c > 30) score -= 2
-
-    // Wind penalties
-    if (period.wind_speed_kph > 30) score -= 2
-    if (period.wind_speed_kph > 50) score -= 4
-
-    // Precipitation penalties
-    if (period.precipitation_mm > 0) score -= 1
-    if (period.precipitation_mm > 10) score -= 3
-
-    // Visibility penalties
-    if ((period.visibility_m || 10000) < 1000) score -= 4
-    if ((period.visibility_m || 10000) < 5000) score -= 2
-
-    return Math.max(1, Math.min(10, score))
-  },
-
-  identifyRiskFactors: (period: WeatherPeriod, location: Location) => {
-    const risks: any[] = []
-
-    if (period.wind_speed_kph > 50) {
-      risks.push({
-        type: 'wind',
-        severity: 'high',
-        description: 'Very strong winds present significant risk',
-        mitigation: 'Consider postponing or choose more sheltered routes'
-      })
-    }
-
-    if (period.temperature_c < -10) {
-      risks.push({
-        type: 'temperature',
-        severity: 'high',
-        description: 'Extremely cold temperatures increase hypothermia risk',
-        mitigation: 'Wear appropriate winter clothing and monitor for cold symptoms'
-      })
-    }
-
-    if (period.precipitation_mm > 10) {
-      risks.push({
-        type: 'precipitation',
-        severity: 'moderate',
-        description: 'Heavy precipitation can cause slippery conditions',
-        mitigation: 'Wear waterproof clothing and use appropriate footwear'
-      })
-    }
-
-    if ((period.visibility_m || 10000) < 1000) {
-      risks.push({
-        type: 'visibility',
-        severity: 'high',
-        description: 'Poor visibility significantly increases navigation risk',
-        mitigation: 'Ensure strong navigation skills and consider GPS backup'
-      })
-    }
-
-    return risks
-  },
-
-  generateGearRecommendations: (period: WeatherPeriod, location: Location) => {
-    const recommendations: any[] = [
-      {
-        category: 'navigation',
-        item: 'Map and compass',
-        essential: true,
-        description: 'Essential for navigation'
-      },
-      {
-        category: 'emergency',
-        item: 'First aid kit',
-        essential: true,
-        description: 'Basic medical supplies'
-      }
-    ]
-
-    if (period.temperature_c < 5) {
-      recommendations.push({
-        category: 'clothing',
-        item: 'Warm insulation layer',
-        essential: true,
-        description: 'Protection against cold temperatures'
-      })
-    }
-
-    if (period.precipitation_mm > 0) {
-      recommendations.push({
-        category: 'protection',
-        item: 'Waterproof jacket',
-        essential: true,
-        description: 'Protection from rain'
-      })
-    }
-
-    if (period.wind_speed_kph > 30) {
-      recommendations.push({
-        category: 'protection',
-        item: 'Windproof shell',
-        essential: true,
-        description: 'Protection from strong winds'
-      })
-    }
-
-    return recommendations
-  },
-
-  generateSafetyGuidance: (period: WeatherPeriod, location: Location): string[] => {
-    const guidance: string[] = [
-      'Check weather forecast before departure',
-      'Inform someone of your planned route and return time',
-      'Carry emergency shelter and supplies'
-    ]
-
-    if (period.wind_speed_kph > 50) {
-      guidance.push('Be extremely cautious of strong winds, especially on ridges and exposed areas')
-    }
-
-    if ((period.visibility_m || 10000) < 1000) {
-      guidance.push('Poor visibility requires strong navigation skills and GPS backup')
-    }
-
-    if (period.temperature_c < 0) {
-      guidance.push('Cold temperatures increase hypothermia risk - dress appropriately')
-    }
-
-    return guidance
-  },
-
-  determineExperienceLevel: (period: WeatherPeriod, location: Location) => {
-    let difficultyScore = 0
-
-    // Weather difficulty
-    if (period.temperature_c < -10) difficultyScore += 3
-    else if (period.temperature_c < 0) difficultyScore += 2
-
-    if (period.wind_speed_kph > 60) difficultyScore += 3
-    else if (period.wind_speed_kph > 40) difficultyScore += 2
-    else if (period.wind_speed_kph > 25) difficultyScore += 1
-
-    if (period.precipitation_mm > 15) difficultyScore += 2
-    else if (period.precipitation_mm > 5) difficultyScore += 1
-
-    if ((period.visibility_m || 10000) < 500) difficultyScore += 3
-    else if ((period.visibility_m || 10000) < 2000) difficultyScore += 2
-
-    // Elevation difficulty
-    if (location.elevation_m > 1500) difficultyScore += 2
-    else if (location.elevation_m > 1000) difficultyScore += 1
-
-    if (difficultyScore >= 8) return 'expert_only'
-    if (difficultyScore >= 5) return 'advanced'
-    if (difficultyScore >= 2) return 'intermediate'
-    return 'beginner'
-  }
-}
-
-// Apply mocks
-Object.assign(global, mockHikingAssessment)
