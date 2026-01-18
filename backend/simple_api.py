@@ -32,12 +32,12 @@ app.add_middleware(
 # Path to forecast directory
 FORECAST_DIR = Path(__file__).parent.parent / "forecasts"
 
-# Scoring algorithm constants (from weather_scraper.py)
-SCORE_WEIGHT_WIND = 2.0
-SCORE_WEIGHT_RAIN = 1.5
-SCORE_WEIGHT_SNOW = 3.0
-SCORE_WEIGHT_COLD = 0.8
-SCORE_WEIGHT_HOT = 0.5
+# Scoring algorithm constants (from weather_scraper.py - conservative for safety)
+SCORE_WEIGHT_WIND = 2.5  # Penalty per 10kph over 30kph
+SCORE_WEIGHT_RAIN = 7.0  # Penalty per mm rain
+SCORE_WEIGHT_SNOW = 12.0  # Penalty per cm snow
+SCORE_WEIGHT_COLD = 3.0  # Penalty per degree below 0°C
+SCORE_WEIGHT_HOT = 0.5   # Penalty per degree above 25°C
 
 def calculate_hiking_score(temp_min, temp_max, temp_chill, wind_kph, rain_mm=0, snow_cm=0):
     """Calculate hiking suitability score (1-10, 10=perfect)"""
@@ -455,31 +455,31 @@ MOCK_LOCATIONS = [
 def generate_mock_weather_period(period_type: str, base_temp: int = 10, days_offset: int = 0):
     """Generate mock weather data for a specific period"""
     import random
-    
+
     temp_variance = random.randint(-5, 8)
     wind_variance = random.randint(-10, 15)
-    
+
     if period_type == "am":
         temp_adj = -2
-    elif period_type == "pm": 
+    elif period_type == "pm":
         temp_adj = 3
     else:  # night
         temp_adj = -5
-    
+
     temperature = base_temp + temp_adj + temp_variance
     wind_speed = max(5, 25 + wind_variance)
     precipitation = random.choice([0, 0, 0.5, 2, 5, 10]) if days_offset < 3 else random.choice([0, 1, 3, 8])
-    
-    # Calculate hiking score based on conditions
-    score = 8
-    if temperature < 0: score -= 2
-    if temperature < -10: score -= 2  
-    if wind_speed > 40: score -= 2
-    if wind_speed > 60: score -= 3
-    if precipitation > 5: score -= 2
-    if precipitation > 15: score -= 2
-    
-    score = max(1, min(10, score))
+
+    # Calculate hiking score using the same algorithm as real data
+    # Start at 10 (perfect conditions) and apply penalties
+    score = calculate_hiking_score(
+        temp_min=temperature - 3,
+        temp_max=temperature,
+        temp_chill=temperature - 5 if wind_speed > 20 else temperature,
+        wind_kph=wind_speed,
+        rain_mm=precipitation,
+        snow_cm=0
+    )
     
     risk_levels = ["low", "moderate", "high", "extreme"]
     if score >= 8: risk_level = "low"
@@ -563,6 +563,13 @@ async def root():
 async def health():
     """Health check endpoint"""
     return {"status": "healthy", "service": "mock-api"}
+
+@app.post("/api/metrics")
+async def post_metrics(data: Dict[str, Any] = None):
+    """Accept metrics data from frontend (no-op for mock API)"""
+    # In a real implementation, this would store metrics
+    # For mock API, we just acknowledge receipt
+    return {"status": "received", "timestamp": datetime.now().isoformat()}
 
 @app.get("/api/v1/locations")
 async def get_locations(
