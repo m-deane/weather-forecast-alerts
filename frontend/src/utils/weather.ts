@@ -34,21 +34,39 @@ export function getWindDescription(speedKph: number): string {
   return 'Gale force'
 }
 
-export function getHikingScoreColor(score: number): string {
-  if (score >= 8) return 'text-success-700'
-  if (score >= 6) return 'text-success-600'
-  if (score >= 4) return 'text-warning-600'
-  if (score >= 2) return 'text-warning-700'
+// Risk-tolerance-adjusted thresholds for hiking score classification
+const scoreThresholds = {
+  conservative: { excellent: 9, good: 7.5, moderate: 5.5, poor: 3 },
+  moderate: { excellent: 8, good: 6, moderate: 4, poor: 2 },
+  aggressive: { excellent: 7, good: 5, moderate: 3, poor: 1.5 },
+}
+
+function getThresholds(riskTolerance?: string) {
+  if (riskTolerance === 'conservative' || riskTolerance === 'aggressive') {
+    return scoreThresholds[riskTolerance]
+  }
+  return scoreThresholds.moderate
+}
+
+export function getHikingScoreColor(score: number, riskTolerance?: string): string {
+  const t = getThresholds(riskTolerance)
+  if (score >= t.excellent) return 'text-success-700'
+  if (score >= t.good) return 'text-success-600'
+  if (score >= t.moderate) return 'text-warning-600'
+  if (score >= t.poor) return 'text-warning-700'
   return 'text-danger-700'
 }
 
-export function getHikingScoreDescription(score: number): string {
-  if (score >= 8) return 'Excellent'
-  if (score >= 6) return 'Good'
-  if (score >= 4) return 'Moderate'
-  if (score >= 2) return 'Poor'
+export function getHikingScoreDescription(score: number, riskTolerance?: string): string {
+  const t = getThresholds(riskTolerance)
+  if (score >= t.excellent) return 'Excellent'
+  if (score >= t.good) return 'Good'
+  if (score >= t.moderate) return 'Moderate'
+  if (score >= t.poor) return 'Poor'
   return 'Dangerous'
 }
+
+export { scoreThresholds }
 
 export function getRiskLevelColor(level: string): string {
   switch (level.toLowerCase()) {

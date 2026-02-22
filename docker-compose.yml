@@ -51,9 +51,9 @@ services:
       dockerfile: Dockerfile
     container_name: mountain_weather_api
     environment:
-      DATABASE_URL: postgresql://mountain_weather_user:dev_password_change_in_production@db:5432/mountain_weather
+      DATABASE_URL: postgresql://${POSTGRES_USER:-mountain_weather_user}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@db:5432/${POSTGRES_DB:-mountain_weather}
       REDIS_URL: redis://redis:6379
-      ENVIRONMENT: development
+      ENVIRONMENT: ${ENVIRONMENT:-development}
       DEBUG: "true"
       LOG_LEVEL: INFO
     ports:
@@ -86,9 +86,9 @@ services:
       dockerfile: Dockerfile
     container_name: mountain_weather_updater
     environment:
-      DATABASE_URL: postgresql://mountain_weather_user:dev_password_change_in_production@db:5432/mountain_weather
+      DATABASE_URL: postgresql://${POSTGRES_USER:-mountain_weather_user}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@db:5432/${POSTGRES_DB:-mountain_weather}
       REDIS_URL: redis://redis:6379
-      ENVIRONMENT: development
+      ENVIRONMENT: ${ENVIRONMENT:-development}
     volumes:
       - ./weather_scraper.py:/app/weather_scraper.py
       - ./config.yaml:/app/config.yaml
@@ -165,7 +165,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      GF_SECURITY_ADMIN_PASSWORD: admin_change_in_production
+      GF_SECURITY_ADMIN_PASSWORD: ${GF_ADMIN_PASSWORD:-admin}
     volumes:
       - grafana_data:/var/lib/grafana
       - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro

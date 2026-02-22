@@ -16,20 +16,15 @@ import time # Add this import for delay
 from urllib.parse import urlparse # For URL validation
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-import random # For User-Agent rotation
+import random # For request delay jitter
 
 # --- Configuration ---
 CONFIG_FILE = "config.yaml"
-USER_AGENTS = [
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0',
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15',
-    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-]
-REQUEST_TIMEOUT = 30 # Increased timeout
-MAX_RETRIES = 3 # Number of retries for failed requests
-RETRY_DELAY_BASE = 5 # Base delay in seconds for exponential backoff
+# Honest bot User-Agent identifying this application
+USER_AGENT = 'ScottishMountainWeatherBot/1.0 (weather forecast aggregator for hiking safety)'
+REQUEST_TIMEOUT = 30  # seconds; mountain-forecast.com can be slow, 30s avoids premature timeouts
+MAX_RETRIES = 3  # 3 attempts balances reliability vs not hammering the server
+RETRY_DELAY_BASE = 5  # seconds; exponential backoff: 5s, 10s, 20s between retries
 
 # Configure logging
 # Set level to DEBUG to see more detailed parsing info/errors
@@ -42,11 +37,12 @@ logger = logging.getLogger(__name__) # Use specific logger
 OWM_API_ENDPOINT = "https://api.openweathermap.org/data/3.0/onecall"
 OWM_EXCLUDE = "current,minutely,hourly,alerts" # Exclude parts we don't need for daily forecast
 
-# Thresholds for condition summaries (adjust as needed)
-HIKING_WIND_THRESHOLD_KPH = 50
-HIKING_RAIN_THRESHOLD_MM_3HR = 5 # Approx threshold for a 3hr period
-HIKING_TEMP_COLD_THRESHOLD_C = 0
-HIKING_TEMP_HOT_THRESHOLD_C = 25
+# Thresholds for condition summaries
+# These define when conditions transition from "acceptable" to "warning" in text summaries
+HIKING_WIND_THRESHOLD_KPH = 50  # 50 kph = ~31 mph; above this, exposed ridges become dangerous
+HIKING_RAIN_THRESHOLD_MM_3HR = 5  # 5mm in 3hrs = moderate rain; enough to soak through gear
+HIKING_TEMP_COLD_THRESHOLD_C = 0  # Freezing point; ice risk on paths, hypothermia risk increases
+HIKING_TEMP_HOT_THRESHOLD_C = 25  # Rarely reached in Scotland; heat exhaustion risk above this
 
 # Scoring weights for hiking summary (lower is better) - Adjust as desired
 # Increased weights for more conservative scoring
@@ -57,8 +53,9 @@ SCORE_WEIGHT_COLD = 0.8  # Penalty per degree below 0°C (Recalibrated: -5°C = 
 SCORE_WEIGHT_HOT = 0.5   # Penalty per degree above 25°C (unchanged)
 
 # Inversion Check Thresholds
-INVERSION_CLOUD_BASE_THRESHOLD_M = 300 # Cloud base below this might indicate inversion fog
-INVERSION_WIND_THRESHOLD_KPH = 10    # Wind speed below this
+# Temperature inversions trap cloud below summits, creating spectacular photography conditions
+INVERSION_CLOUD_BASE_THRESHOLD_M = 300  # Cloud base below 300m suggests valley fog/low cloud
+INVERSION_WIND_THRESHOLD_KPH = 10  # Inversions break down in winds above ~10 kph
 
 # --- Helper Functions ---
 
@@ -336,23 +333,22 @@ def get_html_with_retry(url, max_retries=MAX_RETRIES):
     if not validate_url(url):
         logger.error(f"Invalid URL format: {url}")
         return None
-    
+
+    # Create session once and reuse across retries for connection pooling
+    session = requests.Session()
+    retry_strategy = Retry(
+        total=2,
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["HEAD", "GET", "OPTIONS"]
+    )
+    adapter = HTTPAdapter(max_retries=retry_strategy)
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
+
     for attempt in range(max_retries):
         try:
-            # Create session with retry adapter
-            session = requests.Session()
-            retry_strategy = Retry(
-                total=2,
-                status_forcelist=[429, 500, 502, 503, 504],
-                allowed_methods=["HEAD", "GET", "OPTIONS"]
-            )
-            adapter = HTTPAdapter(max_retries=retry_strategy)
-            session.mount("http://", adapter)
-            session.mount("https://", adapter)
-            
-            # Rotate User-Agent
             headers = {
-                'User-Agent': random.choice(USER_AGENTS),
+                'User-Agent': USER_AGENT,
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
                 'Accept-Language': 'en-US,en;q=0.5',
                 'Accept-Encoding': 'gzip, deflate',
@@ -363,6 +359,12 @@ def get_html_with_retry(url, max_retries=MAX_RETRIES):
             logger.debug(f"Attempt {attempt + 1}/{max_retries} - Fetching HTML from {url}")
             response = session.get(url, headers=headers, timeout=REQUEST_TIMEOUT)
             response.raise_for_status()
+
+            # Verify final URL after redirects stays on allowed domain
+            final_domain = urlparse(response.url).netloc
+            if final_domain != 'www.mountain-forecast.com':
+                logger.error(f"Redirect to untrusted domain blocked: {url} → {response.url}")
+                return None
             
             logger.info(f"Successfully fetched HTML from {url} (Status: {response.status_code})")
             return response.text
@@ -889,7 +891,9 @@ def get_owm_forecast(lat, lon, api_key, area_name):
         logger.info(f"Successfully fetched OWM forecast for {area_name} (Status: {response.status_code})")
         return response.json()
     except requests.exceptions.RequestException as e:
-        logger.error(f"Error fetching OWM forecast for {area_name}: {e}")
+        # Redact API key from error message to prevent accidental exposure in logs
+        error_msg = str(e).replace(api_key, 'REDACTED') if api_key else str(e)
+        logger.error(f"Error fetching OWM forecast for {area_name}: {error_msg}")
         # Check for specific API key error
         if e.response is not None and e.response.status_code == 401:
              logger.error("OWM API key seems invalid or expired.")
@@ -2047,32 +2051,16 @@ def analyze_saved_forecasts(forecast_dir="forecasts"):
             if not full_date:
                 continue # Skip periods without a full date
 
-            # --- Calculate Hike Score (as before) --- 
-            hike_score = 0
-            temp_min = period.get('temp_min_c')
-            temp_max = period.get('temp_max_c')
-            temp_chill = period.get('temp_chill_c')
-            wind = period.get('wind_kph')
-            gust = period.get('gust_kph')
-            rain = period.get('rain_mm', 0)
-            snow = period.get('snow_cm', 0)
-            
-            effective_min_temp = temp_min if temp_chill is None else min(temp_min or 999, temp_chill or 999)
-            if effective_min_temp is not None and effective_min_temp < HIKING_TEMP_COLD_THRESHOLD_C:
-                hike_score += abs(effective_min_temp - HIKING_TEMP_COLD_THRESHOLD_C) * SCORE_WEIGHT_COLD
-            if temp_max is not None and temp_max > HIKING_TEMP_HOT_THRESHOLD_C:
-                 hike_score += (temp_max - HIKING_TEMP_HOT_THRESHOLD_C) * SCORE_WEIGHT_HOT
-            
-            max_wind = -1
-            if wind is not None: max_wind = max(max_wind, wind)
-            if gust is not None: max_wind = max(max_wind, gust)
-            if max_wind > 30: # Penalize wind over 30 kph
-                 hike_score += ((max_wind - 30) / 10) * SCORE_WEIGHT_WIND 
-            
-            if rain is not None and rain > 0:
-                 hike_score += rain * SCORE_WEIGHT_RAIN
-            if snow is not None and snow > 0:
-                 hike_score += snow * SCORE_WEIGHT_SNOW
+            # Calculate Hike Score using canonical function (1-10 scale, 10=perfect)
+            hike_score = calculate_hiking_suitability_score(
+                temp_min_c=period.get('temp_min_c'),
+                temp_max_c=period.get('temp_max_c'),
+                temp_chill_c=period.get('temp_chill_c'),
+                wind_kph=period.get('wind_kph'),
+                gust_kph=period.get('gust_kph'),
+                rain_mm=period.get('rain_mm', 0),
+                snow_cm=period.get('snow_cm', 0)
+            )
 
             # --- Photography Potential (as before) --- 
             photo_potential = "Poor"
@@ -2163,7 +2151,7 @@ def analyze_saved_forecasts(forecast_dir="forecasts"):
     weekend_summary_lines = []
     if weekend_munro_periods:
         weekend_display = f"{first_saturday_display if first_saturday_display else 'N/A'} - {first_sunday_display if first_sunday_display else 'N/A'}"
-        weekend_summary_lines.append(f"\\n--- Weekend Munro Average Summary ({weekend_display}) ---")
+        weekend_summary_lines.append(f"\n--- Weekend Munro Average Summary ({weekend_display}) ---")
 
         # Calculate average hike score
         hike_scores = [p['hike_score'] for p in weekend_munro_periods]
@@ -2212,7 +2200,7 @@ def analyze_saved_forecasts(forecast_dir="forecasts"):
         weekend_astro = any('clear' in p.get('photography_potential', '').lower() and p.get('time') == 'night' for p in weekend_munro_periods)
         weekend_summary_lines.append(f"  - Clear Night Periods Indicated: {'Yes' if weekend_astro else 'No'}")
     else:
-        weekend_summary_lines.append("\\n--- Weekend Munro Average Summary ---")
+        weekend_summary_lines.append("\n--- Weekend Munro Average Summary ---")
         weekend_summary_lines.append("  (No relevant Saturday/Sunday Munro forecast data found for averaging)")
     # --- NEW: Weekend Summary Calculation --- END
 
@@ -2379,7 +2367,7 @@ def analyze_saved_forecasts(forecast_dir="forecasts"):
         # --- Astrophotography Prospects (Clear Nights) --- END
                  
         # --- Individual Forecast Summaries (from loaded overall_summaries) --- START
-        report_lines.append("\\n  **Individual Forecast Summaries (First Day):**")
+        report_lines.append("\n  **Individual Forecast Summaries (First Day):**")
         munro_summaries_list = []
         if day in overall_summaries:
             for location, summary_dict in sorted(overall_summaries[day].items()): # Sort by location name
@@ -2421,6 +2409,58 @@ def analyze_saved_forecasts(forecast_dir="forecasts"):
     # logger.info("Forecast analysis summary generated.") # Already logged save success/failure
 
 
+def cleanup_old_forecast_files(forecast_dir="forecasts", days_to_keep=7):
+    """Deletes forecast files older than the specified number of days.
+
+    Args:
+        forecast_dir (str): The base directory containing forecast files.
+        days_to_keep (int): Number of days to keep files. Files older than this are deleted.
+
+    Returns:
+        int: Number of files deleted.
+    """
+    if not os.path.exists(forecast_dir):
+        logger.info(f"Forecast directory '{forecast_dir}' does not exist. No cleanup needed.")
+        return 0
+
+    cutoff_time = datetime.datetime.now() - datetime.timedelta(days=days_to_keep)
+    cutoff_timestamp = cutoff_time.timestamp()
+
+    # Find all JSON and CSV files in the forecast directory and subdirectories
+    json_pattern = os.path.join(forecast_dir, "**", "*.json")
+    csv_pattern = os.path.join(forecast_dir, "**", "*.csv")
+
+    files_to_check = glob.glob(json_pattern, recursive=True) + glob.glob(csv_pattern, recursive=True)
+
+    # Resolve the base directory to prevent symlink traversal
+    real_base = os.path.realpath(forecast_dir)
+
+    deleted_count = 0
+    for file_path in files_to_check:
+        try:
+            # Ensure resolved path stays within forecast directory
+            real_path = os.path.realpath(file_path)
+            if not real_path.startswith(real_base + os.sep):
+                logger.warning(f"Skipping file outside forecast directory: {file_path} → {real_path}")
+                continue
+
+            # Get file modification time
+            file_mtime = os.path.getmtime(file_path)
+            if file_mtime < cutoff_timestamp:
+                os.remove(real_path)
+                deleted_count += 1
+                logger.debug(f"Deleted old file: {file_path}")
+        except Exception as e:
+            logger.warning(f"Failed to delete file {file_path}: {e}")
+
+    if deleted_count > 0:
+        logger.info(f"Cleanup complete: Deleted {deleted_count} file(s) older than {days_to_keep} days from '{forecast_dir}'.")
+    else:
+        logger.info(f"Cleanup complete: No files older than {days_to_keep} days found in '{forecast_dir}'.")
+
+    return deleted_count
+
+
 # --- Main Execution Block ---
 
 if __name__ == "__main__":
@@ -2447,6 +2487,9 @@ if __name__ == "__main__":
         exit(1)
     # --- END Add ---
 
+    # --- Clean up old forecast files ---
+    cleanup_old_forecast_files("forecasts", days_to_keep=7)
+
     try:
         num_processed = process_locations(config_data)
         if num_processed > 0:
@@ -2458,6 +2501,34 @@ if __name__ == "__main__":
     except Exception as e:
         logger.critical(f"An unexpected error occurred during main processing: {e}", exc_info=True)
         exit(1)
+
+    # --- URL Validation Summary ---
+    # Check for failed URLs CSV file from this run
+    failed_csv_files = glob.glob("forecasts/failed_munros_*.csv")
+    if failed_csv_files:
+        # Get the most recent failed munros file
+        latest_failed_csv = max(failed_csv_files, key=os.path.getmtime)
+
+        try:
+            with open(latest_failed_csv, 'r', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                failed_entries = list(reader)
+
+            if failed_entries:
+                logger.warning("="*60)
+                logger.warning(f"URL VALIDATION SUMMARY: {len(failed_entries)} URL(s) failed during this scrape run")
+                logger.warning("="*60)
+
+                for entry in failed_entries:
+                    logger.warning(f"  - {entry['area']} / {entry['munro']}: {entry['status']}")
+                    logger.warning(f"    URL: {entry['url']}")
+
+                logger.warning("="*60)
+                logger.warning(f"RECOMMENDATION: Run 'python check_urls.py' to validate all URLs in config.yaml")
+                logger.warning(f"Failed URLs saved to: {latest_failed_csv}")
+                logger.warning("="*60)
+        except Exception as e:
+            logger.error(f"Could not read failed munros CSV for summary: {e}")
 
     logger.info("Weather scraper script finished.")
     exit(0) # Exit cleanly

@@ -5,7 +5,8 @@ import {
   CloudIcon,
   EyeIcon,
   ClockIcon,
-  LightBulbIcon
+  LightBulbIcon,
+  MapPinIcon,
 } from '@heroicons/react/24/outline'
 import { weatherApi } from '@/api/client'
 import { cn } from '@/utils/cn'
@@ -18,6 +19,7 @@ import {
   type PhotographyOpportunity
 } from '@/utils/photography'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
+import { PhotographyViewpoints } from '@/components/PhotographyViewpoints'
 
 interface PhotographyDashboardProps {
   locationId: string
@@ -72,6 +74,7 @@ export function PhotographyDashboard({ locationId }: PhotographyDashboardProps) 
     { id: 'opportunities', title: 'Opportunities', icon: LightBulbIcon },
     { id: 'timing', title: 'Best Times', icon: ClockIcon },
     { id: 'conditions', title: 'Atmospheric', icon: CloudIcon },
+    { id: 'viewpoints', title: 'Viewpoints', icon: MapPinIcon },
   ]
 
   return (
@@ -143,10 +146,13 @@ export function PhotographyDashboard({ locationId }: PhotographyDashboardProps) 
             />
           )}
           {expandedSection === 'conditions' && (
-            <AtmosphericConditions 
+            <AtmosphericConditions
               conditions={photographyConditions}
               period={currentPeriod}
             />
+          )}
+          {expandedSection === 'viewpoints' && (
+            <PhotographyViewpoints locationId={locationId} />
           )}
         </div>
       </div>

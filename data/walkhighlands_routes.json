@@ -1,0 +1,302 @@
+{
+  "ben-nevis-ben-nevis": {
+    "routes": [
+      {
+        "name": "Ben Nevis via the Mountain Track (Tourist Path)",
+        "url": "https://www.walkhighlands.co.uk/fortwilliam/ben-nevis.shtml",
+        "distance_km": 16,
+        "ascent_m": 1352,
+        "estimated_hours": 7,
+        "grade": 4,
+        "category": "Munros",
+        "parking": {
+          "name": "Glen Nevis Visitor Centre",
+          "latitude": 56.8037,
+          "longitude": -5.0794,
+          "postcode": "PH33 6PF"
+        }
+      },
+      {
+        "name": "Ben Nevis via the Carn Mor Dearg Arete",
+        "url": "https://www.walkhighlands.co.uk/fortwilliam/ben-nevis-cmd.shtml",
+        "distance_km": 19,
+        "ascent_m": 1500,
+        "estimated_hours": 9,
+        "grade": 5,
+        "category": "Munros",
+        "parking": {
+          "name": "North Face Car Park",
+          "latitude": 56.8101,
+          "longitude": -5.0413,
+          "postcode": "PH33 6SY"
+        }
+      }
+    ]
+  },
+  "torridon-beinn-eighe": {
+    "routes": [
+      {
+        "name": "Beinn Eighe from Kinlochewe",
+        "url": "https://www.walkhighlands.co.uk/torridon/beinn-eighe.shtml",
+        "distance_km": 16,
+        "ascent_m": 1050,
+        "estimated_hours": 7,
+        "grade": 4,
+        "category": "Munros",
+        "parking": {
+          "name": "Kinlochewe Car Park",
+          "latitude": 57.6035,
+          "longitude": -5.3048,
+          "postcode": "IV22 2PA"
+        }
+      }
+    ]
+  },
+  "torridon-liathach": {
+    "routes": [
+      {
+        "name": "Liathach Traverse",
+        "url": "https://www.walkhighlands.co.uk/torridon/liathach.shtml",
+        "distance_km": 12,
+        "ascent_m": 1200,
+        "estimated_hours": 8,
+        "grade": 5,
+        "category": "Munros",
+        "parking": {
+          "name": "Torridon Village Car Park",
+          "latitude": 57.5433,
+          "longitude": -5.5103,
+          "postcode": "IV22 2EZ"
+        }
+      }
+    ]
+  },
+  "glencoe-buachaille-etive-mor": {
+    "routes": [
+      {
+        "name": "Buachaille Etive Mor via Coire na Tulaich",
+        "url": "https://www.walkhighlands.co.uk/fortwilliam/buachaille-etive-mor.shtml",
+        "distance_km": 10,
+        "ascent_m": 950,
+        "estimated_hours": 5.5,
+        "grade": 4,
+        "category": "Munros",
+        "parking": {
+          "name": "Altnafeadh Layby",
+          "latitude": 56.6536,
+          "longitude": -5.0515,
+          "postcode": "PH49 4HX"
+        }
+      }
+    ]
+  },
+  "glencoe-bidean-nam-bian": {
+    "routes": [
+      {
+        "name": "Bidean nam Bian via the Lost Valley",
+        "url": "https://www.walkhighlands.co.uk/fortwilliam/bidean-nam-bian.shtml",
+        "distance_km": 10,
+        "ascent_m": 1150,
+        "estimated_hours": 6,
+        "grade": 5,
+        "category": "Munros",
+        "parking": {
+          "name": "Three Sisters Car Park",
+          "latitude": 56.6685,
+          "longitude": -5.0628,
+          "postcode": "PH49 4LA"
+        }
+      }
+    ]
+  },
+  "skye-cuillin-sgurr-nan-gillean": {
+    "routes": [
+      {
+        "name": "Sgurr nan Gillean via the Tourist Route",
+        "url": "https://www.walkhighlands.co.uk/skye/sgurr-nan-gillean.shtml",
+        "distance_km": 10,
+        "ascent_m": 960,
+        "estimated_hours": 6,
+        "grade": 5,
+        "category": "Munros",
+        "parking": {
+          "name": "Sligachan Hotel Car Park",
+          "latitude": 57.2892,
+          "longitude": -6.1726,
+          "postcode": "IV47 8SW"
+        }
+      }
+    ]
+  },
+  "skye-cuillin-bla-bheinn": {
+    "routes": [
+      {
+        "name": "Bla Bheinn (Blaven) from Loch Slapin",
+        "url": "https://www.walkhighlands.co.uk/skye/blabheinn.shtml",
+        "distance_km": 8,
+        "ascent_m": 928,
+        "estimated_hours": 5,
+        "grade": 4,
+        "category": "Munros",
+        "parking": {
+          "name": "Bla Bheinn Car Park, B8083",
+          "latitude": 57.2047,
+          "longitude": -6.1253,
+          "postcode": "IV49 9AJ"
+        }
+      }
+    ]
+  },
+  "cairngorms-ben-macdui": {
+    "routes": [
+      {
+        "name": "Ben Macdui from Cairngorm Ski Centre",
+        "url": "https://www.walkhighlands.co.uk/cairngorms/ben-macdui.shtml",
+        "distance_km": 16,
+        "ascent_m": 850,
+        "estimated_hours": 6.5,
+        "grade": 4,
+        "category": "Munros",
+        "parking": {
+          "name": "Cairngorm Ski Centre Car Park",
+          "latitude": 57.1342,
+          "longitude": -3.6608,
+          "postcode": "PH22 1RB"
+        }
+      }
+    ]
+  },
+  "cairngorms-cairngorm": {
+    "routes": [
+      {
+        "name": "Cairn Gorm from Ski Centre",
+        "url": "https://www.walkhighlands.co.uk/cairngorms/cairngorm.shtml",
+        "distance_km": 8,
+        "ascent_m": 620,
+        "estimated_hours": 3.5,
+        "grade": 3,
+        "category": "Munros",
+        "parking": {
+          "name": "Cairngorm Ski Centre Car Park",
+          "latitude": 57.1342,
+          "longitude": -3.6608,
+          "postcode": "PH22 1RB"
+        }
+      }
+    ]
+  },
+  "coigach-suilven": {
+    "routes": [
+      {
+        "name": "Suilven from Inverkirkaig",
+        "url": "https://www.walkhighlands.co.uk/ullapool/suilven.shtml",
+        "distance_km": 20,
+        "ascent_m": 850,
+        "estimated_hours": 8,
+        "grade": 4,
+        "category": "Grahams",
+        "parking": {
+          "name": "Inverkirkaig Falls Car Park",
+          "latitude": 58.0733,
+          "longitude": -5.2601,
+          "postcode": "IV27 4LR"
+        }
+      }
+    ]
+  },
+  "coigach-stac-pollaidh": {
+    "routes": [
+      {
+        "name": "Stac Pollaidh Circular",
+        "url": "https://www.walkhighlands.co.uk/ullapool/stacpollaidh.shtml",
+        "distance_km": 4,
+        "ascent_m": 430,
+        "estimated_hours": 2.5,
+        "grade": 3,
+        "category": "Grahams",
+        "parking": {
+          "name": "Stac Pollaidh Car Park",
+          "latitude": 58.0456,
+          "longitude": -5.1980,
+          "postcode": "IV26 2YB"
+        }
+      }
+    ]
+  },
+  "torridon-an-teallach": {
+    "routes": [
+      {
+        "name": "An Teallach Traverse",
+        "url": "https://www.walkhighlands.co.uk/ullapool/an-teallach.shtml",
+        "distance_km": 16,
+        "ascent_m": 1350,
+        "estimated_hours": 8,
+        "grade": 5,
+        "category": "Munros",
+        "parking": {
+          "name": "Dundonnell Car Park",
+          "latitude": 57.8536,
+          "longitude": -5.1742,
+          "postcode": "IV23 2QT"
+        }
+      }
+    ]
+  },
+  "torridon-slioch": {
+    "routes": [
+      {
+        "name": "Slioch from Kinlochewe",
+        "url": "https://www.walkhighlands.co.uk/torridon/slioch.shtml",
+        "distance_km": 20,
+        "ascent_m": 1000,
+        "estimated_hours": 7.5,
+        "grade": 4,
+        "category": "Munros",
+        "parking": {
+          "name": "Incheril Car Park, Kinlochewe",
+          "latitude": 57.6080,
+          "longitude": -5.2984,
+          "postcode": "IV22 2PA"
+        }
+      }
+    ]
+  },
+  "loch-lomond-ben-lomond": {
+    "routes": [
+      {
+        "name": "Ben Lomond via the Tourist Path",
+        "url": "https://www.walkhighlands.co.uk/lochlomond/ben-lomond.shtml",
+        "distance_km": 12,
+        "ascent_m": 974,
+        "estimated_hours": 5,
+        "grade": 3,
+        "category": "Munros",
+        "parking": {
+          "name": "Rowardennan Car Park",
+          "latitude": 56.1636,
+          "longitude": -4.6322,
+          "postcode": "G63 0AR"
+        }
+      }
+    ]
+  },
+  "coigach-ben-more-coigach": {
+    "routes": [
+      {
+        "name": "Ben More Coigach from the road end",
+        "url": "https://www.walkhighlands.co.uk/ullapool/benmorecoigach.shtml",
+        "distance_km": 14,
+        "ascent_m": 850,
+        "estimated_hours": 6,
+        "grade": 4,
+        "category": "Corbetts",
+        "parking": {
+          "name": "Culnacraig Road End",
+          "latitude": 58.0556,
+          "longitude": -5.3472,
+          "postcode": "IV26 2YG"
+        }
+      }
+    ]
+  }
+}

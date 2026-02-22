@@ -12,7 +12,7 @@ import {
   ResponsiveContainer,
   ComposedChart
 } from 'recharts'
-import { 
+import {
   ChartBarIcon,
   CloudIcon,
   SunIcon,
@@ -20,6 +20,7 @@ import {
   ArrowPathIcon
 } from '@heroicons/react/24/outline'
 import { cn } from '@/utils/cn'
+import { getPeriodLabel } from '@/utils/weather'
 import type { DailyForecast } from '@/types'
 
 interface WeatherChartsProps {
@@ -53,7 +54,7 @@ interface PeriodDataPoint {
 }
 
 export function WeatherCharts({ forecasts, preferences }: WeatherChartsProps) {
-  const [activeChart, setActiveChart] = useState<'overview' | 'temperature' | 'precipitation' | 'wind' | 'periods'>('overview')
+  const [activeChart, setActiveChart] = useState<'overview' | 'temperature' | 'precipitation' | 'wind' | 'byPeriod' | 'periods'>('overview')
   const [selectedDay, setSelectedDay] = useState<DailyForecast | null>(null)
 
   // Prepare daily chart data
@@ -73,10 +74,10 @@ export function WeatherCharts({ forecasts, preferences }: WeatherChartsProps) {
     }
   })
 
-  // Prepare period data for detailed view
+  // Prepare period data for detailed view (single selected day)
   const periodData: PeriodDataPoint[] = selectedDay
-    ? selectedDay.periods.map((period, index) => ({
-        time: `${index * 8}:00`,
+    ? selectedDay.periods.map((period) => ({
+        time: getPeriodLabel(period.period_type),
         period: period.period_type,
         temperature: period.temperature_c,
         feelsLike: period.feels_like_c,
@@ -88,11 +89,28 @@ export function WeatherCharts({ forecasts, preferences }: WeatherChartsProps) {
       }))
     : []
 
+  // Prepare continuous "By Period" data spanning all forecast days
+  const allPeriodsData: PeriodDataPoint[] = forecasts.flatMap((forecast) => {
+    const dayLabel = new Date(forecast.date).toLocaleDateString('en-GB', { weekday: 'short' })
+    return forecast.periods.map((period) => ({
+      time: `${dayLabel} ${getPeriodLabel(period.period_type)}`,
+      period: period.period_type,
+      temperature: period.temperature_c,
+      feelsLike: period.feels_like_c,
+      precipitation: period.precipitation_mm,
+      windSpeed: period.wind_speed_kph,
+      humidity: period.humidity_percent || 0,
+      visibility: period.visibility_m ? period.visibility_m / 1000 : 0,
+      hikingScore: period.hiking_score
+    }))
+  })
+
   const chartOptions = [
     { id: 'overview', title: 'Overview', icon: ChartBarIcon },
     { id: 'temperature', title: 'Temperature', icon: SunIcon },
     { id: 'precipitation', title: 'Precipitation', icon: CloudIcon },
     { id: 'wind', title: 'Wind & Visibility', icon: EyeIcon },
+    { id: 'byPeriod', title: 'By Period', icon: ArrowPathIcon },
     { id: 'periods', title: 'Day Detail', icon: ArrowPathIcon },
   ] as const
 
@@ -158,6 +176,7 @@ export function WeatherCharts({ forecasts, preferences }: WeatherChartsProps) {
           {activeChart === 'temperature' && <TemperatureChart data={dailyData} preferences={preferences} />}
           {activeChart === 'precipitation' && <PrecipitationChart data={dailyData} />}
           {activeChart === 'wind' && <WindVisibilityChart data={dailyData} preferences={preferences} />}
+          {activeChart === 'byPeriod' && <PeriodDetailChart data={allPeriodsData} preferences={preferences} />}
           {activeChart === 'periods' && selectedDay && <PeriodDetailChart data={periodData} preferences={preferences} />}
           {activeChart === 'periods' && !selectedDay && (
             <div className="h-full flex items-center justify-center text-slate-500">

@@ -1,0 +1,218 @@
+{
+  "ben-nevis-ben-nevis": {
+    "photography_notes": "Scotland's highest peak offers dramatic cloud inversions and north face views. The summit plateau can be featureless in mist but extraordinary above the clouds.",
+    "key_viewpoints": [
+      {
+        "name": "Summit Plateau Edge",
+        "description": "The cliff edge above the north face provides vertigo-inducing views down 700m cliffs. Spectacular cloud inversions form below.",
+        "optimal_light": "morning",
+        "compass_bearing": 20,
+        "subjects": ["cliffs", "cloud inversion", "Carn Mor Dearg"]
+      },
+      {
+        "name": "CMD Arete",
+        "description": "The knife-edge ridge connecting to Carn Mor Dearg provides the classic profile view of Ben Nevis north face.",
+        "optimal_light": "evening",
+        "compass_bearing": 270,
+        "subjects": ["north face", "ridge", "Tower Ridge"]
+      }
+    ],
+    "best_seasons": ["winter", "autumn"],
+    "fotovue_guide_url": "https://www.fotovue.com/guides/photographing-scotland",
+    "fotovue_guide_name": "Photographing Scotland"
+  },
+  "torridon-beinn-eighe": {
+    "photography_notes": "The quartzite cap of Beinn Eighe creates unique white-capped peaks. Triple Buttress is one of Scotland's finest mountain features.",
+    "key_viewpoints": [
+      {
+        "name": "Loch Clair",
+        "description": "Classic reflection shot of Beinn Eighe and Liathach mirrored in the loch. Best in calm morning conditions.",
+        "optimal_light": "morning",
+        "compass_bearing": 315,
+        "subjects": ["reflection", "Liathach", "quartzite peaks"]
+      },
+      {
+        "name": "Triple Buttress Viewpoint",
+        "description": "From the approach path, the Triple Buttress is illuminated by afternoon light.",
+        "optimal_light": "evening",
+        "compass_bearing": 350,
+        "subjects": ["Triple Buttress", "cliffs", "Torridon sandstone"]
+      }
+    ],
+    "best_seasons": ["autumn", "winter"],
+    "fotovue_guide_url": "https://www.fotovue.com/guides/photographing-scotland",
+    "fotovue_guide_name": "Photographing Scotland"
+  },
+  "torridon-liathach": {
+    "photography_notes": "The most imposing mountain in Torridon with dramatic pinnacles and terraced sandstone. The traverse offers extraordinary ridge photography.",
+    "key_viewpoints": [
+      {
+        "name": "Glen Torridon Road",
+        "description": "The A896 provides multiple pull-offs for capturing the full 8km ridge of Liathach in side-light.",
+        "optimal_light": "morning",
+        "compass_bearing": 0,
+        "subjects": ["full ridge", "terraced sandstone", "scale"]
+      }
+    ],
+    "best_seasons": ["autumn", "winter"],
+    "fotovue_guide_url": "https://www.fotovue.com/guides/photographing-scotland",
+    "fotovue_guide_name": "Photographing Scotland"
+  },
+  "glencoe-buachaille-etive-mor": {
+    "photography_notes": "One of Scotland's most photographed mountains. The pyramidal shape from the A82 is iconic. Dawn light catches the east face spectacularly.",
+    "key_viewpoints": [
+      {
+        "name": "A82 Viewpoint (Rannoch Moor)",
+        "description": "The classic viewpoint on the A82 looking south-east to the perfect pyramidal form. River and foreground pools add depth.",
+        "optimal_light": "morning",
+        "compass_bearing": 160,
+        "subjects": ["pyramid shape", "River Etive", "Rannoch Moor"]
+      },
+      {
+        "name": "Lagangarbh Hut",
+        "description": "The cottage below Buachaille provides classic Scottish bothy-and-mountain composition.",
+        "optimal_light": "any",
+        "compass_bearing": 180,
+        "subjects": ["bothy", "mountain", "classic composition"]
+      }
+    ],
+    "best_seasons": ["autumn", "winter"],
+    "fotovue_guide_url": "https://www.fotovue.com/guides/photographing-scotland",
+    "fotovue_guide_name": "Photographing Scotland"
+  },
+  "glencoe-bidean-nam-bian": {
+    "photography_notes": "The Three Sisters of Glencoe form one of Scotland's most dramatic valley views. Best seen from the A82 or from the Lost Valley.",
+    "key_viewpoints": [
+      {
+        "name": "Three Sisters Viewpoint (A82)",
+        "description": "Pull-off on the A82 gives the classic view of all three ridges descending into the glen. Dramatic in stormy light.",
+        "optimal_light": "any",
+        "compass_bearing": 210,
+        "subjects": ["Three Sisters", "Glencoe", "dramatic light"]
+      }
+    ],
+    "best_seasons": ["autumn", "winter"],
+    "fotovue_guide_url": "https://www.fotovue.com/guides/photographing-scotland",
+    "fotovue_guide_name": "Photographing Scotland"
+  },
+  "skye-cuillin-sgurr-nan-gillean": {
+    "photography_notes": "The most recognisable Cuillin peak. Sligachan Bridge provides the classic composition with river and mountain.",
+    "key_viewpoints": [
+      {
+        "name": "Sligachan Old Bridge",
+        "description": "The iconic old bridge with Sgurr nan Gillean behind. Use long exposure on the river for silky water. Classic Scotland shot.",
+        "optimal_light": "evening",
+        "compass_bearing": 200,
+        "subjects": ["old bridge", "river", "Cuillin", "long exposure"]
+      }
+    ],
+    "best_seasons": ["autumn", "spring"],
+    "fotovue_guide_url": "https://www.fotovue.com/guides/photographing-scotland",
+    "fotovue_guide_name": "Photographing Scotland"
+  },
+  "skye-cuillin-bla-bheinn": {
+    "photography_notes": "Bla Bheinn is the most accessible Cuillin peak for photography, with dramatic views across Loch Slapin and to the main ridge.",
+    "key_viewpoints": [
+      {
+        "name": "Torrin Viewpoint",
+        "description": "Classic view across Loch Slapin with Bla Bheinn reflected. Works best at high tide with calm water.",
+        "optimal_light": "morning",
+        "compass_bearing": 290,
+        "subjects": ["Loch Slapin", "reflection", "Cuillin"]
+      }
+    ],
+    "best_seasons": ["spring", "autumn"],
+    "fotovue_guide_url": "https://www.fotovue.com/guides/photographing-scotland",
+    "fotovue_guide_name": "Photographing Scotland"
+  },
+  "cairngorms-ben-macdui": {
+    "photography_notes": "Scotland's second highest peak. The Cairngorms plateau offers vast tundra-like landscapes and arctic conditions in winter.",
+    "key_viewpoints": [
+      {
+        "name": "Coire an t-Sneachda",
+        "description": "The northern corries provide dramatic cliff and snow features. Winter conditions create Arctic-like scenes.",
+        "optimal_light": "morning",
+        "compass_bearing": 180,
+        "subjects": ["corrie", "cliffs", "winter conditions", "plateau"]
+      }
+    ],
+    "best_seasons": ["winter", "spring"],
+    "fotovue_guide_url": "https://www.fotovue.com/guides/photographing-scotland",
+    "fotovue_guide_name": "Photographing Scotland"
+  },
+  "coigach-suilven": {
+    "photography_notes": "Suilven's extraordinary sugar-loaf profile makes it one of Scotland's most distinctive mountains. The surrounding lochan-studded wilderness is itself photogenic.",
+    "key_viewpoints": [
+      {
+        "name": "Elphin Road Viewpoint",
+        "description": "From the road near Elphin, Suilven's full profile rises above the Assynt landscape with foreground lochs.",
+        "optimal_light": "evening",
+        "compass_bearing": 250,
+        "subjects": ["profile", "lochans", "Assynt wilderness"]
+      }
+    ],
+    "best_seasons": ["autumn", "summer"],
+    "fotovue_guide_url": "https://www.fotovue.com/guides/photographing-scotland",
+    "fotovue_guide_name": "Photographing Scotland"
+  },
+  "coigach-stac-pollaidh": {
+    "photography_notes": "The sandstone pinnacles on the summit ridge are extraordinary in low light. Quick access makes dawn/dusk sessions feasible.",
+    "key_viewpoints": [
+      {
+        "name": "Summit Ridge Pinnacles",
+        "description": "The shattered sandstone pinnacles on the summit provide otherworldly foreground interest against Suilven and Cul Mor.",
+        "optimal_light": "evening",
+        "compass_bearing": 340,
+        "subjects": ["pinnacles", "Suilven", "Cul Mor", "sandstone"]
+      }
+    ],
+    "best_seasons": ["autumn", "summer"],
+    "fotovue_guide_url": "https://www.fotovue.com/guides/photographing-scotland",
+    "fotovue_guide_name": "Photographing Scotland"
+  },
+  "torridon-an-teallach": {
+    "photography_notes": "An Teallach's Corrag Bhuidhe pinnacles form one of the most dramatic ridge features in Scotland. The traverse is spectacular.",
+    "key_viewpoints": [
+      {
+        "name": "Corrag Bhuidhe from Bidein a' Ghlas Thuill",
+        "description": "Looking south along the pinnacle ridge from the northern top provides a dramatic profile of the Corrag Bhuidhe Buttresses.",
+        "optimal_light": "morning",
+        "compass_bearing": 190,
+        "subjects": ["pinnacles", "ridge", "exposure"]
+      }
+    ],
+    "best_seasons": ["winter", "autumn"],
+    "fotovue_guide_url": "https://www.fotovue.com/guides/photographing-scotland",
+    "fotovue_guide_name": "Photographing Scotland"
+  },
+  "torridon-slioch": {
+    "photography_notes": "Slioch is one of Scotland's most beautiful mountains when viewed across Loch Maree, a scene beloved by landscape photographers.",
+    "key_viewpoints": [
+      {
+        "name": "Loch Maree Viewpoint (A832)",
+        "description": "Multiple pull-offs along the A832 offer classic views of Slioch rising above Loch Maree. Pine islands add foreground interest.",
+        "optimal_light": "morning",
+        "compass_bearing": 30,
+        "subjects": ["Loch Maree", "Scots pines", "reflection", "islands"]
+      }
+    ],
+    "best_seasons": ["autumn", "spring"],
+    "fotovue_guide_url": "https://www.fotovue.com/guides/photographing-scotland",
+    "fotovue_guide_name": "Photographing Scotland"
+  },
+  "loch-lomond-ben-lomond": {
+    "photography_notes": "Ben Lomond provides sweeping views over Loch Lomond. The most southerly Munro is easily accessible for sunrise and sunset sessions.",
+    "key_viewpoints": [
+      {
+        "name": "Summit Viewpoint",
+        "description": "The summit offers panoramic views south over the length of Loch Lomond. Clear days reveal the Arrochar Alps and beyond.",
+        "optimal_light": "evening",
+        "compass_bearing": 180,
+        "subjects": ["Loch Lomond", "panorama", "islands"]
+      }
+    ],
+    "best_seasons": ["autumn", "spring"],
+    "fotovue_guide_url": "https://www.fotovue.com/guides/photographing-scotland",
+    "fotovue_guide_name": "Photographing Scotland"
+  }
+}

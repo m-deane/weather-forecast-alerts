@@ -20,13 +20,13 @@ logger = logging.getLogger(__name__)
 class CacheConfig(BaseModel):
     """Cache configuration settings"""
     redis_url: str = "redis://localhost:6379"
-    default_ttl: int = 3600  # 1 hour
-    weather_data_ttl: int = 14400  # 4 hours
-    location_data_ttl: int = 86400  # 24 hours
-    search_results_ttl: int = 3600  # 1 hour
-    user_preferences_ttl: int = 86400  # 24 hours
-    max_connections: int = 10
-    health_check_interval: int = 30
+    default_ttl: int = 3600  # 1 hour; safe default for most data
+    weather_data_ttl: int = 14400  # 4 hours; matches scraper update interval
+    location_data_ttl: int = 86400  # 24 hours; mountain metadata rarely changes
+    search_results_ttl: int = 3600  # 1 hour; same searches return same results within update cycle
+    user_preferences_ttl: int = 86400  # 24 hours; preferences change infrequently
+    max_connections: int = 10  # sized for expected ~100 concurrent users
+    health_check_interval: int = 30  # seconds; frequent enough to detect outages quickly
 
 # Global cache configuration
 cache_config = CacheConfig()

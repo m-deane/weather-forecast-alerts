@@ -496,9 +496,9 @@ export class AccessibilityChecker {
     const border = computedStyle.border
 
     return outline !== 'none' ||
-           (outlineWidth && outlineWidth !== '0px') ||
-           (boxShadow && boxShadow !== 'none') ||
-           (border && border !== 'none')
+           (!!outlineWidth && outlineWidth !== '0px') ||
+           (!!boxShadow && boxShadow !== 'none') ||
+           (!!border && border !== 'none')
   }
 }
 

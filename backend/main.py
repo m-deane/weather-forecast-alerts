@@ -4,6 +4,7 @@ Main application entry point for Scottish Mountain Weather API
 
 import asyncio
 import logging
+import logging.handlers
 import sys
 from contextlib import asynccontextmanager
 from datetime import datetime
@@ -27,7 +28,11 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler('weather_api.log')
+        logging.handlers.RotatingFileHandler(
+            'weather_api.log',
+            maxBytes=10 * 1024 * 1024,  # 10MB per file
+            backupCount=5
+        )
     ]
 )
 
@@ -134,7 +139,7 @@ if security_config.enable_cors:
         allow_origins=security_config.allowed_origins,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE"],
-        allow_headers=["*"],
+        allow_headers=["Content-Type", "Authorization", "X-API-Key"],
     )
 
 # Mount the API routes
@@ -220,7 +225,7 @@ async def api_status():
         "weather": {
             "update_interval_hours": 4,
             "sources": ["mwis", "met_office", "mountain_forecast", "openweathermap"],
-            "last_update": "TBD"  # Would get from weather service
+            "last_update": weather_service.last_update.isoformat() if weather_service and hasattr(weather_service, 'last_update') and weather_service.last_update else None
         }
     }
 
@@ -234,10 +239,9 @@ async def not_found_handler(request: Request, exc):
     return JSONResponse(
         status_code=404,
         content={
-            "error": "Not Found",
-            "message": "The requested resource was not found",
-            "path": str(request.url.path),
-            "method": request.method
+            "detail": "The requested resource was not found",
+            "status": 404,
+            "path": str(request.url.path)
         }
     )
 
@@ -248,8 +252,8 @@ async def internal_error_handler(request: Request, exc):
     return JSONResponse(
         status_code=500,
         content={
-            "error": "Internal Server Error",
-            "message": "An unexpected error occurred",
+            "detail": "An unexpected error occurred",
+            "status": 500,
             "path": str(request.url.path)
         }
     )
@@ -260,8 +264,8 @@ async def rate_limit_handler(request: Request, exc):
     return JSONResponse(
         status_code=429,
         content={
-            "error": "Rate Limit Exceeded",
-            "message": "Too many requests. Please try again later.",
+            "detail": "Too many requests. Please try again later.",
+            "status": 429,
             "path": str(request.url.path)
         }
     )
@@ -276,9 +280,9 @@ async def manual_weather_update():
     if not weather_service:
         return JSONResponse(
             status_code=503,
-            content={"error": "Weather service not available"}
+            content={"detail": "Weather service not available", "status": 503}
         )
-    
+
     try:
         await weather_service.update_weather_data()
         return {"message": "Weather data update completed successfully"}
@@ -286,7 +290,7 @@ async def manual_weather_update():
         logger.error(f"Manual weather update failed: {e}")
         return JSONResponse(
             status_code=500,
-            content={"error": f"Weather update failed: {str(e)}"}
+            content={"detail": f"Weather update failed: {str(e)}", "status": 500}
         )
 
 # =============================================
@@ -311,7 +315,7 @@ async def clear_cache():
     except Exception as e:
         return JSONResponse(
             status_code=500,
-            content={"error": f"Failed to clear cache: {str(e)}"}
+            content={"detail": f"Failed to clear cache: {str(e)}", "status": 500}
         )
 
 # =============================================

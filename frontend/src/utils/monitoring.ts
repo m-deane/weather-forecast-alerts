@@ -385,16 +385,22 @@ class MonitoringService {
   }
 }
 
-// Singleton instance
-export const monitoring = new MonitoringService()
+// Lazy singleton - only initialized when first accessed
+let _monitoring: MonitoringService | null = null
+function getMonitoring(): MonitoringService {
+  if (!_monitoring) {
+    _monitoring = new MonitoringService()
+  }
+  return _monitoring
+}
 
 // React hook for performance monitoring
 export function usePerformanceMonitoring() {
-  const [metrics, setMetrics] = useState(monitoring.getMetricsSummary())
+  const [metrics, setMetrics] = useState(getMonitoring().getMetricsSummary())
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setMetrics(monitoring.getMetricsSummary())
+      setMetrics(getMonitoring().getMetricsSummary())
     }, 5000)
 
     return () => clearInterval(interval)
@@ -402,14 +408,13 @@ export function usePerformanceMonitoring() {
 
   return {
     metrics,
-    trackEvent: monitoring.trackEvent.bind(monitoring),
-    trackApiCall: monitoring.trackApiCall.bind(monitoring)
+    trackEvent: getMonitoring().trackEvent.bind(getMonitoring()),
+    trackApiCall: getMonitoring().trackApiCall.bind(getMonitoring())
   }
 }
 
 // API interceptor for automatic response time tracking
 export function setupApiInterceptor() {
-  // Intercept fetch requests
   const originalFetch = window.fetch
   window.fetch = async (...args) => {
     const startTime = performance.now()
@@ -418,13 +423,13 @@ export function setupApiInterceptor() {
     try {
       const response = await originalFetch(...args)
       const duration = performance.now() - startTime
-      
-      monitoring.trackApiCall(url, duration, response.status)
-      
+
+      getMonitoring().trackApiCall(url, duration, response.status)
+
       return response
     } catch (error) {
       const duration = performance.now() - startTime
-      monitoring.trackApiCall(url, duration, 0)
+      getMonitoring().trackApiCall(url, duration, 0)
       throw error
     }
   }
@@ -542,7 +547,7 @@ export class HealthCheck {
   }
 
   private static checkPerformance() {
-    const metrics = monitoring.getMetricsSummary()
+    const metrics = getMonitoring().getMetricsSummary()
     if (!metrics) {
       return {
         name: 'Performance',

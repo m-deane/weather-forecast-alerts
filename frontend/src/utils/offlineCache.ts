@@ -16,11 +16,14 @@ class OfflineCache {
   private readonly dbName = 'weather-app-cache'
   private readonly dbVersion = 1
   private db: IDBDatabase | null = null
+  private initFailed = false
   private readonly config: OfflineCacheConfig
 
   constructor(config: OfflineCacheConfig = { maxAge: 2 * 60 * 60 * 1000, maxEntries: 50 }) {
     this.config = config
-    this.initDB()
+    this.initDB().catch(() => {
+      this.initFailed = true
+    })
   }
 
   private async initDB(): Promise<void> {
@@ -64,8 +67,18 @@ class OfflineCache {
   }
 
   private async waitForDB(): Promise<IDBDatabase> {
-    while (!this.db) {
-      await new Promise(resolve => setTimeout(resolve, 100))
+    const maxWait = 5000 // 5 second timeout
+    const interval = 100
+    let elapsed = 0
+    while (!this.db && !this.initFailed) {
+      if (elapsed >= maxWait) {
+        throw new Error('IndexedDB initialization timed out')
+      }
+      await new Promise(resolve => setTimeout(resolve, interval))
+      elapsed += interval
+    }
+    if (this.initFailed || !this.db) {
+      throw new Error('IndexedDB initialization failed')
     }
     return this.db
   }
@@ -305,75 +318,47 @@ class OfflineCache {
   }
 }
 
-// Singleton instance
-export const offlineCache = new OfflineCache()
+// Lazy singleton - only initialized on first access
+let _offlineCache: OfflineCache | null = null
+export function getOfflineCache(): OfflineCache {
+  if (!_offlineCache) {
+    _offlineCache = new OfflineCache()
+  }
+  return _offlineCache
+}
 
-// Network status utilities
+// Network status utilities - lazy initialized
 export class NetworkStatus {
   private static listeners: Set<(isOnline: boolean) => void> = new Set()
-  private static isOnline = navigator.onLine
+  private static _isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true
+  private static initialized = false
 
-  static {
+  private static init() {
+    if (NetworkStatus.initialized) return
+    NetworkStatus.initialized = true
     window.addEventListener('online', () => {
-      NetworkStatus.isOnline = true
+      NetworkStatus._isOnline = true
       NetworkStatus.notifyListeners()
     })
-
     window.addEventListener('offline', () => {
-      NetworkStatus.isOnline = false
+      NetworkStatus._isOnline = false
       NetworkStatus.notifyListeners()
     })
   }
 
   static getStatus(): boolean {
-    return NetworkStatus.isOnline
+    NetworkStatus.init()
+    return NetworkStatus._isOnline
   }
 
   static addListener(callback: (isOnline: boolean) => void): () => void {
+    NetworkStatus.init()
     NetworkStatus.listeners.add(callback)
     return () => NetworkStatus.listeners.delete(callback)
   }
 
   private static notifyListeners(): void {
-    NetworkStatus.listeners.forEach(callback => callback(NetworkStatus.isOnline))
-  }
-}
-
-// Background sync utility
-export class BackgroundSync {
-  static async processOfflineQueue(): Promise<void> {
-    if (!NetworkStatus.getStatus()) return
-
-    const queue = await offlineCache.getOfflineQueue()
-    
-    for (const item of queue) {
-      try {
-        // Process queued actions (favorites, settings changes, etc.)
-        await this.processQueueItem(item)
-      } catch (error) {
-        console.error('Failed to process queue item:', error)
-        // Could implement retry logic here
-      }
-    }
-
-    await offlineCache.clearOfflineQueue()
-  }
-
-  private static async processQueueItem(item: any): Promise<void> {
-    switch (item.type) {
-      case 'ADD_FAVORITE':
-        // Implementation would depend on your API
-        console.log('Processing add favorite:', item.data)
-        break
-      case 'REMOVE_FAVORITE':
-        console.log('Processing remove favorite:', item.data)
-        break
-      case 'UPDATE_PREFERENCES':
-        console.log('Processing preferences update:', item.data)
-        break
-      default:
-        console.warn('Unknown queue item type:', item.type)
-    }
+    NetworkStatus.listeners.forEach(callback => callback(NetworkStatus._isOnline))
   }
 }
 

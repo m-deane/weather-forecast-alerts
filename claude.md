@@ -198,9 +198,9 @@ The scraper:
 ### Hiking Suitability Scoring
 
 Calculated in `weather_scraper.py` based on:
-- Wind speed (penalty: 2.5 per 10kph over 30kph)
-- Precipitation (penalty: 7.0 per mm rain, 12.0 per cm snow)
-- Temperature extremes (penalty: 3.0 per degree below 0°C, 0.5 per degree above 25°C)
+- Wind speed (penalty: 2.0 per 10kph over 30kph)
+- Precipitation (penalty: 1.5 per mm rain, 3.0 per cm snow)
+- Temperature extremes (penalty: 0.8 per degree below 0°C, 0.5 per degree above 25°C)
 
 Score interpretation:
 - 8-10: Excellent conditions
@@ -239,10 +239,8 @@ The frontend expects backend running on `http://localhost:8000`:
 ```bash
 cd frontend
 npm run dev
-# Access demo at http://localhost:3000/demo.html
+# Access at http://localhost:3000
 ```
-
-**Note**: Main React app (`/`) has rendering issues; use `/demo.html` for working demo.
 
 ## Testing and Debugging
 
@@ -264,8 +262,7 @@ open http://localhost:8000/docs
 ### Frontend Debugging
 - Use browser DevTools console (F12)
 - Check Network tab for API calls
-- Working demo: `http://localhost:3000/demo.html`
-- Debug page: `http://localhost:3000/src/debug.html`
+- Access at `http://localhost:3000`
 
 ### Common Issues
 
@@ -280,9 +277,9 @@ open http://localhost:8000/docs
 - Verify ports 5432 (PostgreSQL) and 6379 (Redis) are available
 
 **Frontend blank page**:
-- Use `/demo.html` instead of main React app
 - Check browser console for errors
 - Verify backend is responding at `http://localhost:8000/health`
+- Ensure `npm run dev` is running in `frontend/` directory
 
 ## Database Schema
 
@@ -308,8 +305,7 @@ See `backend/database/schema_full.sql` for complete schema.
 
 ## Known Issues and Limitations
 
-1. **Main React App**: Component rendering issue; use `/demo.html` for working demo
-2. **Weather Scraper**: Dependent on mountain-forecast.com HTML structure; may break if site changes
+1. **Weather Scraper**: Dependent on mountain-forecast.com HTML structure; may break if site changes
 3. **OpenWeatherMap**: Requires API key; scraper continues without it but with reduced data
 4. **Rate Limiting**: mountain-forecast.com may block excessive requests; scraper includes delays and retries
 

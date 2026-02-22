@@ -115,7 +115,7 @@ function ResetViewControl({ locations, center, zoom }: { locations: Location[], 
   )
 }
 
-export function LocationMap({
+export default function LocationMap({
   locations = [],
   center = [57.0, -5.0], // Center of Scottish Highlands
   zoom = 7,
@@ -352,6 +352,10 @@ export function LocationMap({
         }
         .leaflet-control-attribution a:hover {
           color: #10b981 !important;
+        }
+        /* Emerald tint on map tiles to match app theme */
+        .leaflet-tile-pane {
+          filter: sepia(0.2) hue-rotate(120deg) saturate(0.6) brightness(0.9);
         }
         /* Fullscreen specific styles */
         .map-container:fullscreen .leaflet-container {

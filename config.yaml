@@ -83,13 +83,21 @@ locations:
       - name: Stac Pollaidh
         url: https://www.mountain-forecast.com/peaks/Stac-Pollaidh/forecasts/613
 
-  - area: Skye (Glenbrittle)
+  - area: Skye (Cuillin)
     latitude: 57.217
     longitude: -6.270
     area_proxy_url: https://www.mountain-forecast.com/peaks/Bla-Bheinn/forecasts/928
     munros:
       - name: Bla Bheinn
         url: https://www.mountain-forecast.com/peaks/Bla-Bheinn/forecasts/928
+      - name: Sgurr Alasdair
+        url: https://www.mountain-forecast.com/peaks/Sgurr-Alasdair/forecasts/992
+      - name: Sgurr na Banachdich
+        url: https://www.mountain-forecast.com/peaks/Sgurr-na-Banachdich/forecasts/965
+      - name: Bruach na Frithe
+        url: https://www.mountain-forecast.com/peaks/Bruach-na-Frithe/forecasts/958
+      - name: Sgurr nan Gillean
+        url: https://www.mountain-forecast.com/peaks/Sgurr-nan-Gillean/forecasts/964
 
   - area: Knoydart (Inverie)
     latitude: 57.038
@@ -103,7 +111,7 @@ locations:
   - area: Cairngorms
     latitude: 57.083
     longitude: -3.666
-    area_proxy_url: https://www.mountain-forecast.com/peaks/Ben-Macdui/forecasts/600
+    area_proxy_url: https://www.mountain-forecast.com/peaks/Ben-Macdui/forecasts/1309
     munros:
       - name: Ben Macdui
         url: https://www.mountain-forecast.com/peaks/Ben-Macdui/forecasts/1309
@@ -124,7 +132,7 @@ locations:
   - area: Ben Nevis
     latitude: 56.797
     longitude: -5.003
-    area_proxy_url: https://www.mountain-forecast.com/peaks/Ben-Nevis/forecasts/600
+    area_proxy_url: https://www.mountain-forecast.com/peaks/Ben-Nevis/forecasts/1344
     munros:
       - name: Ben Nevis
         url: https://www.mountain-forecast.com/peaks/Ben-Nevis/forecasts/1344
@@ -140,3 +148,156 @@ locations:
 
       - name: Stob Ban (Grey Corries)
         url: https://www.mountain-forecast.com/peaks/Stob-Ban-Grey-Corries/forecasts/977
+
+  # --- Glen Shiel / Kintail - Classic ridge walks including Five Sisters ---
+  - area: Glen Shiel
+    latitude: 57.160
+    longitude: -5.410
+    area_proxy_url: https://www.mountain-forecast.com/peaks/Sgurr-Fhuaran/forecasts/500
+    munros:
+      - name: Sgurr Fhuaran
+        url: https://www.mountain-forecast.com/peaks/Sgurr-Fhuaran/forecasts/1067
+      - name: The Saddle
+        url: https://www.mountain-forecast.com/peaks/The-Saddle/forecasts/1010
+      - name: Sgurr na Ciste Duibhe
+        url: https://www.mountain-forecast.com/peaks/Sgurr-na-Ciste-Duibhe/forecasts/1027
+      - name: Sgurr na Sgine
+        url: https://www.mountain-forecast.com/peaks/Sgurr-na-Sgine/forecasts/946
+      - name: Sgurr a' Bhealaich Dheirg
+        url: https://www.mountain-forecast.com/peaks/Sgurr-a-Bhealaich-Dheirg/forecasts/1036
+      - name: Ciste Dhubh
+        url: https://www.mountain-forecast.com/peaks/Ciste-Dhubh/forecasts/979
+
+  # --- Mamores - Remote ridge traverse south of Ben Nevis ---
+  - area: Mamores
+    latitude: 56.750
+    longitude: -5.070
+    area_proxy_url: https://www.mountain-forecast.com/peaks/Sgurr-a-Mhaim/forecasts/500
+    munros:
+      - name: Sgurr a' Mhaim
+        url: https://www.mountain-forecast.com/peaks/Sgurr-a-Mhaim/forecasts/1099
+      - name: Binnein Mor
+        url: https://www.mountain-forecast.com/peaks/Binnein-Mor/forecasts/1130
+      - name: Stob Ban (Mamores)
+        url: https://www.mountain-forecast.com/peaks/Stob-Ban-Mamores/forecasts/999
+      - name: Na Gruagaichean
+        url: https://www.mountain-forecast.com/peaks/Na-Gruagaichean/forecasts/1056
+      - name: Am Bodach
+        url: https://www.mountain-forecast.com/peaks/Am-Bodach/forecasts/1032
+      - name: Binnein Beag
+        url: https://www.mountain-forecast.com/peaks/Binnein-Beag/forecasts/943
+
+  # --- Ben Lawers Group - Highest peak in Southern Highlands ---
+  - area: Ben Lawers
+    latitude: 56.546
+    longitude: -4.221
+    area_proxy_url: https://www.mountain-forecast.com/peaks/Ben-Lawers/forecasts/500
+    munros:
+      - name: Ben Lawers
+        url: https://www.mountain-forecast.com/peaks/Ben-Lawers/forecasts/1204
+      - name: Meall nan Tarmachan
+        url: https://www.mountain-forecast.com/peaks/Meall-nan-Tarmachan/forecasts/1043
+      - name: An Stuc
+        url: https://www.mountain-forecast.com/peaks/An-Stuc/forecasts/1118
+
+  # --- Arrochar Alps - Popular peaks near Loch Lomond ---
+  - area: Arrochar Alps
+    latitude: 56.250
+    longitude: -4.800
+    area_proxy_url: https://www.mountain-forecast.com/peaks/Beinn-Ime/forecasts/500
+    munros:
+      - name: Beinn Ime
+        url: https://www.mountain-forecast.com/peaks/Beinn-Ime/forecasts/1011
+      - name: Ben Vorlich (Loch Lomond)
+        url: https://www.mountain-forecast.com/peaks/Ben-Vorlich-Loch-Lomond/forecasts/943
+      - name: Beinn Narnain
+        url: https://www.mountain-forecast.com/peaks/Beinn-Narnain/forecasts/926
+      - name: Ben Vane
+        url: https://www.mountain-forecast.com/peaks/Ben-Vane/forecasts/915
+
+  # --- Crianlarich / Southern Highlands - Accessible high peaks ---
+  - area: Crianlarich
+    latitude: 56.390
+    longitude: -4.620
+    area_proxy_url: https://www.mountain-forecast.com/peaks/Ben-More-Crianlarich/forecasts/500
+    munros:
+      - name: Ben More (Crianlarich)
+        url: https://www.mountain-forecast.com/peaks/Ben-More-Crianlarich/forecasts/1174
+      - name: Stob Binnein
+        url: https://www.mountain-forecast.com/peaks/Stob-Binnein/forecasts/1165
+      - name: Ben Lui
+        url: https://www.mountain-forecast.com/peaks/Ben-Lui/forecasts/1130
+      - name: Ben Oss
+        url: https://www.mountain-forecast.com/peaks/Ben-Oss/forecasts/1029
+      - name: Beinn Dorain
+        url: https://www.mountain-forecast.com/peaks/Beinn-Dorain/forecasts/1076
+
+  # --- Affric / Cannich - Remote high peaks west of Loch Ness ---
+  - area: Affric
+    latitude: 57.250
+    longitude: -5.150
+    area_proxy_url: https://www.mountain-forecast.com/peaks/Mam-Sodhail/forecasts/500
+    munros:
+      - name: Mam Sodhail
+        url: https://www.mountain-forecast.com/peaks/Mam-Sodhail/forecasts/1181
+      - name: Carn Eige
+        url: https://www.mountain-forecast.com/peaks/Carn-Eige/forecasts/1183
+      - name: Sgurr nan Ceathreamhnan
+        url: https://www.mountain-forecast.com/peaks/Sgurr-nan-Ceathreamhnan/forecasts/1151
+
+  # --- Creag Meagaidh - Major winter climbing venue ---
+  - area: Creag Meagaidh
+    latitude: 56.950
+    longitude: -4.600
+    area_proxy_url: https://www.mountain-forecast.com/peaks/Creag-Meagaidh/forecasts/500
+    munros:
+      - name: Creag Meagaidh
+        url: https://www.mountain-forecast.com/peaks/Creag-Meagaidh/forecasts/1128
+
+  # --- Loch Lomond / Trossachs - Southernmost Munro area ---
+  - area: Loch Lomond
+    latitude: 56.160
+    longitude: -4.640
+    area_proxy_url: https://www.mountain-forecast.com/peaks/Ben-Lomond/forecasts/974
+    munros:
+      - name: Ben Lomond
+        url: https://www.mountain-forecast.com/peaks/Ben-Lomond/forecasts/974
+
+  # --- Eastern Highlands - Lochnagar, Beinn a' Ghlo, and surrounding peaks ---
+  - area: Eastern Highlands
+    latitude: 56.950
+    longitude: -3.250
+    area_proxy_url: https://www.mountain-forecast.com/peaks/Lochnagar/forecasts/1155
+    munros:
+      - name: Lochnagar
+        url: https://www.mountain-forecast.com/peaks/Lochnagar/forecasts/1155
+      - name: Beinn a' Ghlo
+        url: https://www.mountain-forecast.com/peaks/Beinn-a-Ghlo/forecasts/1129
+      - name: Mount Keen
+        url: https://www.mountain-forecast.com/peaks/Mount-Keen/forecasts/939
+      - name: Schiehallion
+        url: https://www.mountain-forecast.com/peaks/Schiehallion/forecasts/1083
+      - name: Ben Chonzie
+        url: https://www.mountain-forecast.com/peaks/Ben-Chonzie/forecasts/931
+
+  # --- Far North - Scotland's most remote Munros ---
+  - area: Far North
+    latitude: 58.388
+    longitude: -4.600
+    area_proxy_url: https://www.mountain-forecast.com/peaks/Ben-Hope/forecasts/927
+    munros:
+      - name: Ben Hope
+        url: https://www.mountain-forecast.com/peaks/Ben-Hope/forecasts/927
+      - name: Ben Klibreck
+        url: https://www.mountain-forecast.com/peaks/Ben-Klibreck/forecasts/962
+
+  # --- Drumochter / Central Highlands - Accessible roadside peaks ---
+  - area: Drumochter
+    latitude: 56.870
+    longitude: -4.300
+    area_proxy_url: https://www.mountain-forecast.com/peaks/A-Bhuidheanach-Bheag/forecasts/936
+    munros:
+      - name: A' Bhuidheanach Bheag
+        url: https://www.mountain-forecast.com/peaks/A-Bhuidheanach-Bheag/forecasts/936
+      - name: Carn Dearg (Loch Ossian)
+        url: https://www.mountain-forecast.com/peaks/Carn-Dearg/forecasts/941

@@ -1,7 +1,7 @@
 import axios from 'axios'
-import type { WeatherForecast, Location } from '@/types'
+import type { WeatherForecast, Location, MountainPhoto, WalkHighlandsRoute, PhotographyViewpointData } from '@/types'
 
-const API_BASE_URL = '/api/v1' // Temporarily hardcoded
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1'
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -27,14 +27,7 @@ apiClient.interceptors.request.use(
 // Response interceptor for error handling
 apiClient.interceptors.response.use(
   response => response,
-  error => {
-    if (error.response?.status === 401) {
-      // Handle unauthorized
-      localStorage.removeItem('auth_token')
-      window.location.href = '/login'
-    }
-    return Promise.reject(error)
-  }
+  error => Promise.reject(error)
 )
 
 // Weather API endpoints
@@ -46,17 +39,23 @@ export const weatherApi = {
 
   compareLocations: async (locationIds: string[]): Promise<WeatherForecast[]> => {
     const { data } = await apiClient.get('/weather/compare', {
-      params: { locations: locationIds.join(',') },
+      params: { location_ids: locationIds.join(',') },
     })
-    return data
+    return data.comparisons || data
   },
+}
+
+// Scrape trigger API
+export const scrapeApi = {
+  trigger: () => fetch(`${API_BASE_URL}/scrape/trigger`, { method: 'POST' }).then(r => r.json()),
+  getStatus: () => fetch(`${API_BASE_URL}/scrape/status`).then(r => r.json()),
 }
 
 // Location API endpoints
 export const locationApi = {
   search: async (query: string): Promise<Location[]> => {
     const { data } = await apiClient.get('/locations', {
-      params: { q: query },
+      params: { search: query },
     })
     return data.locations || data
   },
@@ -75,6 +74,24 @@ export const locationApi = {
     const { data } = await apiClient.get('/locations/nearby', {
       params: { lat, lon, radius },
     })
+    return data
+  },
+}
+
+// Integrations API endpoints (photos, routes, photography viewpoints)
+export const integrationsApi = {
+  getPhotos: async (locationId: string): Promise<MountainPhoto[]> => {
+    const { data } = await apiClient.get(`/locations/${locationId}/photos`)
+    return data.photos || []
+  },
+
+  getRoutes: async (locationId: string): Promise<WalkHighlandsRoute[]> => {
+    const { data } = await apiClient.get(`/locations/${locationId}/routes`)
+    return data.routes || []
+  },
+
+  getPhotographyViewpoints: async (locationId: string): Promise<PhotographyViewpointData> => {
+    const { data } = await apiClient.get(`/locations/${locationId}/photography`)
     return data
   },
 }

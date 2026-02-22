@@ -45,7 +45,7 @@ const variantConfig: Record<EmptyStateVariant, {
     icon: MagnifyingGlassIcon,
     defaultTitle: 'No results found',
     defaultDescription: 'Try adjusting your search or filters to find what you\'re looking for.',
-    iconClassName: 'text-slate-500'
+    iconClassName: 'text-slate-400'
   },
   'no-favorites': {
     icon: HeartIcon,
@@ -57,7 +57,7 @@ const variantConfig: Record<EmptyStateVariant, {
     icon: ClockIcon,
     defaultTitle: 'No recent activity',
     defaultDescription: 'Locations you view will appear here for easy access.',
-    iconClassName: 'text-slate-500'
+    iconClassName: 'text-slate-400'
   },
   'no-locations': {
     icon: MapPinIcon,
@@ -75,7 +75,7 @@ const variantConfig: Record<EmptyStateVariant, {
     icon: FolderOpenIcon,
     defaultTitle: 'No data available',
     defaultDescription: 'There\'s no data to display at the moment.',
-    iconClassName: 'text-slate-500'
+    iconClassName: 'text-slate-400'
   },
   'offline': {
     icon: WifiIcon,
@@ -131,7 +131,7 @@ export function EmptyState({
       {/* Text content */}
       <h3 className="text-lg font-semibold text-slate-200 mb-2">{displayTitle}</h3>
       {displayDescription && (
-        <p className="text-sm text-slate-500 max-w-xs mb-4">{displayDescription}</p>
+        <p className="text-sm text-slate-400 max-w-xs mb-4">{displayDescription}</p>
       )}
 
       {/* Custom content */}

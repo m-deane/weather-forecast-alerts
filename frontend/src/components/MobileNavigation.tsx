@@ -44,13 +44,6 @@ const navigationItems: NavigationItem[] = [
     activeIcon: SearchIconSolid
   },
   {
-    id: 'locations',
-    label: 'Locations',
-    path: '/locations',
-    icon: MapPinIcon,
-    activeIcon: LocationIconSolid
-  },
-  {
     id: 'favorites',
     label: 'Favorites',
     path: '/favorites',
@@ -153,7 +146,7 @@ export function MobileNavigation() {
                 </div>
                 <span className={cn(
                   'text-xs font-medium truncate',
-                  isActive ? 'text-emerald-400' : 'text-slate-500'
+                  isActive ? 'text-emerald-400' : 'text-slate-400'
                 )}>
                   {item.label}
                 </span>
@@ -180,9 +173,9 @@ export function MobileNavigation() {
                   <path d="M12 2L2 22h20L12 2zm0 4l7 14H5l7-14z"/>
                 </svg>
               </div>
-              <h1 className="text-lg font-bold text-white">
+              <span className="text-lg font-bold text-white">
                 Highland Weather
-              </h1>
+              </span>
             </div>
           </div>
 
@@ -237,9 +230,9 @@ export function MobileNavigation() {
                 <path d="M12 2L2 22h20L12 2zm0 4l7 14H5l7-14z"/>
               </svg>
             </div>
-            <h1 className="text-lg font-bold text-slate-100 truncate">
+            <span className="text-lg font-bold text-slate-100 truncate" role="heading" aria-level={1}>
               Highland Weather
-            </h1>
+            </span>
           </div>
           <button
             onClick={() => setIsMenuOpen(true)}

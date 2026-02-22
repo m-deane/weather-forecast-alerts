@@ -17,7 +17,6 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy import TIMESTAMP
 from sqlalchemy.orm import relationship
-# from geoalchemy2 import Geometry  # Commented out - PostGIS not available
 import uuid
 
 Base = declarative_base()
@@ -109,7 +108,6 @@ class Location(Base):
     elevation_m = Column(Integer, nullable=False)
     latitude = Column(SQLDecimal(10, 8), nullable=False)
     longitude = Column(SQLDecimal(11, 8), nullable=False)
-    # geom = Column(Geometry("POINT", srid=4326))  # Commented out - PostGIS not available
     classification = Column(String(50))
     difficulty = Column(String(50))
     description = Column(Text)

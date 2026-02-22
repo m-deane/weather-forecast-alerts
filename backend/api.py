@@ -13,10 +13,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_, func, desc
-from geoalchemy2.functions import ST_DWithin, ST_GeogFromText
+from sqlalchemy import and_, or_, func, desc, cast, Float
 import redis
 import json
+import math
 
 from .models import (
     # Database models
@@ -152,20 +152,25 @@ async def search_locations(
     if difficulty:
         query = query.filter(Location.difficulty == difficulty)
     
-    # Proximity search
+    # Proximity search using Haversine formula (no PostGIS required)
     if lat and lng:
-        point = f"POINT({lng} {lat})"
-        query = query.filter(
-            ST_DWithin(
-                Location.geom,
-                ST_GeogFromText(point),
-                radius_km * 1000  # Convert to meters
-            )
-        )
-        # Order by distance
-        query = query.order_by(
-            func.ST_Distance(Location.geom, ST_GeogFromText(point))
-        )
+        # Haversine approximation in SQL using lat/lng columns
+        # 6371 = Earth radius in km
+        lat_rad = func.radians(cast(Location.latitude, Float))
+        lng_rad = func.radians(cast(Location.longitude, Float))
+        ref_lat_rad = func.radians(lat)
+        ref_lng_rad = func.radians(lng)
+
+        dlat = lat_rad - ref_lat_rad
+        dlng = lng_rad - ref_lng_rad
+
+        a = func.power(func.sin(dlat / 2), 2) + \
+            func.cos(ref_lat_rad) * func.cos(lat_rad) * \
+            func.power(func.sin(dlng / 2), 2)
+        distance_km = 6371 * 2 * func.atan2(func.sqrt(a), func.sqrt(1 - a))
+
+        query = query.filter(distance_km <= radius_km)
+        query = query.order_by(distance_km)
     else:
         # Order by popularity
         query = query.order_by(desc(Location.popularity_score))

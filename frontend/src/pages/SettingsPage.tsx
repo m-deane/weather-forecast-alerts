@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAppStore } from '@/stores/useAppStore'
 import { cn } from '@/utils/cn'
 import {
@@ -8,6 +8,7 @@ import {
   CircleStackIcon,
   InformationCircleIcon,
   TrashIcon,
+  MapPinIcon,
 } from '@heroicons/react/24/outline'
 
 // Toggle Switch Component
@@ -15,9 +16,10 @@ interface ToggleSwitchProps {
   enabled: boolean
   onChange: (enabled: boolean) => void
   disabled?: boolean
+  label: string
 }
 
-function ToggleSwitch({ enabled, onChange, disabled = false }: ToggleSwitchProps) {
+function ToggleSwitch({ enabled, onChange, disabled = false, label }: ToggleSwitchProps) {
   return (
     <button
       type="button"
@@ -30,6 +32,7 @@ function ToggleSwitch({ enabled, onChange, disabled = false }: ToggleSwitchProps
       disabled={disabled}
       role="switch"
       aria-checked={enabled}
+      aria-label={label}
     >
       <span className="toggle-thumb" />
     </button>
@@ -41,19 +44,22 @@ interface SegmentedControlProps<T extends string> {
   options: { value: T; label: string }[]
   value: T
   onChange: (value: T) => void
+  ariaLabel: string
 }
 
-function SegmentedControl<T extends string>({ options, value, onChange }: SegmentedControlProps<T>) {
+function SegmentedControl<T extends string>({ options, value, onChange, ariaLabel }: SegmentedControlProps<T>) {
   return (
-    <div className="tab-group">
+    <div className="tab-group" role="group" aria-label={ariaLabel}>
       {options.map((option) => (
         <button
+          type="button"
           key={option.value}
           onClick={() => onChange(option.value)}
           className={cn(
             'tab-button-emerald',
             value === option.value && 'tab-button-active'
           )}
+          aria-pressed={value === option.value}
         >
           {option.label}
         </button>
@@ -106,7 +112,7 @@ function SettingRow({ label, description, children }: SettingRowProps) {
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium text-slate-200">{label}</p>
         {description && (
-          <p className="text-sm text-slate-500 mt-0.5">{description}</p>
+          <p className="text-sm text-slate-400 mt-0.5">{description}</p>
         )}
       </div>
       <div className="flex-shrink-0">
@@ -125,8 +131,26 @@ const riskToleranceDescriptions = {
 
 export function SettingsPage() {
   const { preferences, setPreferences } = useAppStore()
-  const [cacheSize] = useState('2.4 MB') // Placeholder
+  const [cacheSize, setCacheSize] = useState('Calculating...')
   const [isClearingCache, setIsClearingCache] = useState(false)
+
+  // Calculate actual localStorage size
+  useEffect(() => {
+    try {
+      let totalBytes = 0
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)
+        if (key) {
+          totalBytes += key.length + (localStorage.getItem(key)?.length ?? 0)
+        }
+      }
+      // Each char is 2 bytes in UTF-16
+      const totalKB = (totalBytes * 2) / 1024
+      setCacheSize(totalKB >= 1024 ? `${(totalKB / 1024).toFixed(1)} MB` : `${Math.round(totalKB)} KB`)
+    } catch {
+      setCacheSize('Unknown')
+    }
+  }, [isClearingCache])
 
   // Unit preference handlers
   const handleTemperatureChange = (value: 'celsius' | 'fahrenheit') => {
@@ -144,6 +168,12 @@ export function SettingsPage() {
   const handleDistanceChange = (value: 'km' | 'miles') => {
     setPreferences({
       units: { ...preferences.units, distance: value }
+    })
+  }
+
+  const handleElevationChange = (value: 'meters' | 'feet') => {
+    setPreferences({
+      units: { ...preferences.units, elevation: value }
     })
   }
 
@@ -224,6 +254,7 @@ export function SettingsPage() {
               ]}
               value={preferences.units.temperature}
               onChange={handleTemperatureChange}
+              ariaLabel="Temperature unit"
             />
           </SettingRow>
 
@@ -235,6 +266,7 @@ export function SettingsPage() {
               ]}
               value={preferences.units.wind}
               onChange={handleWindChange}
+              ariaLabel="Wind speed unit"
             />
           </SettingRow>
 
@@ -246,6 +278,19 @@ export function SettingsPage() {
               ]}
               value={preferences.units.distance}
               onChange={handleDistanceChange}
+              ariaLabel="Distance unit"
+            />
+          </SettingRow>
+
+          <SettingRow label="Elevation">
+            <SegmentedControl
+              options={[
+                { value: 'meters', label: 'm' },
+                { value: 'feet', label: 'ft' },
+              ]}
+              value={preferences.units.elevation ?? 'meters'}
+              onChange={handleElevationChange}
+              ariaLabel="Elevation unit"
             />
           </SettingRow>
         </SettingsSection>
@@ -263,6 +308,7 @@ export function SettingsPage() {
             <ToggleSwitch
               enabled={preferences.notifications.enabled}
               onChange={handleNotificationsEnabledChange}
+              label="Enable notifications"
             />
           </SettingRow>
 
@@ -274,6 +320,7 @@ export function SettingsPage() {
               enabled={preferences.notifications.severeWeather}
               onChange={handleSevereWeatherChange}
               disabled={!preferences.notifications.enabled}
+              label="Severe weather alerts"
             />
           </SettingRow>
 
@@ -285,6 +332,7 @@ export function SettingsPage() {
               enabled={preferences.notifications.favoriteUpdates}
               onChange={handleFavoriteUpdatesChange}
               disabled={!preferences.notifications.enabled}
+              label="Favorite location updates"
             />
           </SettingRow>
         </SettingsSection>
@@ -295,7 +343,8 @@ export function SettingsPage() {
           title="Risk Tolerance"
           description="Adjust how conditions are assessed for hiking"
         >
-          <div className="space-y-3 stagger-children">
+          <fieldset className="space-y-3 stagger-children">
+            <legend className="sr-only">Risk tolerance level</legend>
             {(['conservative', 'moderate', 'aggressive'] as const).map((level) => (
               <label
                 key={level}
@@ -319,13 +368,13 @@ export function SettingsPage() {
                     'text-sm font-medium capitalize',
                     preferences.riskTolerance === level ? 'text-emerald-400' : 'text-slate-200'
                   )}>{level}</p>
-                  <p className="text-sm text-slate-500 mt-1 leading-relaxed">
+                  <p className="text-sm text-slate-400 mt-1 leading-relaxed">
                     {riskToleranceDescriptions[level]}
                   </p>
                 </div>
               </label>
             ))}
-          </div>
+          </fieldset>
         </SettingsSection>
 
         {/* Data & Storage Section */}
@@ -380,12 +429,33 @@ export function SettingsPage() {
             </div>
 
             <div className="pt-2">
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-400">
                 Weather data is refreshed every 4-6 hours. Forecasts are provided for
                 informational purposes only.
               </p>
             </div>
           </div>
+        </SettingsSection>
+
+        {/* Navigation Section */}
+        <SettingsSection
+          icon={MapPinIcon}
+          title="Navigation"
+          description="Set your home location for driving directions"
+        >
+          <SettingRow
+            label="Home Address"
+            description="Used as starting point for navigation links on location pages"
+          >
+            <input
+              type="text"
+              value={preferences.homeAddress || ''}
+              onChange={(e) => setPreferences({ homeAddress: e.target.value || undefined })}
+              placeholder="e.g. Glasgow, UK"
+              className="w-48 text-sm bg-slate-700 border border-slate-600 rounded-md px-3 py-1.5 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              aria-label="Home address for navigation"
+            />
+          </SettingRow>
         </SettingsSection>
 
         {/* Bottom spacing for mobile navigation */}

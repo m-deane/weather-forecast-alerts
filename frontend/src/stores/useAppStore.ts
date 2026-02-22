@@ -27,6 +27,7 @@ const defaultPreferences: UserPreferences = {
     temperature: 'celsius',
     wind: 'kph',
     distance: 'km',
+    elevation: 'meters',
   },
   riskTolerance: 'moderate',
   notifications: {
@@ -79,6 +80,27 @@ export const useAppStore = create<AppState>()(
         favoriteLocationIds: state.favoriteLocationIds,
         recentLocationIds: state.recentLocationIds,
       }),
+      merge: (persisted, current) => {
+        const stored = persisted as Partial<AppState> | undefined
+        if (!stored) return current
+        return {
+          ...current,
+          favoriteLocationIds: stored.favoriteLocationIds ?? current.favoriteLocationIds,
+          recentLocationIds: stored.recentLocationIds ?? current.recentLocationIds,
+          preferences: {
+            units: {
+              ...current.preferences.units,
+              ...(stored.preferences?.units ?? {}),
+            },
+            riskTolerance: stored.preferences?.riskTolerance ?? current.preferences.riskTolerance,
+            notifications: {
+              ...current.preferences.notifications,
+              ...(stored.preferences?.notifications ?? {}),
+            },
+            homeAddress: stored.preferences?.homeAddress ?? current.preferences.homeAddress,
+          },
+        }
+      },
     }
   )
 )

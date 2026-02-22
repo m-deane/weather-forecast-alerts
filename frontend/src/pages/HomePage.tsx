@@ -1,16 +1,20 @@
-import { useQuery } from '@tanstack/react-query'
+import { lazy, Suspense, useMemo } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
-import { MapPinIcon, ClockIcon, ChevronRightIcon, HeartIcon } from '@heroicons/react/24/outline'
-import { locationApi } from '@/api/client'
+import { MapPinIcon, ClockIcon, HeartIcon } from '@heroicons/react/24/outline'
+import { locationApi, weatherApi } from '@/api/client'
 import { useAppStore } from '@/stores/useAppStore'
 import { WeatherCard } from '@/components/WeatherCard'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
-import { LocationMap } from '@/components/LocationMap'
 import { NoFavorites, NoRecentLocations, EmptyState } from '@/components/EmptyState'
+import { BestConditionsToday } from '@/components/BestConditionsToday'
+
+const LocationMap = lazy(() => import('@/components/LocationMap'))
 
 export function HomePage() {
   const { favoriteLocationIds, recentLocationIds } = useAppStore()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
 
   // Get areas for quick access
   const { data: areas, isLoading: areasLoading } = useQuery({
@@ -22,6 +26,23 @@ export function HomePage() {
   const { data: allLocations, isLoading: locationsLoading } = useQuery({
     queryKey: ['locations', 'all'],
     queryFn: () => locationApi.search(''), // Empty search gets all
+  })
+
+  // Batch prefetch weather for all locations so WeatherCards find cached data
+  const allLocationIds = useMemo(() => allLocations?.map(l => l.id) || [], [allLocations])
+
+  useQuery({
+    queryKey: ['weather', 'compare', allLocationIds.join(',')],
+    queryFn: async () => {
+      const forecasts = await weatherApi.compareLocations(allLocationIds)
+      // Seed individual caches so each WeatherCard has data immediately
+      for (const forecast of forecasts) {
+        queryClient.setQueryData(['weather', forecast.location.id], forecast)
+      }
+      return forecasts
+    },
+    enabled: allLocationIds.length > 0,
+    staleTime: 5 * 60 * 1000,
   })
 
   return (
@@ -63,21 +84,26 @@ export function HomePage() {
       </header>
 
       <div className="px-4 py-6 space-y-6">
-        {/* Interactive Map Section */}
+        {/* Interactive Map Section - Hero Size */}
         <section className="fade-in-up" style={{ animationDelay: '0.2s' }}>
           <h2 className="section-title flex items-center gap-2">
             <MapPinIcon className="w-5 h-5 text-emerald-400 pulse" />
             Mountain Locations
           </h2>
-          <LocationMap
-            locations={allLocations || []}
-            onLocationSelect={(location) => navigate(`/location/${location.id}`)}
-            className="w-full h-80"
-          />
+          <Suspense fallback={<LoadingSkeleton height={400} className="rounded-xl" />}>
+            <LocationMap
+              locations={allLocations || []}
+              onLocationSelect={(location) => navigate(`/location/${location.id}`)}
+              className="w-full h-[50vh] min-h-[400px]"
+            />
+          </Suspense>
         </section>
 
+        {/* Best Conditions Today */}
+        <BestConditionsToday className="fade-in-up" style={{ animationDelay: '0.4s' }} />
+
         {/* Favorites Section */}
-        <section className="fade-in-up" style={{ animationDelay: '0.3s' }}>
+        <section className="fade-in-up" style={{ animationDelay: '0.6s' }}>
           <h2 className="section-title flex items-center gap-2">
             <HeartIcon className="w-5 h-5 text-red-400" />
             Favorite Locations
@@ -93,67 +119,8 @@ export function HomePage() {
           )}
         </section>
 
-        {/* Recent Locations */}
-        <section className="fade-in-up" style={{ animationDelay: '0.4s' }}>
-          <h2 className="section-title flex items-center gap-2">
-            <ClockIcon className="w-5 h-5 text-slate-400" />
-            Recent Locations
-          </h2>
-          {recentLocationIds.length > 0 ? (
-            <div className="space-y-3 stagger-children">
-              {recentLocationIds.slice(0, 3).map(locationId => (
-                <WeatherCard key={locationId} locationId={locationId} compact />
-              ))}
-            </div>
-          ) : (
-            <NoRecentLocations />
-          )}
-        </section>
-
-        {/* All Locations */}
-        <section className="fade-in-up" style={{ animationDelay: '0.5s' }}>
-          <h2 className="section-title">All Locations</h2>
-          {locationsLoading ? (
-            <LoadingSkeleton count={5} height={80} />
-          ) : !allLocations || allLocations.length === 0 ? (
-            <EmptyState
-              variant="no-locations"
-              title="No locations available"
-              description="Weather data is being loaded. Please check back soon."
-            />
-          ) : (
-            <div className="space-y-3 stagger-children">
-              {allLocations.map(location => (
-                <Link
-                  key={location.id}
-                  to={`/location/${location.id}`}
-                  className="block card group hover-lift"
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-medium text-lg text-slate-100 group-hover:text-emerald-400 transition-colors">
-                        {location.name}
-                      </h3>
-                      <p className="text-sm text-slate-400">{location.area}</p>
-                      <div className="flex gap-2 mt-2">
-                        <span className="text-xs bg-slate-700 text-slate-300 px-2 py-1 rounded-full">
-                          {location.elevation_m}m
-                        </span>
-                        <span className="text-xs bg-emerald-900/50 text-emerald-400 px-2 py-1 rounded-full border border-emerald-700/50">
-                          {location.classification}
-                        </span>
-                      </div>
-                    </div>
-                    <ChevronRightIcon className="w-5 h-5 text-slate-500 group-hover:text-emerald-400 transition-colors" />
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
-        </section>
-
         {/* Browse by Area */}
-        <section className="fade-in-up" style={{ animationDelay: '0.6s' }}>
+        <section className="fade-in-up" style={{ animationDelay: '0.8s' }}>
           <h2 className="section-title">Browse by Area</h2>
           {areasLoading ? (
             <LoadingSkeleton count={5} height={60} />
@@ -182,7 +149,7 @@ export function HomePage() {
         </section>
 
         {/* Quick Actions */}
-        <section className="pt-4 pb-8 fade-in-up" style={{ animationDelay: '0.7s' }}>
+        <section className="pt-4 pb-8 fade-in-up" style={{ animationDelay: '1.0s' }}>
           <Link
             to="/search"
             className="btn btn-primary w-full flex items-center justify-center gap-2 py-3 ripple hover-scale"
@@ -190,6 +157,43 @@ export function HomePage() {
             <MapPinIcon className="w-5 h-5" />
             Search All Mountains
           </Link>
+        </section>
+
+        {/* Recent Locations */}
+        <section className="fade-in-up" style={{ animationDelay: '1.2s' }}>
+          <h2 className="section-title flex items-center gap-2">
+            <ClockIcon className="w-5 h-5 text-slate-400" />
+            Recent Locations
+          </h2>
+          {recentLocationIds.length > 0 ? (
+            <div className="space-y-3 stagger-children">
+              {recentLocationIds.slice(0, 3).map(locationId => (
+                <WeatherCard key={locationId} locationId={locationId} compact />
+              ))}
+            </div>
+          ) : (
+            <NoRecentLocations />
+          )}
+        </section>
+
+        {/* All Locations */}
+        <section className="fade-in-up" style={{ animationDelay: '1.4s' }}>
+          <h2 className="section-title">All Locations</h2>
+          {locationsLoading ? (
+            <LoadingSkeleton count={5} height={80} />
+          ) : !allLocations || allLocations.length === 0 ? (
+            <EmptyState
+              variant="no-locations"
+              title="No locations available"
+              description="Weather data is being loaded. Please check back soon."
+            />
+          ) : (
+            <div className="space-y-3 stagger-children">
+              {allLocations.map(location => (
+                <WeatherCard key={location.id} locationId={location.id} compact />
+              ))}
+            </div>
+          )}
         </section>
       </div>
     </div>

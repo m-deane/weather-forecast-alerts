@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { lazy, Suspense, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
@@ -9,7 +9,9 @@ import {
   CloudIcon,
   EyeIcon,
   SunIcon,
-  BeakerIcon
+  BeakerIcon,
+  MapPinIcon,
+  ChevronDownIcon
 } from '@heroicons/react/24/outline'
 import { HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid'
 import { weatherApi, locationApi } from '@/api/client'
@@ -21,8 +23,6 @@ import { cn } from '@/utils/cn'
 import {
   formatTemperature,
   formatWindSpeed,
-  getHikingScoreColor,
-  getHikingScoreDescription,
   getRiskLevelColor,
   formatPrecipitation,
   getVisibilityDescription,
@@ -34,8 +34,21 @@ import {
   isAboveFreezingLevel,
   isInCloud
 } from '@/utils/weather'
-import { CustomizableDashboard } from '@/components/CustomizableDashboard'
+
+const LocationMap = lazy(() => import('@/components/LocationMap'))
+const CustomizableDashboard = lazy(() => import('@/components/CustomizableDashboard'))
 import { ExportWeatherData } from '@/components/ExportWeatherData'
+import { WeatherIcon } from '@/components/weather/WeatherIcon'
+import { TemperatureDisplay } from '@/components/weather/TemperatureDisplay'
+import { WindIndicatorInline } from '@/components/weather/WindArrow'
+import { HikingScoreGauge } from '@/components/weather/HikingScoreGauge'
+import { DaylightHours } from '@/components/weather/DaylightHours'
+import { CloudInversionIndicator } from '@/components/weather/CloudInversionIndicator'
+import { PhotographyConditions } from '@/components/weather/PhotographyConditions'
+import { WeatherTrend } from '@/components/weather/WeatherTrend'
+import { MountainPhotoGallery } from '@/components/MountainPhotoGallery'
+import { WalkHighlandsRoutes } from '@/components/WalkHighlandsRoutes'
+import { GettingThere } from '@/components/GettingThere'
 import type { WeatherPeriod, DailyForecast } from '@/types'
 
 export function LocationPage() {
@@ -43,6 +56,7 @@ export function LocationPage() {
   const navigate = useNavigate()
   const { preferences, isFavorite, addFavorite, removeFavorite, addRecent } = useAppStore()
   const setLastUpdated = useDataStalenessStore((state) => state.setLastUpdated)
+  const [expandedDayIndex, setExpandedDayIndex] = useState<number | null>(null)
 
   // Get weather forecast
   const { data: forecast, isLoading: forecastLoading, error: forecastError } = useQuery({
@@ -147,15 +161,114 @@ export function LocationPage() {
       </header>
 
       <div className="px-4 py-6 space-y-6">
+        {/* Estimated data warning banner */}
+        {forecast.data_source?.includes('estimated') && (
+          <div className="rounded-xl border border-amber-600/30 bg-amber-900/20 px-4 py-3 flex items-start gap-3 fade-in">
+            <ExclamationTriangleIcon className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-amber-300">Estimated Data</p>
+              <p className="text-xs text-amber-400/70 mt-0.5">
+                Real forecast data is not yet available for this location. Conditions shown are seasonal estimates and should not be used for planning.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Export functionality */}
         <div className="flex justify-end fade-in">
           <ExportWeatherData forecasts={forecast.forecasts} location={forecast.location} />
         </div>
 
+        {/* Mini Location Map */}
+        <section className="fade-in-up">
+          <h2 className="section-title flex items-center gap-2 mb-3">
+            <MapPinIcon className="w-5 h-5 text-emerald-400" />
+            Location
+          </h2>
+          <div className="card p-0 overflow-hidden">
+            <Suspense fallback={<LoadingSkeleton height={192} />}>
+              <LocationMap
+                locations={[location]}
+                selectedLocationId={location.id}
+                center={[location.latitude, location.longitude]}
+                zoom={11}
+                className="w-full h-48"
+                interactive={false}
+                showPopups={false}
+              />
+            </Suspense>
+            <div className="p-3 bg-slate-800/50 border-t border-slate-700/50">
+              <div className="flex items-center justify-between text-sm">
+                <div>
+                  <span className="text-slate-400">Coordinates:</span>
+                  <span className="text-slate-200 ml-2 mono-nums">
+                    {location.latitude.toFixed(4)}°N, {Math.abs(location.longitude).toFixed(4)}°W
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-400">Elevation:</span>
+                  <span className="text-emerald-400 ml-2 font-medium mono-nums">{location.elevation_m}m</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Mountain Photos */}
+        <MountainPhotoGallery locationId={locationId} />
+
+        {/* Weather Trend - Shows improving/deteriorating conditions */}
+        <section className="fade-in-up" style={{ animationDelay: '0.05s' }}>
+          <WeatherTrend forecasts={forecast.forecasts} />
+        </section>
+
         {/* Current conditions */}
-        <div className="fade-in-up">
+        <div className="fade-in-up" style={{ animationDelay: '0.1s' }}>
           <CurrentConditionsCard day={currentDay} preferences={preferences} />
         </div>
+
+        {/* Scottish Highland Features Grid */}
+        <section className="fade-in-up" style={{ animationDelay: '0.15s' }}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Daylight Hours */}
+            <DaylightHours
+              latitude={location.latitude}
+              longitude={location.longitude}
+            />
+
+            {/* Cloud Inversion Potential */}
+            <CloudInversionIndicator
+              cloudBase={currentDay?.periods[0]?.cloud_base_m}
+              freezingLevel={currentDay?.periods[0]?.freezing_level_m}
+              summitElevation={location.elevation_m}
+              humidity={undefined}
+              windSpeed={currentDay?.periods[0]?.wind_speed_kph}
+              temperature={currentDay?.periods[0]?.temperature_c}
+            />
+          </div>
+        </section>
+
+        {/* Photography Conditions */}
+        <section className="fade-in-up" style={{ animationDelay: '0.2s' }}>
+          <PhotographyConditions
+            visibility={currentDay?.periods[0]?.visibility_m}
+            cloudBase={currentDay?.periods[0]?.cloud_base_m}
+            cloudCover={undefined}
+            precipitation={currentDay?.periods[0]?.precipitation_mm}
+            windSpeed={currentDay?.periods[0]?.wind_speed_kph}
+            latitude={location.latitude}
+            longitude={location.longitude}
+          />
+        </section>
+
+        {/* Walking Routes */}
+        <WalkHighlandsRoutes
+          locationId={locationId}
+          hikingScore={currentDay?.summary.overall_hiking_score}
+        />
+
+        {/* Getting There / Parking */}
+        <GettingThere locationId={locationId} />
 
         {/* Alerts */}
         <section className="fade-in-up" style={{ animationDelay: '0.1s' }}>
@@ -184,18 +297,22 @@ export function LocationPage() {
                 day={day}
                 preferences={preferences}
                 isToday={index === 0}
+                isExpanded={expandedDayIndex === index}
+                onToggle={() => setExpandedDayIndex(expandedDayIndex === index ? null : index)}
               />
             ))}
           </div>
         </section>
 
         {/* Customizable Dashboard */}
-        <CustomizableDashboard 
-          locationId={locationId}
-          forecasts={forecast.forecasts}
-          location={forecast.location}
-          preferences={preferences}
-        />
+        <Suspense fallback={<LoadingSkeleton height={300} className="rounded-xl" />}>
+          <CustomizableDashboard
+            locationId={locationId}
+            forecasts={forecast.forecasts}
+            location={forecast.location}
+            preferences={preferences}
+          />
+        </Suspense>
 
         {/* Detailed periods for today */}
         {currentDay && (
@@ -211,8 +328,14 @@ export function LocationPage() {
 
         {/* Data source info */}
         <div className="text-xs text-slate-500 text-center pt-4">
-          <p>Data from {forecast.data_source}</p>
-          <p>Last updated: {new Date(forecast.last_updated).toLocaleString()}</p>
+          {forecast.data_source?.includes('estimated') ? (
+            <p className="text-amber-500/70">Showing estimated data - no real forecast available</p>
+          ) : (
+            <>
+              <p>Data from {forecast.data_source}</p>
+              <p>Last updated: {new Date(forecast.last_updated).toLocaleString()}</p>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -229,42 +352,49 @@ function CurrentConditionsCard({ day, preferences }: { day: DailyForecast; prefe
   return (
     <div className="card">
       <div className="flex items-center justify-between mb-4">
-        <div>
-          <h3 className="text-lg font-semibold text-slate-100">Current Conditions</h3>
-          <p className="text-sm text-slate-500">{getPeriodLabel(currentPeriod.period_type)}</p>
+        <div className="flex items-center gap-4">
+          {/* Weather Icon */}
+          <WeatherIcon
+            condition={currentPeriod.weather_description || 'cloudy'}
+            size="xl"
+            animated={true}
+          />
+          <div>
+            <h3 className="text-lg font-semibold text-slate-100">Current Conditions</h3>
+            <p className="text-sm text-slate-500">{getPeriodLabel(currentPeriod.period_type)}</p>
+          </div>
         </div>
         <div className="text-right">
-          <div className="text-3xl font-bold text-slate-100 mono-nums">
-            {formatTemperature(currentPeriod.temperature_c, preferences)}
-          </div>
-          <div className={cn(
-            'text-sm',
-            significantWindChill ? 'text-emerald-400 font-medium' : 'text-slate-400'
-          )}>
-            Feels like {formatTemperature(currentPeriod.feels_like_c, preferences)}
-            {significantWindChill && ' (wind chill)'}
-          </div>
+          {/* Temperature Display Component */}
+          <TemperatureDisplay
+            temperature={currentPeriod.temperature_c}
+            feelsLike={currentPeriod.feels_like_c}
+            size="xl"
+            showFeelsLike={true}
+            variant="default"
+          />
         </div>
       </div>
 
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-slate-400">Hiking Score</span>
-          <div className="flex items-center gap-2">
-            <span className={cn('font-semibold', getHikingScoreColor(currentPeriod.hiking_score))}>
-              {currentPeriod.hiking_score}/10
-            </span>
-            <span className="text-sm text-slate-500">
-              {getHikingScoreDescription(currentPeriod.hiking_score)}
-            </span>
-          </div>
+          <HikingScoreGauge
+            score={currentPeriod.hiking_score}
+            variant="badge"
+            size="md"
+            showLabel={true}
+            showDescription={true}
+            riskTolerance={preferences.riskTolerance}
+          />
         </div>
 
         <div className="flex items-center justify-between">
           <span className="text-slate-400">Wind</span>
-          <span className="text-slate-200">
-            {formatWindSpeed(currentPeriod.wind_speed_kph, preferences)} {currentPeriod.wind_direction}
-          </span>
+          <WindIndicatorInline
+            direction={currentPeriod.wind_direction || 'N'}
+            speed={currentPeriod.wind_speed_kph}
+          />
         </div>
 
         <div className="flex items-center justify-between">
@@ -346,21 +476,30 @@ function CurrentConditionsCard({ day, preferences }: { day: DailyForecast; prefe
         </div>
       )}
 
-      <div className="mt-4 p-3 bg-slate-700/50 rounded-lg">
-        <p className="text-sm text-slate-300">{currentPeriod.weather_description}</p>
+      {/* Weather description with icon */}
+      <div className="mt-4 p-3 bg-slate-700/50 rounded-lg flex items-center gap-3">
+        <WeatherIcon
+          condition={currentPeriod.weather_description || 'cloudy'}
+          size="sm"
+          animated={false}
+        />
+        <p className="text-sm text-slate-300 capitalize">{currentPeriod.weather_description}</p>
       </div>
     </div>
   )
 }
 
-function DayForecastCard({ day, preferences, isToday }: {
+function DayForecastCard({ day, preferences, isToday, isExpanded, onToggle }: {
   day: DailyForecast;
   preferences: any;
-  isToday: boolean
+  isToday: boolean;
+  isExpanded: boolean;
+  onToggle: () => void;
 }) {
   const date = new Date(day.date)
   const dayName = isToday ? 'Today' : date.toLocaleDateString('en-GB', { weekday: 'short' })
   const dateStr = date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+  const panelId = `day-detail-${day.date}`
 
   // Get representative period for freezing level and cloud base (use midday/afternoon period if available)
   const representativePeriod = day.periods.find(p => p.period_type === 'pm') || day.periods[0]
@@ -377,110 +516,107 @@ function DayForecastCard({ day, preferences, isToday }: {
   const isWindy = day.summary.max_wind_speed_kph > 40
   const hikingScore = day.summary.overall_hiking_score
 
-  // Score color classes with background
-  const getScoreClasses = (score: number) => {
-    if (score >= 7) return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-    if (score >= 5) return 'bg-emerald-600/20 text-emerald-300 border-emerald-600/30'
-    if (score >= 3) return 'bg-amber-500/20 text-amber-400 border-amber-500/30'
-    return 'bg-red-500/20 text-red-400 border-red-500/30'
-  }
+  const hasPeriods = day.periods.length > 1
 
   return (
     <div className={cn(
-      "card relative overflow-hidden transition-all duration-200 hover-lift",
-      isToday && "ring-2 ring-emerald-500/50 bg-emerald-900/10"
+      "card relative overflow-hidden transition-all duration-200",
+      isToday && "ring-2 ring-emerald-500/50 bg-emerald-900/10",
+      !isExpanded && "hover-lift"
     )}>
       {/* Today indicator strip */}
       {isToday && (
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-emerald-400" />
       )}
 
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          {/* Weather condition icon */}
-          <div className={cn(
-            "w-12 h-12 rounded-xl flex items-center justify-center",
-            hikingScore >= 7 ? "bg-emerald-500/20" :
-            hikingScore >= 5 ? "bg-emerald-600/20" :
-            hikingScore >= 3 ? "bg-amber-500/20" : "bg-red-500/20"
-          )}>
-            {hasSnow ? (
-              <svg className="w-6 h-6 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v18m-6-6l6 6 6-6M6 9l6-6 6 6" />
-              </svg>
-            ) : hasRain ? (
-              <svg className="w-6 h-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
-              </svg>
-            ) : isWindy ? (
-              <svg className="w-6 h-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-              </svg>
-            ) : (
-              <svg className="w-6 h-6 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-            )}
+      {/* Clickable header — only interactive when expandable periods exist */}
+      <div
+        role={hasPeriods ? "button" : undefined}
+        tabIndex={hasPeriods ? 0 : undefined}
+        onClick={hasPeriods ? onToggle : undefined}
+        onKeyDown={hasPeriods ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle() } } : undefined}
+        className={cn(
+          "w-full text-left rounded-lg",
+          hasPeriods && "cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-800"
+        )}
+        aria-expanded={hasPeriods ? isExpanded : undefined}
+        aria-controls={hasPeriods ? panelId : undefined}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {/* Weather condition icon using WeatherIcon component */}
+            <WeatherIcon
+              condition={hasSnow ? 'snow' : hasRain ? 'rain' : isWindy ? 'windy' : 'sunny'}
+              size="lg"
+              animated={isToday}
+            />
+
+            <div>
+              <div className={cn(
+                "font-semibold",
+                isToday ? "text-emerald-400 text-lg" : "text-slate-100"
+              )}>{dayName}</div>
+              <div className="text-sm text-slate-500">{dateStr}</div>
+            </div>
           </div>
 
-          <div>
-            <div className={cn(
-              "font-semibold",
-              isToday ? "text-emerald-400 text-lg" : "text-slate-100"
-            )}>{dayName}</div>
-            <div className="text-sm text-slate-500">{dateStr}</div>
-          </div>
-        </div>
+          <div className="flex items-center gap-4">
+            {/* Temperature using TemperatureDisplay */}
+            <div className="text-center">
+              <div className="text-xs text-slate-500 uppercase tracking-wider-custom">Temp</div>
+              <TemperatureDisplay
+                temperature={day.summary.max_temp_c}
+                size="sm"
+                showUnit={true}
+                variant="compact"
+              />
+              <TemperatureDisplay
+                temperature={day.summary.min_temp_c}
+                size="xs"
+                showUnit={true}
+                variant="compact"
+                className="opacity-60"
+              />
+              {significantWindChill && (
+                <div className="text-xs text-cyan-400 mt-0.5">
+                  Feels {formatTemperature(minFeelsLike, preferences)}
+                </div>
+              )}
+            </div>
 
-        <div className="flex items-center gap-4">
-          {/* Temperature */}
-          <div className="text-center">
-            <div className="text-xs text-slate-500 uppercase tracking-wider-custom">Temp</div>
-            <div className="font-semibold text-slate-200 mono-nums">
-              {formatTemperature(day.summary.max_temp_c, preferences)}
-            </div>
-            <div className="text-xs text-slate-500 mono-nums">
-              {formatTemperature(day.summary.min_temp_c, preferences)}
-            </div>
-            {significantWindChill && (
-              <div className="text-xs text-cyan-400 mt-0.5">
-                Feels {formatTemperature(minFeelsLike, preferences)}
+            {/* Wind */}
+            <div className="text-center">
+              <div className="text-xs text-slate-500 uppercase tracking-wider-custom">Wind</div>
+              <div className={cn(
+                "font-semibold mono-nums",
+                isWindy ? "text-amber-400" : "text-slate-200"
+              )}>
+                {formatWindSpeed(day.summary.max_wind_speed_kph, preferences)}
               </div>
-            )}
-          </div>
-
-          {/* Wind */}
-          <div className="text-center">
-            <div className="text-xs text-slate-500 uppercase tracking-wider-custom">Wind</div>
-            <div className={cn(
-              "font-semibold mono-nums",
-              isWindy ? "text-amber-400" : "text-slate-200"
-            )}>
-              {formatWindSpeed(day.summary.max_wind_speed_kph, preferences)}
             </div>
-          </div>
 
-          {/* Hiking Score with visual bar */}
-          <div className="text-center min-w-[60px]">
-            <div className="text-xs text-slate-500 uppercase tracking-wider-custom mb-1">Score</div>
-            <div className={cn(
-              "font-bold text-lg px-2 py-0.5 rounded-lg border mono-nums",
-              getScoreClasses(hikingScore)
-            )}>
-              {hikingScore}
-            </div>
-            {/* Visual score bar */}
-            <div className="mt-1 h-1 w-full bg-slate-700 rounded-full overflow-hidden">
-              <div
-                className={cn(
-                  "h-full rounded-full transition-all duration-300",
-                  hikingScore >= 7 ? "bg-emerald-500" :
-                  hikingScore >= 5 ? "bg-emerald-600" :
-                  hikingScore >= 3 ? "bg-amber-500" : "bg-red-500"
-                )}
-                style={{ width: `${hikingScore * 10}%` }}
+            {/* Hiking Score using HikingScoreGauge */}
+            <div className="text-center min-w-[60px]">
+              <div className="text-xs text-slate-500 uppercase tracking-wider-custom mb-1">Score</div>
+              <HikingScoreGauge
+                score={hikingScore}
+                variant="badge"
+                size="sm"
+                showLabel={false}
+                riskTolerance={preferences.riskTolerance}
               />
             </div>
+
+            {/* Expand chevron */}
+            {hasPeriods && (
+              <ChevronDownIcon
+                className={cn(
+                  "w-5 h-5 text-slate-400 transition-transform duration-300 flex-shrink-0",
+                  isExpanded && "rotate-180"
+                )}
+                aria-hidden="true"
+              />
+            )}
           </div>
         </div>
       </div>
@@ -525,6 +661,129 @@ function DayForecastCard({ day, preferences, isToday }: {
           Winter conditions expected - ice/snow likely on higher ground
         </div>
       )}
+
+      {/* Expanded period detail panel */}
+      {isExpanded && hasPeriods && (
+        <div
+          id={panelId}
+          className="mt-4 pt-4 border-t border-slate-700/50 fade-in-down"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider-custom">
+              Detailed Periods
+            </h3>
+            {day.summary.best_period && (
+              <span className="text-xs text-emerald-400 bg-emerald-900/30 border border-emerald-700/50 px-2 py-1 rounded-full">
+                Best: {getPeriodLabel(day.summary.best_period as WeatherPeriod['period_type'])}
+              </span>
+            )}
+          </div>
+          <div className="grid gap-3 md:grid-cols-3">
+            {day.periods.map((period) => (
+              <div
+                key={period.period_type}
+                className={cn(
+                  "p-3 rounded-lg border transition-colors",
+                  day.summary.best_period === period.period_type
+                    ? "bg-emerald-900/20 border-emerald-700/50"
+                    : "bg-slate-800/50 border-slate-700/50"
+                )}
+              >
+                {/* Period header */}
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <WeatherIcon
+                      condition={period.weather_description || 'cloudy'}
+                      size="sm"
+                      animated={false}
+                    />
+                    <span className="font-medium text-slate-100 text-sm">
+                      {getPeriodLabel(period.period_type)}
+                    </span>
+                  </div>
+                  <span className={cn(
+                    'px-2 py-0.5 text-xs font-medium rounded-full border',
+                    getRiskLevelColor(period.risk_level)
+                  )}>
+                    {period.risk_level}
+                  </span>
+                </div>
+
+                {/* Period metrics */}
+                <div className="space-y-1.5 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Temp</span>
+                    <div className="flex items-center gap-2">
+                      <TemperatureDisplay
+                        temperature={period.temperature_c}
+                        size="xs"
+                        showUnit={true}
+                        variant="compact"
+                      />
+                      {period.temperature_c - period.feels_like_c >= 3 && (
+                        <span className="text-xs text-cyan-400">
+                          (feels {formatTemperature(period.feels_like_c, preferences)})
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Wind</span>
+                    <WindIndicatorInline
+                      direction={period.wind_direction || 'N'}
+                      speed={period.wind_speed_kph}
+                    />
+                  </div>
+
+                  {period.precipitation_mm > 0 && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400">Rain</span>
+                      <span className="text-blue-400 mono-nums">{formatPrecipitation(period.precipitation_mm)}</span>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Score</span>
+                    <HikingScoreGauge
+                      score={period.hiking_score}
+                      variant="compact"
+                      size="sm"
+                      riskTolerance={preferences.riskTolerance}
+                    />
+                  </div>
+
+                  {period.freezing_level_m !== undefined && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400">Freezing</span>
+                      <span className={cn(
+                        "mono-nums text-xs",
+                        period.freezing_level_m < 500 ? "text-cyan-400" : "text-slate-300"
+                      )}>
+                        {formatFreezingLevel(period.freezing_level_m)}
+                      </span>
+                    </div>
+                  )}
+
+                  {period.cloud_base_m !== undefined && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400">Cloud</span>
+                      <span className="text-slate-300 mono-nums text-xs">
+                        {formatCloudBase(period.cloud_base_m)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Weather description */}
+                <div className="mt-2 text-xs text-slate-500 capitalize">
+                  {period.weather_description}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -537,7 +796,14 @@ function PeriodCard({ period, preferences }: { period: WeatherPeriod; preference
   return (
     <div className="card hover-lift">
       <div className="flex items-center justify-between mb-3">
-        <h4 className="font-medium text-slate-100">{getPeriodLabel(period.period_type)}</h4>
+        <div className="flex items-center gap-3">
+          <WeatherIcon
+            condition={period.weather_description || 'cloudy'}
+            size="md"
+            animated={false}
+          />
+          <h4 className="font-medium text-slate-100">{getPeriodLabel(period.period_type)}</h4>
+        </div>
         <span className={cn(
           'px-2 py-1 text-xs font-medium rounded-full border',
           getRiskLevelColor(period.risk_level)
@@ -549,9 +815,12 @@ function PeriodCard({ period, preferences }: { period: WeatherPeriod; preference
       <div className="grid grid-cols-2 gap-4 text-sm">
         <div>
           <span className="text-slate-400">Temperature:</span><br />
-          <span className="font-medium text-slate-200">
-            {formatTemperature(period.temperature_c, preferences)}
-          </span>
+          <TemperatureDisplay
+            temperature={period.temperature_c}
+            size="sm"
+            showUnit={true}
+            variant="compact"
+          />
         </div>
 
         <div>
@@ -560,26 +829,31 @@ function PeriodCard({ period, preferences }: { period: WeatherPeriod; preference
           )}>
             Feels like{significantWindChill ? ' (wind chill)' : ''}:
           </span><br />
-          <span className={cn(
-            'font-medium',
-            significantWindChill ? 'text-emerald-400' : 'text-slate-200'
-          )}>
-            {formatTemperature(period.feels_like_c, preferences)}
-          </span>
+          <TemperatureDisplay
+            temperature={period.feels_like_c}
+            size="sm"
+            showUnit={true}
+            variant="compact"
+          />
         </div>
 
         <div>
           <span className="text-slate-400">Wind:</span><br />
-          <span className="font-medium text-slate-200">
-            {formatWindSpeed(period.wind_speed_kph, preferences)} {period.wind_direction}
-          </span>
+          <WindIndicatorInline
+            direction={period.wind_direction || 'N'}
+            speed={period.wind_speed_kph}
+          />
         </div>
 
         <div>
           <span className="text-slate-400">Hiking Score:</span><br />
-          <span className={cn('font-semibold', getHikingScoreColor(period.hiking_score))}>
-            {period.hiking_score}/10
-          </span>
+          <HikingScoreGauge
+            score={period.hiking_score}
+            variant="compact"
+            size="sm"
+            showLabel={true}
+            riskTolerance={preferences.riskTolerance}
+          />
         </div>
 
         {/* Safety-critical fields */}
@@ -621,8 +895,13 @@ function PeriodCard({ period, preferences }: { period: WeatherPeriod; preference
         </div>
       )}
 
-      <div className="mt-3 text-sm text-slate-400">
-        {period.weather_description}
+      <div className="mt-3 flex items-center gap-2 text-sm text-slate-400">
+        <WeatherIcon
+          condition={period.weather_description || 'cloudy'}
+          size="xs"
+          animated={false}
+        />
+        <span className="capitalize">{period.weather_description}</span>
       </div>
     </div>
   )

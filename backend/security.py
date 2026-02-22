@@ -6,7 +6,7 @@ import time
 import hashlib
 import secrets
 from datetime import datetime, timedelta
-from typing import Dict, Optional, List, Tuple
+from typing import Any, Dict, Optional, List, Tuple
 from functools import wraps
 import logging
 from ipaddress import ip_address, ip_network
@@ -28,18 +28,18 @@ logger = logging.getLogger(__name__)
 
 class SecurityConfig(BaseModel):
     """Security configuration"""
-    # Rate limiting
-    rate_limit_per_minute: int = 60
-    rate_limit_per_hour: int = 1000
-    rate_limit_per_day: int = 10000
-    
+    # Rate limiting - tuned for a small-scale weather API with ~100 expected users
+    rate_limit_per_minute: int = 60  # 1 req/sec sustained; enough for normal browsing
+    rate_limit_per_hour: int = 1000  # ~17 req/min sustained; allows bulk page loads
+    rate_limit_per_day: int = 10000  # prevents abuse while allowing heavy usage
+
     # API Keys
     require_api_key: bool = True  # SECURITY: Enabled by default
     api_key_header: str = "X-API-Key"
 
     # Request size limits
-    max_request_size: int = 1024 * 1024  # 1MB
-    max_query_params: int = 50
+    max_request_size: int = 1024 * 1024  # 1MB; weather API has no file uploads, this is generous
+    max_query_params: int = 50  # prevents query parameter injection attacks
 
     # Security headers
     enable_cors: bool = True

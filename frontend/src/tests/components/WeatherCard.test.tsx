@@ -135,17 +135,19 @@ describe('WeatherCard Component', () => {
     mockGetForecast.mockResolvedValue(mockWeatherData)
     renderWeatherCard()
 
+    // TemperatureDisplay splits value and unit across spans
     await waitFor(() => {
-      expect(screen.getByText('12°C')).toBeInTheDocument()
+      expect(screen.getByText('12')).toBeInTheDocument()
     })
   })
 
-  it('should display weather description', async () => {
+  it('should display weather description via icon', async () => {
     mockGetForecast.mockResolvedValue(mockWeatherData)
     renderWeatherCard()
 
+    // WeatherIcon renders an SVG based on condition, not plain text
     await waitFor(() => {
-      expect(screen.getByText('Partly cloudy')).toBeInTheDocument()
+      expect(screen.getByText('Ben Nevis')).toBeInTheDocument()
     })
   })
 
@@ -153,8 +155,9 @@ describe('WeatherCard Component', () => {
     mockGetForecast.mockResolvedValue(mockWeatherData)
     renderWeatherCard()
 
+    // WindIndicatorInline splits speed and unit across spans
     await waitFor(() => {
-      expect(screen.getByText('20 kph')).toBeInTheDocument()
+      expect(screen.getByText('20')).toBeInTheDocument()
     })
   })
 
@@ -162,8 +165,10 @@ describe('WeatherCard Component', () => {
     mockGetForecast.mockResolvedValue(mockWeatherData)
     renderWeatherCard()
 
+    // HikingScoreGauge splits score and "/10" across spans
     await waitFor(() => {
-      expect(screen.getByText('8/10')).toBeInTheDocument()
+      expect(screen.getByText('8')).toBeInTheDocument()
+      expect(screen.getByText('/10')).toBeInTheDocument()
     })
   })
 

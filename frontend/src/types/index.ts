@@ -11,6 +11,7 @@ export interface UserPreferences {
     temperature: 'celsius' | 'fahrenheit'
     wind: 'kph' | 'mph'
     distance: 'km' | 'miles'
+    elevation: 'meters' | 'feet'
   }
   riskTolerance: 'conservative' | 'moderate' | 'aggressive'
   notifications: {
@@ -18,4 +19,5 @@ export interface UserPreferences {
     severeWeather: boolean
     favoriteUpdates: boolean
   }
+  homeAddress?: string
 }

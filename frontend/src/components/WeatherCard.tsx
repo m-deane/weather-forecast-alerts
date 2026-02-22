@@ -6,9 +6,12 @@ import { useAppStore } from '@/stores/useAppStore'
 import { useDataStalenessStore } from '@/stores/useDataStalenessStore'
 import { cn } from '@/utils/cn'
 import { LoadingSkeleton } from './LoadingSkeleton'
+import { WeatherIcon } from '@/components/weather/WeatherIcon'
+import { TemperatureDisplay } from '@/components/weather/TemperatureDisplay'
+import { WindIndicatorInline } from '@/components/weather/WindArrow'
+import { HikingScoreGauge } from '@/components/weather/HikingScoreGauge'
 import {
   formatTemperature,
-  formatWindSpeed,
   formatPrecipitation,
   isConditionSafe
 } from '@/utils/weather'
@@ -66,14 +69,7 @@ export function WeatherCard({ locationId, compact = false, showDetails = false }
 
   const isSafe = isConditionSafe(currentPeriod, preferences.riskTolerance)
   const hasAlerts = data.alerts && data.alerts.length > 0
-
-  // Get score-based styling
-  const getScoreStyles = (score: number) => {
-    if (score >= 7) return 'text-emerald-400'
-    if (score >= 5) return 'text-emerald-300'
-    if (score >= 3) return 'text-warning-400'
-    return 'text-danger-400'
-  }
+  const isEstimated = data.data_source?.includes('estimated')
 
   return (
     <Link
@@ -102,46 +98,62 @@ export function WeatherCard({ locationId, compact = false, showDetails = false }
         </svg>
       </div>
 
-      {/* Header */}
+      {/* Header with Weather Icon */}
       <div className="flex justify-between items-start mb-3">
-        <div className="min-w-0 flex-1">
-          <h3 className="font-semibold text-slate-100 truncate group-hover:text-emerald-400 transition-colors duration-200">
-            {location.name}
-          </h3>
-          <p className="text-sm text-slate-400 group-hover:text-slate-300 transition-colors duration-200">{location.area} • {location.elevation_m}m</p>
+        <div className="flex items-center gap-3">
+          {/* Weather Icon */}
+          <WeatherIcon
+            condition={currentPeriod.weather_description || 'cloudy'}
+            size={compact ? 'sm' : 'md'}
+            animated={true}
+          />
+          <div className="min-w-0 flex-1">
+            <h3 className="font-semibold text-slate-100 truncate group-hover:text-emerald-400 transition-colors duration-200">
+              {location.name}
+            </h3>
+            <p className="text-sm text-slate-400 group-hover:text-slate-300 transition-colors duration-200">
+              {location.area} • {location.elevation_m}m
+            </p>
+          </div>
         </div>
 
         <div className="text-right ml-3 mr-6">
-          <div className="text-2xl font-semibold text-slate-100 group-hover:scale-105 transition-transform duration-200 origin-right mono-nums">
-            {formatTemperature(currentPeriod.temperature_c, preferences)}
-          </div>
-          <div className="text-sm text-slate-400">
-            {currentPeriod.weather_description}
-          </div>
+          {/* Temperature with color coding */}
+          <TemperatureDisplay
+            temperature={currentPeriod.temperature_c}
+            feelsLike={currentPeriod.feels_like_c}
+            size={compact ? 'sm' : 'md'}
+            showFeelsLike={!compact}
+            variant="default"
+          />
         </div>
       </div>
 
-      {/* Weather details */}
+      {/* Weather details with new components */}
       <div className="grid grid-cols-3 gap-3 text-sm stagger-children">
         <div>
-          <span className="text-slate-500 data-label">Wind</span>
-          <div className="font-medium text-slate-200 mono-nums">
-            {formatWindSpeed(currentPeriod.wind_speed_kph, preferences)}
-          </div>
+          <span className="text-slate-400 data-label">Wind</span>
+          <WindIndicatorInline
+            direction={currentPeriod.wind_direction || 'N'}
+            speed={currentPeriod.wind_speed_kph}
+          />
         </div>
 
         <div>
-          <span className="text-slate-500 data-label">Rain</span>
+          <span className="text-slate-400 data-label">Rain</span>
           <div className="font-medium text-slate-200 mono-nums">
             {formatPrecipitation(currentPeriod.precipitation_mm)}
           </div>
         </div>
 
         <div>
-          <span className="text-slate-500 data-label">Score</span>
-          <div className={cn('font-semibold mono-nums', getScoreStyles(currentPeriod.hiking_score))}>
-            {currentPeriod.hiking_score}/10
-          </div>
+          <span className="text-slate-400 data-label">Score</span>
+          <HikingScoreGauge
+            score={currentPeriod.hiking_score}
+            variant="compact"
+            size="sm"
+            riskTolerance={preferences.riskTolerance}
+          />
         </div>
       </div>
 
@@ -175,17 +187,17 @@ export function WeatherCard({ locationId, compact = false, showDetails = false }
       {showDetails && (
         <div className="mt-4 pt-3 border-t border-slate-700/50 space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="text-slate-500">Feels like:</span>
+            <span className="text-slate-400">Feels like:</span>
             <span className="text-slate-200">{formatTemperature(currentPeriod.feels_like_c, preferences)}</span>
           </div>
 
           <div className="flex justify-between text-sm">
-            <span className="text-slate-500">Wind direction:</span>
+            <span className="text-slate-400">Wind direction:</span>
             <span className="text-slate-200">{currentPeriod.wind_direction || 'Variable'}</span>
           </div>
 
           <div className="flex justify-between text-sm">
-            <span className="text-slate-500">Risk level:</span>
+            <span className="text-slate-400">Risk level:</span>
             <span className={cn(
               'px-2 py-1 text-xs rounded-full font-medium',
               currentPeriod.risk_level === 'low' && 'bg-emerald-900/50 text-emerald-400 border border-emerald-700/50',
@@ -199,7 +211,7 @@ export function WeatherCard({ locationId, compact = false, showDetails = false }
 
           {currentPeriod.visibility_m && (
             <div className="flex justify-between text-sm">
-              <span className="text-slate-500">Visibility:</span>
+              <span className="text-slate-400">Visibility:</span>
               <span className="text-slate-200">
                 {currentPeriod.visibility_m > 10000 ? 'Excellent' :
                  currentPeriod.visibility_m > 4000 ? 'Good' :
@@ -210,9 +222,13 @@ export function WeatherCard({ locationId, compact = false, showDetails = false }
         </div>
       )}
 
-      {/* Last updated */}
+      {/* Last updated / data source warning */}
       <div className="mt-3 text-xs text-slate-500">
-        Updated: {new Date(data.last_updated).toLocaleTimeString()}
+        {isEstimated ? (
+          <span className="text-amber-500/80">Estimated data - no real forecast available</span>
+        ) : (
+          <>Updated: {new Date(data.last_updated).toLocaleTimeString()}</>
+        )}
       </div>
     </Link>
   )

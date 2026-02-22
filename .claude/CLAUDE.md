@@ -1,7 +1,7 @@
 # PROJECT CONTEXT & DIRECTIVES
 Scottish Mountain Weather Application
 
-**Last Updated**: 2025-11-18
+**Last Updated**: 2026-02-06
 
 ## Project Overview
 
@@ -18,23 +18,18 @@ A full-stack application that scrapes Scottish mountain weather forecasts, calcu
 
 ### 🔴 MUST KNOW BEFORE STARTING
 
-1. **Frontend React App Has Rendering Issue**
-   - **DO NOT** work on or test the main React app at `/`
-   - **ALWAYS** use `/demo.html` for working demo
-   - See `HOW_TO_RUN.md` for details
-
-2. **Scraper is Fragile**
+1. **Scraper is Fragile**
    - Dependent on mountain-forecast.com HTML structure
    - **ALWAYS** run `python check_urls.py` before adding/modifying URLs
    - **ALWAYS** check `failed_munros_*.csv` after scraper runs
    - Site may change selectors - requires maintenance
 
-3. **Two Backend Modes**
+2. **Two Backend Modes**
    - **Simple API** (`simple_api.py`): Mock data, no database required - USE THIS for frontend testing
    - **Full API** (`main.py`): Requires PostgreSQL + Redis via Docker Compose - use only for database work
    - Don't confuse the two - they serve different purposes
 
-4. **OpenWeatherMap API Key Required**
+3. **OpenWeatherMap API Key Required**
    - Scraper works without it but with reduced data
    - Set via `OWM_API_KEY` environment variable or `config.yaml`
    - Free tier available at openweathermap.org
@@ -145,8 +140,6 @@ open http://localhost:8000/docs
 
 ### Frontend Development Workflow
 
-**⚠️ CRITICAL: Always use `/demo.html` - main React app has rendering issues**
-
 **Workflow**:
 ```bash
 # 1. Ensure backend is running (simple_api.py recommended)
@@ -157,12 +150,11 @@ python simple_api.py
 cd frontend
 npm run dev
 
-# 3. Open working demo
-open http://localhost:3000/demo.html
-# DO NOT use http://localhost:3000/ - it has rendering issues
+# 3. Open app
+open http://localhost:3000
 
 # 4. Make changes to components
-# Edit files in frontend/src/components/
+# Edit files in frontend/src/components/ or frontend/src/pages/
 
 # 5. Test in browser
 # Changes hot-reload automatically
@@ -174,13 +166,14 @@ npm run preview
 ```
 
 **Development Files**:
-- `frontend/demo.html` - Working demo (use this!)
+- `frontend/src/main.tsx` - Application entry point
+- `frontend/src/App.tsx` - Main app with routing
 - `frontend/src/components/` - React components
+- `frontend/src/pages/` - Page components (HomePage, LocationPage, SearchPage, etc.)
 - `frontend/src/api/` - API client
-- `frontend/src/pages/` - Page components (currently broken)
 
 **Common Issues**:
-- **Blank page**: You're on `/` instead of `/demo.html` - use the demo!
+- **Blank page**: Check browser console for errors, verify backend is running
 - **API errors**: Backend not running or CORS issue
 - **Port 3000 in use**: Kill with `lsof -ti:3000 | xargs kill -9`
 
@@ -200,7 +193,7 @@ cd frontend
 npm run dev
 
 # 4. Test in browser
-open http://localhost:3000/demo.html
+open http://localhost:3000
 
 # 5. Verify data flows through
 # - Check forecasts/ directory has JSON files
@@ -274,7 +267,7 @@ locations:
 - Prefer functional components with hooks
 - TailwindCSS for styling (no CSS modules)
 
-**Current Limitation**: Main app routing broken - all work should focus on `demo.html` components
+**Architecture**: Uses React.lazy for code-splitting heavy components (LocationMap, CustomizableDashboard)
 
 ## Testing Patterns
 
@@ -317,9 +310,9 @@ npm run type-check
 # Linting
 npm run lint
 
-# Manual testing (preferred for now)
+# Manual testing
 npm run dev
-open http://localhost:3000/demo.html
+open http://localhost:3000
 ```
 
 ## Hiking Suitability Scoring Algorithm
@@ -329,10 +322,10 @@ open http://localhost:3000/demo.html
 **Score Calculation** (in `weather_scraper.py`):
 - Start at 10 (perfect conditions)
 - Apply penalties:
-  - Wind: -2.5 per 10kph over 30kph
-  - Rain: -7.0 per mm
-  - Snow: -12.0 per cm
-  - Cold: -3.0 per degree below 0°C
+  - Wind: -2.0 per 10kph over 30kph
+  - Rain: -1.5 per mm (recalibrated for Scottish conditions where rain is common)
+  - Snow: -3.0 per cm
+  - Cold: -0.8 per degree below 0°C
   - Hot: -0.5 per degree above 25°C
 
 **Score Interpretation**:
@@ -343,10 +336,10 @@ open http://localhost:3000/demo.html
 
 **Constants Location**: `weather_scraper.py` lines 52-57
 ```python
-SCORE_WEIGHT_WIND = 2.5
-SCORE_WEIGHT_RAIN = 7.0
-SCORE_WEIGHT_SNOW = 12.0
-SCORE_WEIGHT_COLD = 3.0
+SCORE_WEIGHT_WIND = 2.0
+SCORE_WEIGHT_RAIN = 1.5
+SCORE_WEIGHT_SNOW = 3.0
+SCORE_WEIGHT_COLD = 0.8
 SCORE_WEIGHT_HOT = 0.5
 ```
 
@@ -388,7 +381,7 @@ SCORE_WEIGHT_HOT = 0.5
 ```bash
 ./run_all.sh
 # Runs scraper, backend (simple_api.py), and frontend
-# Access at http://localhost:3000/demo.html
+# Access at http://localhost:3000
 
 # Stop all
 kill $(cat .running_pids)
@@ -403,24 +396,20 @@ cd backend && python simple_api.py
 cd frontend && npm run dev
 
 # Browser
-open http://localhost:3000/demo.html
+open http://localhost:3000
 ```
 
 ## Known Limitations & Workarounds
 
-1. **React App Routing**: Main app at `/` has rendering issues
-   - **Workaround**: Always use `/demo.html`
-   - **Future**: Fix main app routing and component mounting
-
-2. **Scraper Fragility**: Dependent on external HTML structure
+1. **Scraper Fragility**: Dependent on external HTML structure
    - **Workaround**: Regular maintenance, URL validation, error tracking
    - **Future**: Consider official API if mountain-forecast.com offers one
 
-3. **No Automated Tests**: Limited test coverage
+2. **No Automated Tests**: Limited test coverage
    - **Current**: Manual testing with curl and browser
    - **Future**: Add pytest for backend, vitest for frontend
 
-4. **Mock Data in Simple API**: Not real-time data
+3. **Mock Data in Simple API**: Not real-time data
    - **Workaround**: Run scraper + full stack for real data
    - **Use Case**: Simple API perfect for frontend development
 
@@ -439,15 +428,14 @@ open http://localhost:3000/demo.html
 2. **Simplicity**: Every change should impact minimal code (from root CLAUDE.md workflow)
 3. **Robustness**: Scraper must handle failures gracefully (retry, log, continue)
 4. **No Secrets**: Never commit API keys - use environment variables
-5. **Demo-Focused**: Until main React app fixed, all frontend work uses demo.html
-6. **Test Incrementally**: Test each component before integration
+5. **Test Incrementally**: Test each component before integration
 
 ## Quick Decision Matrix
 
 | Scenario | Action |
 |----------|--------|
 | Adding new mountain | Edit config.yaml, run check_urls.py, run scraper |
-| Frontend development | Use simple_api.py backend, test on /demo.html |
+| Frontend development | Use simple_api.py backend, test at http://localhost:3000 |
 | Database changes | Use full Docker Compose stack |
 | API endpoint testing | Use simple_api.py + curl or /docs |
 | Scraper broken | Check failed_munros CSV, verify HTML structure |
@@ -457,7 +445,6 @@ open http://localhost:3000/demo.html
 ---
 
 **Remember**:
-- ⚠️ Use `/demo.html`, not main React app
 - ✅ Simple API for most development
 - 🔍 Always validate URLs before scraping
 - 📊 Conservative scoring for safety

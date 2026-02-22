@@ -1,0 +1,62 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+*.whl
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment and secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+credentials.json
+
+# Docker
+docker-compose.override.yml
+
+# Forecast data (generated, can be large)
+forecasts/
+
+# Scraper failure logs
+failed_munros_*.csv
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+coverage/
+
+# Node (root level if any)
+node_modules/
+
+# Logs
+*.log
+logs/
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Running process PIDs
+.running_pids

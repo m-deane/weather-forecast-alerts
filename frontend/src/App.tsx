@@ -7,31 +7,32 @@ import { SearchPage } from './pages/SearchPage'
 import { FavoritesPage } from './pages/FavoritesPage'
 import { SettingsPage } from './pages/SettingsPage'
 
-const queryClient = new QueryClient()
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 2 * 60 * 1000, // 2 minutes - weather data changes every 4-6 hours
+      gcTime: 10 * 60 * 1000, // 10 minutes garbage collection
+      refetchOnWindowFocus: false, // Don't refetch all queries on tab focus
+      retry: 1, // One retry on failure
+    },
+  },
+})
 
 export function App() {
-  console.log('[APP] App component rendering')
-  
-  try {
-    return (
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Layout />}>
-              <Route index element={<HomePage />} />
-              <Route path="location/:locationId" element={<LocationPage />} />
-              <Route path="locations" element={<SearchPage />} />
-              <Route path="search" element={<SearchPage />} />
-              <Route path="favorites" element={<FavoritesPage />} />
-              <Route path="settings" element={<SettingsPage />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Route>
-          </Routes>
-        </BrowserRouter>
-      </QueryClientProvider>
-    )
-  } catch (error) {
-    console.error('[APP] Error rendering:', error)
-    return <div style={{ color: 'red', padding: '20px' }}>App Error: {String(error)}</div>
-  }
+  return (
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Layout />}>
+            <Route index element={<HomePage />} />
+            <Route path="location/:locationId" element={<LocationPage />} />
+            <Route path="search" element={<SearchPage />} />
+            <Route path="favorites" element={<FavoritesPage />} />
+            <Route path="settings" element={<SettingsPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </QueryClientProvider>
+  )
 }

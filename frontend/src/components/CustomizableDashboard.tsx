@@ -30,7 +30,7 @@ interface CustomizableDashboardProps {
   preferences: any
 }
 
-export function CustomizableDashboard({ 
+export default function CustomizableDashboard({ 
   locationId, 
   forecasts, 
   location, 

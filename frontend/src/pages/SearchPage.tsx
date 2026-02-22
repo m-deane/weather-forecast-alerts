@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from 'react'
+import React, { useState, useMemo, Suspense } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import {
   MagnifyingGlassIcon,
   MapPinIcon,
@@ -15,6 +15,8 @@ import { PullToRefresh } from '@/components/PullToRefresh'
 import { LocationDetection } from '@/components/LocationDetection'
 import { EmptyState, NoSearchResults, DataLoadError } from '@/components/EmptyState'
 import type { Location } from '@/types'
+
+const LocationMap = React.lazy(() => import('@/components/LocationMap'))
 
 interface FilterOptions {
   area: string
@@ -34,6 +36,7 @@ export function SearchPage() {
     elevation: { min: 0, max: 2000 }
   })
 
+  const navigate = useNavigate()
   const { addRecent, isFavorite, addFavorite, removeFavorite } = useAppStore()
 
   // Search locations - show all if query is empty
@@ -110,10 +113,10 @@ export function SearchPage() {
     addRecent(locationId)
   }
 
-  // Handle location selection from GPS
+  // Handle location selection from GPS or city picker
   const handleLocationSelect = (location: any) => {
     addRecent(location.id)
-    window.location.href = `/location/${location.id}`
+    navigate(`/location/${location.id}`)
   }
 
   // Refresh function for pull-to-refresh
@@ -141,6 +144,7 @@ export function SearchPage() {
               value={query}
               onChange={(e) => handleSearch(e.target.value)}
               className="input pl-10"
+              aria-label="Search mountains"
             />
           </div>
 
@@ -188,6 +192,7 @@ export function SearchPage() {
                 value={filters.area}
                 onChange={(e) => setFilters(prev => ({ ...prev, area: e.target.value }))}
                 className="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                aria-label="Filter by area"
               >
                 <option value="">All areas</option>
                 {areas.map(area => (
@@ -207,6 +212,7 @@ export function SearchPage() {
                 value={filters.classification}
                 onChange={(e) => setFilters(prev => ({ ...prev, classification: e.target.value }))}
                 className="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                aria-label="Filter by classification"
               >
                 <option value="">All types</option>
                 <option value="munro">Munros (914m+)</option>
@@ -287,6 +293,20 @@ export function SearchPage() {
               {filteredLocations.length} location{filteredLocations.length !== 1 ? 's' : ''} found
             </p>
 
+            {/* Interactive map of filtered locations */}
+            {filteredLocations.length > 0 && (
+              <Suspense fallback={<div className="w-full h-64 bg-slate-800 rounded-xl animate-pulse" />}>
+                <LocationMap
+                  locations={filteredLocations}
+                  onLocationSelect={(location) => {
+                    addRecent(location.id)
+                    navigate(`/location/${location.id}`)
+                  }}
+                  className="w-full h-64 rounded-xl mb-4"
+                />
+              </Suspense>
+            )}
+
             <div className="stagger-children space-y-3">
             {filteredLocations.map((location) => (
               <LocationCard
@@ -344,7 +364,7 @@ function LocationCard({ location, isFavorite, onFavoriteToggle, onClick }: Locat
             <div className="min-w-0 flex-1">
               <h3 className="font-semibold text-slate-100 truncate">{location.name}</h3>
               <p className="text-sm text-slate-400">{location.area}</p>
-              <p className="text-sm text-slate-500">{location.elevation_m}m</p>
+              <p className="text-sm text-slate-400">{location.elevation_m}m</p>
             </div>
             <div className="ml-3 space-y-1">
               <span className={cn(
