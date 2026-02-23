@@ -2,222 +2,380 @@
   "ben-nevis-ben-nevis": {
     "photos": [
       {
-        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Ben_Nevis_from_Banavie.jpg/800px-Ben_Nevis_from_Banavie.jpg",
-        "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Ben_Nevis_from_Banavie.jpg/300px-Ben_Nevis_from_Banavie.jpg",
-        "alt": "Ben Nevis viewed from Banavie showing the north face in summer",
-        "attribution": "Wikimedia Commons",
-        "attribution_url": "https://commons.wikimedia.org/wiki/File:Ben_Nevis_from_Banavie.jpg",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/BenNevis2005.jpg/1280px-BenNevis2005.jpg",
+        "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/BenNevis2005.jpg/330px-BenNevis2005.jpg",
+        "alt": "Ben Nevis, the highest mountain in the British Isles, viewed from Carn Mor Dearg arete in summer",
+        "attribution": "Thincat, Public domain",
+        "attribution_url": "https://commons.wikimedia.org/wiki/File:BenNevis2005.jpg",
         "season": "summer",
-        "tags": ["north face", "panorama", "summer"]
+        "tags": [
+          "ben nevis",
+          "summit",
+          "highest peak",
+          "lochaber",
+          "grampians"
+        ]
       },
       {
-        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/BenNevisNorthFace.jpg/800px-BenNevisNorthFace.jpg",
-        "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/BenNevisNorthFace.jpg/300px-BenNevisNorthFace.jpg",
-        "alt": "Ben Nevis north face in winter conditions with snow",
-        "attribution": "Wikimedia Commons",
-        "attribution_url": "https://commons.wikimedia.org/wiki/File:BenNevisNorthFace.jpg",
-        "season": "winter",
-        "tags": ["north face", "winter", "snow", "climbing"]
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0a/Ben_Nevis_summit.jpg/1280px-Ben_Nevis_summit.jpg",
+        "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0a/Ben_Nevis_summit.jpg/330px-Ben_Nevis_summit.jpg",
+        "alt": "View from the summit of Ben Nevis showing the rocky plateau and cairn",
+        "attribution": "Blisco, CC BY-SA 3.0",
+        "attribution_url": "https://commons.wikimedia.org/wiki/File:Ben_Nevis_summit.jpg",
+        "season": "summer",
+        "tags": [
+          "ben nevis",
+          "summit",
+          "cairn",
+          "plateau",
+          "highlands"
+        ]
       }
     ]
   },
   "torridon-beinn-eighe": {
     "photos": [
       {
-        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Beinn_Eighe_from_Liathach.jpg/800px-Beinn_Eighe_from_Liathach.jpg",
-        "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Beinn_Eighe_from_Liathach.jpg/300px-Beinn_Eighe_from_Liathach.jpg",
-        "alt": "Beinn Eighe viewed from the ridge of Liathach across Glen Torridon",
-        "attribution": "Wikimedia Commons",
-        "attribution_url": "https://commons.wikimedia.org/wiki/File:Beinn_Eighe_from_Liathach.jpg",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b7/Beinn_Eighe_from_Abhainn_Bruachaig_(geograph_5683566).jpg/1280px-Beinn_Eighe_from_Abhainn_Bruachaig_(geograph_5683566).jpg",
+        "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b7/Beinn_Eighe_from_Abhainn_Bruachaig_(geograph_5683566).jpg/330px-Beinn_Eighe_from_Abhainn_Bruachaig_(geograph_5683566).jpg",
+        "alt": "Beinn Eighe massif viewed from Abhainn Bruachaig, showing the distinctive quartzite-capped ridges",
+        "attribution": "Ibn Musa, CC BY-SA 2.0",
+        "attribution_url": "https://commons.wikimedia.org/wiki/File:Beinn_Eighe_from_Abhainn_Bruachaig_(geograph_5683566).jpg",
         "season": "summer",
-        "tags": ["ridge", "quartzite", "Torridon"]
+        "tags": [
+          "beinn eighe",
+          "torridon",
+          "quartzite",
+          "munro",
+          "national nature reserve"
+        ]
       },
       {
-        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Beinn_Eighe_Triple_Buttress.jpg/800px-Beinn_Eighe_Triple_Buttress.jpg",
-        "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Beinn_Eighe_Triple_Buttress.jpg/300px-Beinn_Eighe_Triple_Buttress.jpg",
-        "alt": "Beinn Eighe Triple Buttress in winter",
-        "attribution": "Wikimedia Commons",
-        "attribution_url": "https://commons.wikimedia.org/wiki/File:Beinn_Eighe_Triple_Buttress.jpg",
-        "season": "winter",
-        "tags": ["Triple Buttress", "winter", "climbing"]
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Beinn_Eighe_from_Loch_Clair_-_geograph.org.uk_-_7601.jpg/1280px-Beinn_Eighe_from_Loch_Clair_-_geograph.org.uk_-_7601.jpg",
+        "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Beinn_Eighe_from_Loch_Clair_-_geograph.org.uk_-_7601.jpg/330px-Beinn_Eighe_from_Loch_Clair_-_geograph.org.uk_-_7601.jpg",
+        "alt": "Beinn Eighe reflected in Loch Clair, Torridon",
+        "attribution": "Anne Burgess, CC BY-SA 2.0",
+        "attribution_url": "https://commons.wikimedia.org/wiki/File:Beinn_Eighe_from_Loch_Clair_-_geograph.org.uk_-_7601.jpg",
+        "season": "autumn",
+        "tags": [
+          "beinn eighe",
+          "loch clair",
+          "torridon",
+          "reflection",
+          "wester ross"
+        ]
       }
     ]
   },
   "torridon-liathach": {
     "photos": [
       {
-        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Liathach_from_Beinn_Eighe.jpg/800px-Liathach_from_Beinn_Eighe.jpg",
-        "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Liathach_from_Beinn_Eighe.jpg/300px-Liathach_from_Beinn_Eighe.jpg",
-        "alt": "Liathach ridge from Beinn Eighe showing the full traverse",
-        "attribution": "Wikimedia Commons",
-        "attribution_url": "https://commons.wikimedia.org/wiki/File:Liathach_from_Beinn_Eighe.jpg",
-        "season": "summer",
-        "tags": ["ridge", "traverse", "Torridon"]
-      }
-    ]
-  },
-  "glencoe-buachaille-etive-mor": {
-    "photos": [
-      {
-        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/33/Buachaille_Etive_Mor.jpg/800px-Buachaille_Etive_Mor.jpg",
-        "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/33/Buachaille_Etive_Mor.jpg/300px-Buachaille_Etive_Mor.jpg",
-        "alt": "Buachaille Etive Mor from the A82 road approach in autumn",
-        "attribution": "Wikimedia Commons",
-        "attribution_url": "https://commons.wikimedia.org/wiki/File:Buachaille_Etive_Mor.jpg",
-        "season": "autumn",
-        "tags": ["iconic", "Glencoe", "autumn colours"]
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Liathach_from_Loch_Clair_May_2006_-_geograph.org.uk_-_282854.jpg/1280px-Liathach_from_Loch_Clair_May_2006_-_geograph.org.uk_-_282854.jpg",
+        "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Liathach_from_Loch_Clair_May_2006_-_geograph.org.uk_-_282854.jpg/330px-Liathach_from_Loch_Clair_May_2006_-_geograph.org.uk_-_282854.jpg",
+        "alt": "Liathach mountain viewed from Loch Clair in Glen Torridon in May",
+        "attribution": "Roddy Smith, CC BY-SA 2.0",
+        "attribution_url": "https://commons.wikimedia.org/wiki/File:Liathach_from_Loch_Clair_May_2006_-_geograph.org.uk_-_282854.jpg",
+        "season": "spring",
+        "tags": [
+          "liathach",
+          "torridon",
+          "loch clair",
+          "glen torridon",
+          "sandstone"
+        ]
       },
       {
-        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b6/Buachaille_Etive_Mor_Winter.jpg/800px-Buachaille_Etive_Mor_Winter.jpg",
-        "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b6/Buachaille_Etive_Mor_Winter.jpg/300px-Buachaille_Etive_Mor_Winter.jpg",
-        "alt": "Buachaille Etive Mor covered in winter snow",
-        "attribution": "Wikimedia Commons",
-        "attribution_url": "https://commons.wikimedia.org/wiki/File:Buachaille_Etive_Mor_Winter.jpg",
-        "season": "winter",
-        "tags": ["winter", "snow", "iconic"]
-      }
-    ]
-  },
-  "glencoe-bidean-nam-bian": {
-    "photos": [
-      {
-        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Bidean_nam_Bian_from_Glencoe.jpg/800px-Bidean_nam_Bian_from_Glencoe.jpg",
-        "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Bidean_nam_Bian_from_Glencoe.jpg/300px-Bidean_nam_Bian_from_Glencoe.jpg",
-        "alt": "Bidean nam Bian viewed from the valley floor of Glencoe",
-        "attribution": "Wikimedia Commons",
-        "attribution_url": "https://commons.wikimedia.org/wiki/File:Bidean_nam_Bian_from_Glencoe.jpg",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/08/Liathach_from_Beinn_Eighe.jpg/1280px-Liathach_from_Beinn_Eighe.jpg",
+        "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/08/Liathach_from_Beinn_Eighe.jpg/330px-Liathach_from_Beinn_Eighe.jpg",
+        "alt": "Liathach ridge viewed from the slopes of Beinn Eighe across Glen Torridon",
+        "attribution": "Mick Knapton, CC BY-SA 3.0",
+        "attribution_url": "https://commons.wikimedia.org/wiki/File:Liathach_from_Beinn_Eighe.jpg",
         "season": "summer",
-        "tags": ["Glencoe", "Three Sisters", "summer"]
-      }
-    ]
-  },
-  "skye-cuillin-sgurr-nan-gillean": {
-    "photos": [
-      {
-        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f1/Sgurr_nan_Gillean_from_Sligachan.jpg/800px-Sgurr_nan_Gillean_from_Sligachan.jpg",
-        "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f1/Sgurr_nan_Gillean_from_Sligachan.jpg/300px-Sgurr_nan_Gillean_from_Sligachan.jpg",
-        "alt": "Sgurr nan Gillean from Sligachan Bridge on the Isle of Skye",
-        "attribution": "Wikimedia Commons",
-        "attribution_url": "https://commons.wikimedia.org/wiki/File:Sgurr_nan_Gillean_from_Sligachan.jpg",
-        "season": "summer",
-        "tags": ["Cuillin", "Skye", "Sligachan"]
-      }
-    ]
-  },
-  "skye-cuillin-bla-bheinn": {
-    "photos": [
-      {
-        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d8/Bla_Bheinn_from_Torrin.jpg/800px-Bla_Bheinn_from_Torrin.jpg",
-        "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d8/Bla_Bheinn_from_Torrin.jpg/300px-Bla_Bheinn_from_Torrin.jpg",
-        "alt": "Bla Bheinn seen from Torrin across Loch Slapin on the Isle of Skye",
-        "attribution": "Wikimedia Commons",
-        "attribution_url": "https://commons.wikimedia.org/wiki/File:Bla_Bheinn_from_Torrin.jpg",
-        "season": "summer",
-        "tags": ["Skye", "Cuillin", "Loch Slapin"]
-      }
-    ]
-  },
-  "cairngorms-ben-macdui": {
-    "photos": [
-      {
-        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Ben_Macdui_from_Cairngorm.jpg/800px-Ben_Macdui_from_Cairngorm.jpg",
-        "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Ben_Macdui_from_Cairngorm.jpg/300px-Ben_Macdui_from_Cairngorm.jpg",
-        "alt": "Ben Macdui plateau viewed from Cairngorm summit",
-        "attribution": "Wikimedia Commons",
-        "attribution_url": "https://commons.wikimedia.org/wiki/File:Ben_Macdui_from_Cairngorm.jpg",
-        "season": "summer",
-        "tags": ["Cairngorms", "plateau", "summit"]
-      }
-    ]
-  },
-  "cairngorms-cairngorm": {
-    "photos": [
-      {
-        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Cairngorm_Mountain.jpg/800px-Cairngorm_Mountain.jpg",
-        "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Cairngorm_Mountain.jpg/300px-Cairngorm_Mountain.jpg",
-        "alt": "Cairngorm Mountain and the Northern Corries in winter",
-        "attribution": "Wikimedia Commons",
-        "attribution_url": "https://commons.wikimedia.org/wiki/File:Cairngorm_Mountain.jpg",
-        "season": "winter",
-        "tags": ["Cairngorms", "Northern Corries", "winter"]
-      }
-    ]
-  },
-  "coigach-suilven": {
-    "photos": [
-      {
-        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Suilven_from_the_East.jpg/800px-Suilven_from_the_East.jpg",
-        "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Suilven_from_the_East.jpg/300px-Suilven_from_the_East.jpg",
-        "alt": "Suilven rising from the Sutherland wilderness viewed from the east",
-        "attribution": "Wikimedia Commons",
-        "attribution_url": "https://commons.wikimedia.org/wiki/File:Suilven_from_the_East.jpg",
-        "season": "summer",
-        "tags": ["Coigach", "Sutherland", "inselberg"]
-      }
-    ]
-  },
-  "coigach-stac-pollaidh": {
-    "photos": [
-      {
-        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Stac_Pollaidh_pinnacles.jpg/800px-Stac_Pollaidh_pinnacles.jpg",
-        "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Stac_Pollaidh_pinnacles.jpg/300px-Stac_Pollaidh_pinnacles.jpg",
-        "alt": "Stac Pollaidh sandstone pinnacles on the summit ridge",
-        "attribution": "Wikimedia Commons",
-        "attribution_url": "https://commons.wikimedia.org/wiki/File:Stac_Pollaidh_pinnacles.jpg",
-        "season": "summer",
-        "tags": ["Coigach", "pinnacles", "sandstone"]
+        "tags": [
+          "liathach",
+          "beinn eighe",
+          "torridon",
+          "ridge",
+          "pinnacles"
+        ]
       }
     ]
   },
   "torridon-an-teallach": {
     "photos": [
       {
-        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ef/An_Teallach_from_Dundonnell.jpg/800px-An_Teallach_from_Dundonnell.jpg",
-        "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ef/An_Teallach_from_Dundonnell.jpg/300px-An_Teallach_from_Dundonnell.jpg",
-        "alt": "An Teallach viewed from Dundonnell showing the Corrag Bhuidhe pinnacles",
-        "attribution": "Wikimedia Commons",
-        "attribution_url": "https://commons.wikimedia.org/wiki/File:An_Teallach_from_Dundonnell.jpg",
-        "season": "autumn",
-        "tags": ["pinnacles", "Corrag Bhuidhe", "Dundonnell"]
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/An_Teallach_from_Dundonnell_road_-_geograph.org.uk_-_895693.jpg/1280px-An_Teallach_from_Dundonnell_road_-_geograph.org.uk_-_895693.jpg",
+        "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/An_Teallach_from_Dundonnell_road_-_geograph.org.uk_-_895693.jpg/330px-An_Teallach_from_Dundonnell_road_-_geograph.org.uk_-_895693.jpg",
+        "alt": "An Teallach viewed from the Dundonnell road, showing the full mountain massif",
+        "attribution": "djmacpherson, CC BY-SA 2.0",
+        "attribution_url": "https://commons.wikimedia.org/wiki/File:An_Teallach_from_Dundonnell_road_-_geograph.org.uk_-_895693.jpg",
+        "season": "summer",
+        "tags": [
+          "an teallach",
+          "dundonnell",
+          "wester ross",
+          "massif",
+          "sgurr fiona"
+        ]
+      },
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/58/Corrag_Bhuidhe_-_Flickr_-_Graham_Grinner_Lewis.jpg/1280px-Corrag_Bhuidhe_-_Flickr_-_Graham_Grinner_Lewis.jpg",
+        "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/58/Corrag_Bhuidhe_-_Flickr_-_Graham_Grinner_Lewis.jpg/330px-Corrag_Bhuidhe_-_Flickr_-_Graham_Grinner_Lewis.jpg",
+        "alt": "Corrag Bhuidhe pinnacles on An Teallach, one of the most dramatic scrambles in Scotland",
+        "attribution": "Graham Lewis, CC BY 2.0",
+        "attribution_url": "https://commons.wikimedia.org/wiki/File:Corrag_Bhuidhe_-_Flickr_-_Graham_Grinner_Lewis.jpg",
+        "season": "summer",
+        "tags": [
+          "an teallach",
+          "corrag bhuidhe",
+          "pinnacles",
+          "scramble",
+          "ridge"
+        ]
       }
     ]
   },
   "torridon-slioch": {
     "photos": [
       {
-        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6c/Slioch_across_Loch_Maree.jpg/800px-Slioch_across_Loch_Maree.jpg",
-        "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6c/Slioch_across_Loch_Maree.jpg/300px-Slioch_across_Loch_Maree.jpg",
-        "alt": "Slioch reflected in the calm waters of Loch Maree",
-        "attribution": "Wikimedia Commons",
-        "attribution_url": "https://commons.wikimedia.org/wiki/File:Slioch_across_Loch_Maree.jpg",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f1/Slioch_from_Loch_Maree.jpg/1280px-Slioch_from_Loch_Maree.jpg",
+        "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f1/Slioch_from_Loch_Maree.jpg/330px-Slioch_from_Loch_Maree.jpg",
+        "alt": "Slioch towering above the southern shore of Loch Maree, Wester Ross",
+        "attribution": "Mick Knapton, CC BY-SA 3.0",
+        "attribution_url": "https://commons.wikimedia.org/wiki/File:Slioch_from_Loch_Maree.jpg",
         "season": "summer",
-        "tags": ["Loch Maree", "reflection", "Torridon"]
+        "tags": [
+          "slioch",
+          "loch maree",
+          "wester ross",
+          "torridon sandstone",
+          "munro"
+        ]
+      },
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Loch_Maree_and_Slioch_-_geograph.org.uk_-_511225.jpg/1280px-Loch_Maree_and_Slioch_-_geograph.org.uk_-_511225.jpg",
+        "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Loch_Maree_and_Slioch_-_geograph.org.uk_-_511225.jpg/330px-Loch_Maree_and_Slioch_-_geograph.org.uk_-_511225.jpg",
+        "alt": "Loch Maree with Slioch rising above the northern shore in Wester Ross",
+        "attribution": "M J Richardson, CC BY-SA 2.0",
+        "attribution_url": "https://commons.wikimedia.org/wiki/File:Loch_Maree_and_Slioch_-_geograph.org.uk_-_511225.jpg",
+        "season": "summer",
+        "tags": [
+          "slioch",
+          "loch maree",
+          "wester ross",
+          "highlands",
+          "reflection"
+        ]
+      }
+    ]
+  },
+  "glencoe-buachaille-etive-mor": {
+    "photos": [
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Buachaille_Etive_Mor_from_Kingshouse_Hotel.jpg/960px-Buachaille_Etive_Mor_from_Kingshouse_Hotel.jpg",
+        "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Buachaille_Etive_Mor_from_Kingshouse_Hotel.jpg/330px-Buachaille_Etive_Mor_from_Kingshouse_Hotel.jpg",
+        "alt": "Buachaille Etive Mor viewed from Kingshouse Hotel, Glencoe, Scotland",
+        "attribution": "jtweedie1976, CC BY 2.0",
+        "attribution_url": "https://commons.wikimedia.org/wiki/File:Buachaille_Etive_Mor_from_Kingshouse_Hotel.jpg",
+        "season": "summer",
+        "tags": [
+          "glencoe",
+          "munro",
+          "pyramid",
+          "kingshouse",
+          "highland"
+        ]
+      },
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/Lagangarbh_cottage_with_Buachaille_Etive_M%C3%B2r.jpg/960px-Lagangarbh_cottage_with_Buachaille_Etive_M%C3%B2r.jpg",
+        "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/Lagangarbh_cottage_with_Buachaille_Etive_M%C3%B2r.jpg/330px-Lagangarbh_cottage_with_Buachaille_Etive_M%C3%B2r.jpg",
+        "alt": "Lagangarbh cottage with Buachaille Etive Mor behind, viewed from the A82 through Glen Coe",
+        "attribution": "Colin, CC BY-SA 4.0",
+        "attribution_url": "https://commons.wikimedia.org/wiki/File:Lagangarbh_cottage_with_Buachaille_Etive_M%C3%B2r.jpg",
+        "season": "autumn",
+        "tags": [
+          "glencoe",
+          "munro",
+          "cottage",
+          "a82",
+          "landscape"
+        ]
+      }
+    ]
+  },
+  "glencoe-bidean-nam-bian": {
+    "photos": [
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e6/Bidean_nam_Bian_-_geograph.org.uk_-_4984924.jpg/960px-Bidean_nam_Bian_-_geograph.org.uk_-_4984924.jpg",
+        "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e6/Bidean_nam_Bian_-_geograph.org.uk_-_4984924.jpg/330px-Bidean_nam_Bian_-_geograph.org.uk_-_4984924.jpg",
+        "alt": "Bidean nam Bian, the highest mountain in Argyll, Glencoe, Scotland",
+        "attribution": "Alan O'Dowd, CC BY-SA 2.0",
+        "attribution_url": "https://commons.wikimedia.org/wiki/File:Bidean_nam_Bian_-_geograph.org.uk_-_4984924.jpg",
+        "season": "summer",
+        "tags": [
+          "glencoe",
+          "munro",
+          "argyll",
+          "highland",
+          "summit"
+        ]
+      },
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f1/Bidean_nam_Bian_from_Stob_Coire_Sgreamhach_11-06-19.jpg/960px-Bidean_nam_Bian_from_Stob_Coire_Sgreamhach_11-06-19.jpg",
+        "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f1/Bidean_nam_Bian_from_Stob_Coire_Sgreamhach_11-06-19.jpg/330px-Bidean_nam_Bian_from_Stob_Coire_Sgreamhach_11-06-19.jpg",
+        "alt": "Bidean nam Bian seen from Stob Coire Sgreamhach, Glencoe",
+        "attribution": "Dave souza, CC BY-SA 3.0",
+        "attribution_url": "https://commons.wikimedia.org/wiki/File:Bidean_nam_Bian_from_Stob_Coire_Sgreamhach_11-06-19.jpg",
+        "season": "summer",
+        "tags": [
+          "glencoe",
+          "munro",
+          "ridge",
+          "coire",
+          "highland"
+        ]
+      }
+    ]
+  },
+  "skye-cuillin-sgurr-nan-gillean": {
+    "photos": [
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fd/Sg%C3%B9rr_nan_Gillean_from_Sligachan%2C_Isle_of_Skye%2C_Scotland_-_Diliff.jpg/1280px-Sg%C3%B9rr_nan_Gillean_from_Sligachan%2C_Isle_of_Skye%2C_Scotland_-_Diliff.jpg",
+        "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fd/Sg%C3%B9rr_nan_Gillean_from_Sligachan%2C_Isle_of_Skye%2C_Scotland_-_Diliff.jpg/330px-Sg%C3%B9rr_nan_Gillean_from_Sligachan%2C_Isle_of_Skye%2C_Scotland_-_Diliff.jpg",
+        "attribution_url": "https://commons.wikimedia.org/wiki/File:Sg%C3%B9rr_nan_Gillean_from_Sligachan,_Isle_of_Skye,_Scotland_-_Diliff.jpg",
+        "attribution": "Diliff, CC BY-SA 3.0",
+        "alt": "Sgurr nan Gillean reflected in the River Sligachan on the Isle of Skye",
+        "season": "summer",
+        "tags": [
+          "Cuillin",
+          "Skye",
+          "Sligachan",
+          "reflection"
+        ]
+      }
+    ]
+  },
+  "skye-cuillin-bla-bheinn": {
+    "photos": [
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Below_Loch_Cill_Chriosd_-_geograph.org.uk_-_806622.jpg/1280px-Below_Loch_Cill_Chriosd_-_geograph.org.uk_-_806622.jpg",
+        "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Below_Loch_Cill_Chriosd_-_geograph.org.uk_-_806622.jpg/330px-Below_Loch_Cill_Chriosd_-_geograph.org.uk_-_806622.jpg",
+        "attribution_url": "https://commons.wikimedia.org/wiki/File:Below_Loch_Cill_Chriosd_-_geograph.org.uk_-_806622.jpg",
+        "attribution": "Richard Webb, CC BY-SA 2.0",
+        "alt": "Bla Bheinn looming over Loch Cill Chriosd on the Isle of Skye",
+        "season": "autumn",
+        "tags": [
+          "Cuillin",
+          "Skye",
+          "loch",
+          "Bla Bheinn"
+        ]
+      }
+    ]
+  },
+  "cairngorms-ben-macdui": {
+    "photos": [
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f5/Ben_Macdui_-_geograph.org.uk_-_3477292.jpg/1280px-Ben_Macdui_-_geograph.org.uk_-_3477292.jpg",
+        "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f5/Ben_Macdui_-_geograph.org.uk_-_3477292.jpg/330px-Ben_Macdui_-_geograph.org.uk_-_3477292.jpg",
+        "attribution_url": "https://commons.wikimedia.org/wiki/File:Ben_Macdui_-_geograph.org.uk_-_3477292.jpg",
+        "attribution": "Nigel Brown, CC BY-SA 2.0",
+        "alt": "Ben Macdui summit plateau viewed across the Cairngorm plateau",
+        "season": "summer",
+        "tags": [
+          "Cairngorms",
+          "plateau",
+          "summit"
+        ]
+      }
+    ]
+  },
+  "cairngorms-cairngorm": {
+    "photos": [
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Stacan_Dubha_-_geograph.org.uk_-_886049.jpg/1280px-Stacan_Dubha_-_geograph.org.uk_-_886049.jpg",
+        "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Stacan_Dubha_-_geograph.org.uk_-_886049.jpg/330px-Stacan_Dubha_-_geograph.org.uk_-_886049.jpg",
+        "attribution_url": "https://commons.wikimedia.org/wiki/File:Stacan_Dubha_-_geograph.org.uk_-_886049.jpg",
+        "attribution": "Richard Webb, CC BY-SA 2.0",
+        "alt": "The Northern Corries crags of Cairngorm in winter snow",
+        "season": "winter",
+        "tags": [
+          "Cairngorms",
+          "Northern Corries",
+          "winter",
+          "crags"
+        ]
+      }
+    ]
+  },
+  "coigach-suilven": {
+    "photos": [
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/2011_Schotland_Suilven_31-05-2011_14-58-40.png/1280px-2011_Schotland_Suilven_31-05-2011_14-58-40.png",
+        "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/2011_Schotland_Suilven_31-05-2011_14-58-40.png/330px-2011_Schotland_Suilven_31-05-2011_14-58-40.png",
+        "attribution_url": "https://commons.wikimedia.org/wiki/File:2011_Schotland_Suilven_31-05-2011_14-58-40.png",
+        "attribution": "Paul Hermans, CC BY-SA 3.0",
+        "alt": "Suilven's dramatic sandstone ridge rising from the Sutherland moorland",
+        "season": "summer",
+        "tags": [
+          "Coigach",
+          "Sutherland",
+          "inselberg",
+          "sandstone"
+        ]
+      }
+    ]
+  },
+  "coigach-stac-pollaidh": {
+    "photos": [
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Stac_Pollaidh_3.jpg/1280px-Stac_Pollaidh_3.jpg",
+        "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Stac_Pollaidh_3.jpg/330px-Stac_Pollaidh_3.jpg",
+        "attribution_url": "https://commons.wikimedia.org/wiki/File:Stac_Pollaidh_3.jpg",
+        "attribution": "M J Richardson, CC BY-SA 2.0",
+        "alt": "Stac Pollaidh sandstone pinnacles and spires on the summit ridge",
+        "season": "summer",
+        "tags": [
+          "Coigach",
+          "pinnacles",
+          "sandstone",
+          "ridge"
+        ]
       }
     ]
   },
   "coigach-ben-more-coigach": {
     "photos": [
       {
-        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bc/Ben_More_Coigach.jpg/800px-Ben_More_Coigach.jpg",
-        "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bc/Ben_More_Coigach.jpg/300px-Ben_More_Coigach.jpg",
-        "alt": "Ben More Coigach seen from the coast near Achiltibuie",
-        "attribution": "Wikimedia Commons",
-        "attribution_url": "https://commons.wikimedia.org/wiki/File:Ben_More_Coigach.jpg",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Ben_Mor_Coigach.jpg/1280px-Ben_Mor_Coigach.jpg",
+        "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Ben_Mor_Coigach.jpg/330px-Ben_Mor_Coigach.jpg",
+        "attribution_url": "https://commons.wikimedia.org/wiki/File:Ben_Mor_Coigach.jpg",
+        "attribution": "Viewfinder, CC BY-SA 2.0",
+        "alt": "Ben More Coigach viewed from the coast near Achiltibuie",
         "season": "summer",
-        "tags": ["Coigach", "Achiltibuie", "coastal"]
+        "tags": [
+          "Coigach",
+          "Achiltibuie",
+          "coastal"
+        ]
       }
     ]
   },
   "loch-lomond-ben-lomond": {
     "photos": [
       {
-        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4b/Ben_Lomond_from_Loch_Lomond.jpg/800px-Ben_Lomond_from_Loch_Lomond.jpg",
-        "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4b/Ben_Lomond_from_Loch_Lomond.jpg/300px-Ben_Lomond_from_Loch_Lomond.jpg",
-        "alt": "Ben Lomond viewed across Loch Lomond",
-        "attribution": "Wikimedia Commons",
-        "attribution_url": "https://commons.wikimedia.org/wiki/File:Ben_Lomond_from_Loch_Lomond.jpg",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f1/Loch_Lomond_Lomond_Mountain.jpg/1280px-Loch_Lomond_Lomond_Mountain.jpg",
+        "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f1/Loch_Lomond_Lomond_Mountain.jpg/330px-Loch_Lomond_Lomond_Mountain.jpg",
+        "attribution_url": "https://commons.wikimedia.org/wiki/File:Loch_Lomond_Lomond_Mountain.jpg",
+        "attribution": "Kevin Stanforth, CC BY-SA 2.0",
+        "alt": "Ben Lomond rising above the waters of Loch Lomond",
         "season": "summer",
-        "tags": ["Loch Lomond", "popular", "Munro"]
+        "tags": [
+          "Loch Lomond",
+          "reflection",
+          "popular",
+          "Munro"
+        ]
       }
     ]
   }
