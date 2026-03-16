@@ -264,13 +264,16 @@ class TestDataIntegrity:
             assert loc["elevation_m"] > 0, f"{loc['name']}: elevation must be positive"
 
     def test_scoring_consistency(self):
-        """Hiking scores should be consistent between summary and periods"""
+        """Hiking scores should be consistent between summary and periods.
+        The overall_hiking_score uses the minimum period score (conservative approach):
+        the worst period in a day sets the day's safety rating."""
         response = client.get("/api/v1/weather/torridon-beinn-eighe")
         for day in response.json()["forecasts"]:
             period_scores = [p["hiking_score"] for p in day["periods"]]
-            avg = round(sum(period_scores) / len(period_scores), 1)
-            assert abs(day["summary"]["overall_hiking_score"] - avg) < 0.2, (
-                f"Summary score {day['summary']['overall_hiking_score']} doesn't match period avg {avg}"
+            expected_min = min(period_scores)
+            assert day["summary"]["overall_hiking_score"] == expected_min, (
+                f"Summary score {day['summary']['overall_hiking_score']} doesn't match "
+                f"min period score {expected_min} (period scores: {period_scores})"
             )
 
     def test_find_latest_forecast_handles_special_chars(self):

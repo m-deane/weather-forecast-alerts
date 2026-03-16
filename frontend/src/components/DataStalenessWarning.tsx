@@ -25,9 +25,9 @@ function calculateStaleness(lastUpdated: string | null): StalenessInfo | null {
   const diffHours = diffMs / (1000 * 60 * 60)
 
   let level: StalenessLevel = 'fresh'
-  if (diffHours >= 8) {
+  if (diffHours >= 24) {
     level = 'very-stale'
-  } else if (diffHours >= 4) {
+  } else if (diffHours >= 6) {
     level = 'stale'
   }
 

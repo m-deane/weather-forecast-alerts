@@ -48,7 +48,14 @@ import { PhotographyConditions } from '@/components/weather/PhotographyCondition
 import { WeatherTrend } from '@/components/weather/WeatherTrend'
 import { MountainPhotoGallery } from '@/components/MountainPhotoGallery'
 import { WalkHighlandsRoutes } from '@/components/WalkHighlandsRoutes'
+import { WalkTimeEstimator } from '@/components/WalkTimeEstimator'
 import { GettingThere } from '@/components/GettingThere'
+import { GoNoGoSummary } from '@/components/GoNoGoSummary'
+import { WinterConditionsPanel } from '@/components/WinterConditionsPanel'
+import { GearChecklist } from '@/components/GearChecklist'
+import { ShareForecastCard } from '@/components/ShareForecastCard'
+import { EmergencyInfo } from '@/components/EmergencyInfo'
+import { WalkHistoryLog } from '@/components/WalkHistoryLog'
 import type { WeatherPeriod, DailyForecast } from '@/types'
 
 export function LocationPage() {
@@ -174,10 +181,19 @@ export function LocationPage() {
           </div>
         )}
 
+        {/* Emergency info — reference card, collapsed by default */}
+        <EmergencyInfo area={location.area} locationName={location.name} />
+
         {/* Export functionality */}
         <div className="flex justify-end fade-in">
           <ExportWeatherData forecasts={forecast.forecasts} location={forecast.location} />
         </div>
+
+        {/* Go / No-Go verdict for next 3 days */}
+        <GoNoGoSummary forecasts={forecast.forecasts} />
+
+        {/* Winter conditions advisory for today */}
+        {currentDay && <WinterConditionsPanel forecast={currentDay} />}
 
         {/* Mini Location Map */}
         <section className="fade-in-up">
@@ -267,8 +283,17 @@ export function LocationPage() {
           hikingScore={currentDay?.summary.overall_hiking_score}
         />
 
+        {/* Walk Time Estimator */}
+        <WalkTimeEstimator forecasts={forecast.forecasts} location={location} />
+
         {/* Getting There / Parking */}
         <GettingThere locationId={locationId} />
+
+        {/* Walk History Log */}
+        <WalkHistoryLog
+          location={location}
+          currentScore={currentDay?.summary.overall_hiking_score}
+        />
 
         {/* Alerts */}
         <section className="fade-in-up" style={{ animationDelay: '0.1s' }}>
@@ -322,6 +347,25 @@ export function LocationPage() {
               {currentDay.periods.map((period, index) => (
                 <PeriodCard key={index} period={period} preferences={preferences} />
               ))}
+            </div>
+          </section>
+        )}
+
+        {/* Gear Checklist */}
+        <GearChecklist location={location} forecasts={forecast.forecasts} />
+
+        {/* Share Forecast */}
+        {currentDay && (
+          <section className="fade-in-up">
+            <h2 className="section-title flex items-center gap-2 mb-3">
+              <ShareIcon className="w-5 h-5 text-emerald-400" aria-hidden="true" />
+              Share
+            </h2>
+            <div className="card flex items-center justify-between gap-4">
+              <p className="text-sm text-slate-400">
+                Share today's forecast summary with your group.
+              </p>
+              <ShareForecastCard location={location} forecast={currentDay} />
             </div>
           </section>
         )}

@@ -1,66 +1,128 @@
-INFO:     Will watch for changes in these directories: ['/Users/matthewdeane/Documents/Data Science/python/_projects/__utils-weather-forecast-alerts/backend']
-INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-INFO:     Started reloader process [68473] using WatchFiles
-🏔️  Starting Scottish Mountain Weather API (Mock)
-📍 API will be available at: http://localhost:8000
-📊 API documentation at: http://localhost:8000/docs
-🔄 Frontend should connect automatically
-INFO:     Started server process [68477]
+INFO:__main__:Starting Scottish Mountain Weather API (Mock)
+INFO:__main__:API will be available at: http://localhost:8001
+INFO:__main__:API documentation at: http://localhost:8001/docs
+INFO:__main__:Frontend should connect automatically
+INFO:     Will watch for changes in these directories: ['/Users/matthewdeane/Documents/Data Science/python/_projects/_p-weather-forecast-alerts/backend']
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+INFO:     Started reloader process [30241] using WatchFiles
+INFO:     Started server process [30250]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
-INFO:     127.0.0.1:60363 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60419 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60471 - "GET /api/v1/areas HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60472 - "GET /api/v1/locations?q= HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60476 - "GET /api/v1/weather/glencoe-bidean-nam-bian HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60477 - "GET /api/v1/weather/glencoe-bidean-nam-bian HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60483 - "GET /api/v1/areas HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60484 - "GET /api/v1/locations?q= HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60489 - "GET /api/v1/areas HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60490 - "GET /api/v1/locations?q= HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60494 - "GET /api/v1/locations?q= HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60495 - "GET /api/v1/areas HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60500 - "GET /api/v1/locations?q= HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60501 - "GET /api/v1/areas HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60504 - "GET /api/v1/weather/glencoe-bidean-nam-bian HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60507 - "POST /api/metrics HTTP/1.1" 404 Not Found
-INFO:     127.0.0.1:60512 - "GET /api/v1/areas HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60513 - "GET /api/v1/locations?q= HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60516 - "GET /api/v1/weather/glencoe-aonach-eagach HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60519 - "GET /api/v1/weather/glencoe-aonach-eagach HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60522 - "POST /api/metrics HTTP/1.1" 404 Not Found
-INFO:     127.0.0.1:60536 - "GET /api/v1/areas HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60537 - "GET /api/v1/locations?q= HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60540 - "GET /api/v1/weather/torridon-liathach HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60543 - "GET /api/v1/weather/torridon-liathach HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60546 - "POST /api/metrics HTTP/1.1" 404 Not Found
-INFO:     127.0.0.1:60549 - "GET /api/v1/weather/torridon-liathach HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60552 - "POST /api/metrics HTTP/1.1" 404 Not Found
-INFO:     127.0.0.1:60555 - "GET /api/v1/weather/torridon-liathach HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60559 - "POST /api/metrics HTTP/1.1" 404 Not Found
-INFO:     127.0.0.1:60563 - "POST /api/metrics HTTP/1.1" 404 Not Found
-INFO:     127.0.0.1:60569 - "POST /api/metrics HTTP/1.1" 404 Not Found
-INFO:     127.0.0.1:60572 - "POST /api/metrics HTTP/1.1" 404 Not Found
-INFO:     127.0.0.1:60578 - "GET /api/v1/areas HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60579 - "GET /api/v1/locations?q= HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60582 - "POST /api/metrics HTTP/1.1" 404 Not Found
-INFO:     127.0.0.1:60585 - "POST /api/metrics HTTP/1.1" 404 Not Found
-INFO:     127.0.0.1:60590 - "GET /api/v1/weather/torridon-liathach HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60594 - "POST /api/metrics HTTP/1.1" 404 Not Found
-INFO:     127.0.0.1:60597 - "POST /api/metrics HTTP/1.1" 404 Not Found
-INFO:     127.0.0.1:60633 - "POST /api/metrics HTTP/1.1" 404 Not Found
-INFO:     127.0.0.1:60677 - "POST /api/metrics HTTP/1.1" 404 Not Found
-INFO:     127.0.0.1:60725 - "POST /api/metrics HTTP/1.1" 404 Not Found
-INFO:     127.0.0.1:60783 - "POST /api/metrics HTTP/1.1" 404 Not Found
-INFO:     127.0.0.1:60882 - "POST /api/metrics HTTP/1.1" 404 Not Found
-INFO:     127.0.0.1:60997 - "POST /api/metrics HTTP/1.1" 404 Not Found
-INFO:     127.0.0.1:61259 - "POST /api/metrics HTTP/1.1" 404 Not Found
-INFO:     127.0.0.1:61369 - "POST /api/metrics HTTP/1.1" 404 Not Found
-INFO:     127.0.0.1:61372 - "GET /api/v1/weather/torridon-liathach HTTP/1.1" 200 OK
-INFO:     127.0.0.1:61423 - "POST /api/metrics HTTP/1.1" 404 Not Found
-INFO:     127.0.0.1:61471 - "POST /api/metrics HTTP/1.1" 404 Not Found
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-INFO:     Finished server process [68477]
-INFO:     Stopping reloader process [68473]
+INFO:     127.0.0.1:55705 - "GET /api/v1/weather/torridon-beinn-eighe HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55708 - "GET /api/v1/weather/ben-nevis-ben-nevis HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55787 - "POST /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55907 - "POST /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56016 - "POST /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56084 - "POST /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56157 - "POST /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56252 - "POST /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56351 - "POST /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56438 - "POST /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56496 - "POST /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56586 - "POST /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56686 - "POST /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56835 - "POST /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56928 - "POST /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57007 - "POST /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57078 - "POST /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57210 - "POST /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57369 - "POST /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57481 - "POST /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57555 - "POST /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57560 - "POST /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57571 - "GET /api/v1/scrape/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57573 - "GET /api/v1/scrape/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57580 - "GET /api/v1/locations?search= HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57581 - "GET /api/v1/weather/torridon-beinn-eighe HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57582 - "GET /api/v1/weather/torridon-liathach HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57584 - "GET /api/v1/weather/mamores-binnein-beag HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57586 - "GET /api/v1/weather/coigach-ben-more-coigach HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57587 - "GET /api/v1/weather/mamores-sgurr-a-mhaim HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57592 - "GET /api/v1/areas HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57594 - "GET /api/v1/weather/compare?location_ids=torridon-beinn-eighe,torridon-liathach,torridon-maol-cheann-dearg,torridon-beinn-alligin-sgurr-mor,torridon-baosbheinn,torridon-an-ruadh-stac,torridon-beinn-damh,torridon-a-mhaighdean,torridon-slioch,torridon-an-teallach,torridon-cul-beag,torridon-beinn-dearg-mor,torridon-beinn-tarsuinn-corbett,glencoe-bidean-nam-bian,glencoe-ben-starav,glencoe-buachaille-etive-mor,coigach-ben-more-coigach,coigach-suilven,coigach-stac-pollaidh,skye-cuillin-bla-bheinn,skye-cuillin-sgurr-alasdair,skye-cuillin-sgurr-na-banachdich,skye-cuillin-bruach-na-frithe,skye-cuillin-sgurr-nan-gillean,knoydart-inverie-beinn-na-caillich-knoydart,cairngorms-ben-macdui,cairngorms-cairngorm,cairngorms-braeriach,cairngorms-cairn-toul,cairngorms-ben-avon,ben-nevis-ben-nevis,ben-nevis-aonach-beag,ben-nevis-aonach-mor,ben-nevis-carn-mor-dearg,ben-nevis-stob-ban-grey-corries,glen-shiel-sgurr-fhuaran,glen-shiel-the-saddle,glen-shiel-sgurr-na-ciste-duibhe,glen-shiel-sgurr-na-sgine,glen-shiel-sgurr-a-bhealaich-dheirg,glen-shiel-ciste-dhubh,mamores-sgurr-a-mhaim,mamores-binnein-mor,mamores-stob-ban-mamores,mamores-na-gruagaichean,mamores-am-bodach,mamores-binnein-beag,ben-lawers-ben-lawers,ben-lawers-meall-nan-tarmachan,ben-lawers-an-stuc,arrochar-alps-beinn-ime,arrochar-alps-ben-vorlich-loch-lomond,arrochar-alps-beinn-narnain,arrochar-alps-ben-vane,crianlarich-ben-more-crianlarich,crianlarich-stob-binnein,crianlarich-ben-lui,crianlarich-ben-oss,crianlarich-beinn-dorain,affric-mam-sodhail,affric-carn-eige,affric-sgurr-nan-ceathreamhnan,creag-meagaidh-creag-meagaidh,loch-lomond-ben-lomond,eastern-highlands-lochnagar,eastern-highlands-beinn-a-ghlo,eastern-highlands-mount-keen,eastern-highlands-schiehallion,eastern-highlands-ben-chonzie,far-north-ben-hope,far-north-ben-klibreck,drumochter-a-bhuidheanach-bheag,drumochter-carn-dearg-loch-ossian HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57601 - "GET /api/v1/weather/torridon-beinn-alligin-sgurr-mor HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57602 - "GET /api/v1/weather/torridon-maol-cheann-dearg HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57603 - "GET /api/v1/weather/torridon-baosbheinn HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57608 - "GET /api/v1/weather/torridon-an-ruadh-stac HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57609 - "GET /api/v1/weather/torridon-beinn-damh HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57617 - "GET /api/v1/weather/torridon-a-mhaighdean HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57620 - "GET /api/v1/weather/torridon-slioch HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57623 - "GET /api/v1/weather/torridon-an-teallach HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57626 - "GET /api/v1/weather/torridon-cul-beag HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57629 - "GET /api/v1/weather/torridon-beinn-dearg-mor HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57632 - "GET /api/v1/weather/torridon-beinn-tarsuinn-corbett HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57635 - "GET /api/v1/weather/glencoe-bidean-nam-bian HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57638 - "GET /api/v1/weather/glencoe-ben-starav HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57641 - "GET /api/v1/weather/glencoe-buachaille-etive-mor HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57645 - "GET /api/v1/weather/coigach-suilven HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57648 - "GET /api/v1/weather/coigach-stac-pollaidh HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57651 - "GET /api/v1/weather/skye-cuillin-bla-bheinn HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57654 - "GET /api/v1/weather/skye-cuillin-sgurr-alasdair HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57657 - "GET /api/v1/weather/skye-cuillin-sgurr-na-banachdich HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57661 - "GET /api/v1/weather/skye-cuillin-bruach-na-frithe HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57663 - "GET /api/v1/weather/skye-cuillin-sgurr-nan-gillean HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57666 - "GET /api/v1/weather/knoydart-inverie-beinn-na-caillich-knoydart HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57669 - "GET /api/v1/weather/cairngorms-ben-macdui HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57672 - "GET /api/v1/weather/cairngorms-cairngorm HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57675 - "GET /api/v1/weather/cairngorms-braeriach HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57679 - "GET /api/v1/weather/cairngorms-cairn-toul HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57681 - "GET /api/v1/weather/cairngorms-ben-avon HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57684 - "GET /api/v1/weather/ben-nevis-ben-nevis HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57687 - "GET /api/v1/weather/ben-nevis-aonach-beag HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57690 - "GET /api/v1/weather/ben-nevis-aonach-mor HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57693 - "GET /api/v1/weather/ben-nevis-carn-mor-dearg HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57696 - "GET /api/v1/weather/ben-nevis-stob-ban-grey-corries HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57699 - "GET /api/v1/weather/glen-shiel-sgurr-fhuaran HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57702 - "GET /api/v1/weather/glen-shiel-the-saddle HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57705 - "GET /api/v1/weather/glen-shiel-sgurr-na-ciste-duibhe HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57708 - "GET /api/v1/weather/glen-shiel-sgurr-na-sgine HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57711 - "GET /api/v1/weather/glen-shiel-sgurr-a-bhealaich-dheirg HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57714 - "GET /api/v1/weather/glen-shiel-ciste-dhubh HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57717 - "GET /api/v1/weather/mamores-binnein-mor HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57720 - "GET /api/v1/weather/mamores-stob-ban-mamores HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57723 - "GET /api/v1/weather/mamores-na-gruagaichean HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57726 - "GET /api/v1/weather/mamores-am-bodach HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57729 - "GET /api/v1/weather/ben-lawers-ben-lawers HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57732 - "GET /api/v1/weather/ben-lawers-meall-nan-tarmachan HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57735 - "GET /api/v1/weather/ben-lawers-an-stuc HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57738 - "GET /api/v1/weather/arrochar-alps-beinn-ime HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57741 - "GET /api/v1/weather/arrochar-alps-ben-vorlich-loch-lomond HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57744 - "GET /api/v1/weather/arrochar-alps-beinn-narnain HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57747 - "GET /api/v1/weather/arrochar-alps-ben-vane HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57751 - "GET /api/v1/weather/crianlarich-ben-more-crianlarich HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57754 - "GET /api/v1/weather/crianlarich-stob-binnein HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57757 - "GET /api/v1/weather/crianlarich-ben-lui HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57760 - "GET /api/v1/weather/crianlarich-ben-oss HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57763 - "GET /api/v1/weather/crianlarich-beinn-dorain HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57766 - "GET /api/v1/weather/affric-mam-sodhail HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57769 - "GET /api/v1/weather/affric-sgurr-nan-ceathreamhnan HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57772 - "GET /api/v1/weather/creag-meagaidh-creag-meagaidh HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57775 - "GET /api/v1/weather/loch-lomond-ben-lomond HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57778 - "GET /api/v1/weather/eastern-highlands-lochnagar HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57781 - "GET /api/v1/weather/eastern-highlands-beinn-a-ghlo HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57784 - "GET /api/v1/weather/eastern-highlands-mount-keen HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57787 - "GET /api/v1/weather/eastern-highlands-schiehallion HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57790 - "GET /api/v1/weather/eastern-highlands-ben-chonzie HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57793 - "GET /api/v1/weather/far-north-ben-hope HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57796 - "GET /api/v1/weather/far-north-ben-klibreck HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57799 - "GET /api/v1/weather/drumochter-a-bhuidheanach-bheag HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57802 - "GET /api/v1/weather/drumochter-carn-dearg-loch-ossian HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57805 - "GET /api/v1/weather/affric-carn-eige HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57838 - "POST /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57862 - "POST /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57924 - "POST /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58009 - "POST /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58123 - "POST /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58210 - "POST /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58276 - "POST /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58343 - "POST /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58421 - "POST /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58521 - "POST /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58625 - "POST /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58767 - "POST /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58942 - "POST /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59041 - "POST /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59183 - "POST /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59275 - "POST /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59352 - "POST /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59447 - "POST /api/metrics HTTP/1.1" 200 OK

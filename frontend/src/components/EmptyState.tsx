@@ -177,8 +177,8 @@ export function NoFavorites() {
     <EmptyState
       variant="no-favorites"
       title="No favorites yet"
-      description="Tap the heart icon on any location to add it to your favorites."
-      actionLabel="Browse mountains"
+      description="Save mountains you hike regularly for quick access."
+      actionLabel="Browse mountains →"
       actionHref="/search"
     />
   )

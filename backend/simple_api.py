@@ -46,14 +46,20 @@ app.add_middleware(
 FORECAST_DIR = Path(__file__).parent.parent / "forecasts"
 
 # Scoring algorithm constants (synced with weather_scraper.py - recalibrated for realistic Scottish conditions)
-SCORE_WEIGHT_WIND = 2.0  # Penalty per 10kph over 30kph
-SCORE_WEIGHT_RAIN = 1.5  # Penalty per mm rain (5mm = 7.5 penalty)
-SCORE_WEIGHT_SNOW = 3.0  # Penalty per cm snow (3cm = 9 penalty)
-SCORE_WEIGHT_COLD = 0.8  # Penalty per degree below 0°C (-5°C = 4 penalty)
-SCORE_WEIGHT_HOT = 0.5   # Penalty per degree above 25°C
+SCORE_WEIGHT_WIND = 3.0    # Penalty per 10kph over 15kph — wind is the #1 hazard on Scottish summits
+SCORE_WEIGHT_RAIN = 2.0    # Penalty per mm rain — wet conditions rapidly increase hypothermia risk
+SCORE_WEIGHT_SNOW = 4.0    # Penalty per cm snow — avalanche/slip risk
+SCORE_WEIGHT_COLD = 1.2    # Penalty per degree below 0°C — cold is the primary killer
+SCORE_WEIGHT_HOT = 0.5     # Penalty per degree above 25°C (rare in Scotland)
+SCORE_WEIGHT_CLOUD = 0.6   # Penalty per 100m cloud base is below summit — navigation risk in cloud
 
-def calculate_hiking_score(temp_min, temp_max, temp_chill, wind_kph, rain_mm=0, snow_cm=0):
-    """Calculate hiking suitability score (1-10, 10=perfect)"""
+def calculate_hiking_score(temp_min, temp_max, temp_chill, wind_kph, rain_mm=0, snow_cm=0,
+                            cloud_base_m=None, elevation_m=None):
+    """Calculate hiking suitability score (1-10, 10=perfect).
+
+    10.0 requires genuinely exceptional conditions: wind <20kph, no precipitation,
+    above-freezing temps, and cloud base above the summit.
+    """
     penalty_score = 0
 
     # Use wind chill if more severe
@@ -71,13 +77,19 @@ def calculate_hiking_score(temp_min, temp_max, temp_chill, wind_kph, rain_mm=0, 
     if temp_max is not None and temp_max > 25:
         penalty_score += (temp_max - 25) * SCORE_WEIGHT_HOT
 
-    # Wind penalty
-    if wind_kph is not None and wind_kph > 30:
-        penalty_score += ((wind_kph - 30) / 10) * SCORE_WEIGHT_WIND
+    # Wind penalty — threshold 15kph; 20kph on a summit is noticeable, 30kph is hazardous
+    if wind_kph is not None and wind_kph > 15:
+        penalty_score += ((wind_kph - 15) / 10) * SCORE_WEIGHT_WIND
 
     # Precipitation penalties
     if rain_mm: penalty_score += rain_mm * SCORE_WEIGHT_RAIN
     if snow_cm: penalty_score += snow_cm * SCORE_WEIGHT_SNOW
+
+    # Cloud base penalty — being in cloud means poor visibility and navigation risk
+    # Penalty scales with how far below the summit the cloud base sits, capped at 3.0
+    if cloud_base_m is not None and elevation_m is not None and cloud_base_m < elevation_m:
+        cloud_deficit_m = elevation_m - cloud_base_m
+        penalty_score += min(4.0, (cloud_deficit_m / 100) * SCORE_WEIGHT_CLOUD)
 
     return round(max(1.0, 10.0 - penalty_score), 1)
 
@@ -144,7 +156,9 @@ def convert_forecast_to_api_format(forecast_data: Dict, location: Dict) -> Optio
                 temp_chill=p.get("temp_chill_c"),
                 wind_kph=p.get("wind_kph"),
                 rain_mm=p.get("rain_mm", 0),
-                snow_cm=p.get("snow_cm", 0)
+                snow_cm=p.get("snow_cm", 0),
+                cloud_base_m=p.get("cloud_base_m"),
+                elevation_m=location.get("elevation_m")
             )
 
             rain_mm = p.get("rain_mm", 0)
@@ -185,8 +199,9 @@ def convert_forecast_to_api_format(forecast_data: Dict, location: Dict) -> Optio
 
         # Calculate daily summary
         if api_periods:
-            temps = [p["temperature_c"] for p in api_periods if p["temperature_c"]]
-            winds = [p["wind_speed_kph"] for p in api_periods if p["wind_speed_kph"]]
+            # Use is-not-None check so 0°C and 0kph readings are included correctly
+            temps = [p["temperature_c"] for p in api_periods if p["temperature_c"] is not None]
+            winds = [p["wind_speed_kph"] for p in api_periods if p["wind_speed_kph"] is not None]
             precip = sum(p["precipitation_mm"] for p in api_periods)
             scores = [p["hiking_score"] for p in api_periods]
 
@@ -197,7 +212,9 @@ def convert_forecast_to_api_format(forecast_data: Dict, location: Dict) -> Optio
                     "min_temp_c": min(temps) if temps else 0,
                     "max_wind_speed_kph": max(winds) if winds else 0,
                     "total_precipitation_mm": round(precip, 1),
-                    "overall_hiking_score": round(sum(scores) / len(scores), 1) if scores else 5.0,
+                    # Use minimum period score (most conservative/safe): project principle is
+                    # "conservative scoring preferred" — worst period sets the day's rating
+                    "overall_hiking_score": min(scores) if scores else 5.0,
                     "dominant_conditions": api_periods[0]["weather_description"] if api_periods else "Unknown",
                     "best_period": max(api_periods, key=lambda p: p["hiking_score"])["period_type"] if api_periods else "am"
                 },
@@ -1031,7 +1048,9 @@ def generate_mock_weather_period(period_type: str, base_temp: int = None, days_o
         temp_chill=temperature - 5 if wind_speed > 20 else temperature,
         wind_kph=wind_speed,
         rain_mm=rain_mm,
-        snow_cm=snow_cm
+        snow_cm=snow_cm,
+        cloud_base_m=None,   # Mock data: no cloud base available
+        elevation_m=None
     )
     
     risk_levels = ["low", "moderate", "high", "extreme"]
@@ -1087,19 +1106,20 @@ def generate_mock_forecast(location: Dict[str, Any]) -> Dict[str, Any]:
         ]
         
         # Calculate daily summary
-        temps = [p["temperature_c"] for p in periods]
-        winds = [p["wind_speed_kph"] for p in periods]
+        temps = [p["temperature_c"] for p in periods if p["temperature_c"] is not None]
+        winds = [p["wind_speed_kph"] for p in periods if p["wind_speed_kph"] is not None]
         precip = sum(p["precipitation_mm"] for p in periods)
         scores = [p["hiking_score"] for p in periods]
-        
+
         daily_forecast = {
             "date": date.isoformat(),
             "summary": {
-                "max_temp_c": max(temps),
-                "min_temp_c": min(temps),
-                "max_wind_speed_kph": max(winds),
+                "max_temp_c": max(temps) if temps else 0,
+                "min_temp_c": min(temps) if temps else 0,
+                "max_wind_speed_kph": max(winds) if winds else 0,
                 "total_precipitation_mm": precip,
-                "overall_hiking_score": round(sum(scores) / len(scores), 1),
+                # Use minimum period score (most conservative/safe) — worst period sets the day's rating
+                "overall_hiking_score": min(scores) if scores else 5.0,
                 "dominant_conditions": "Mixed conditions",
                 "best_period": max(periods, key=lambda p: p["hiking_score"])["period_type"]
             },
@@ -1304,14 +1324,14 @@ async def get_location_photography(location_id: str):
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     logger.info("Starting Scottish Mountain Weather API (Mock)")
-    logger.info("API will be available at: http://localhost:8000")
-    logger.info("API documentation at: http://localhost:8000/docs")
+    logger.info("API will be available at: http://localhost:8001")
+    logger.info("API documentation at: http://localhost:8001/docs")
     logger.info("Frontend should connect automatically")
-    
+
     uvicorn.run(
         "simple_api:app",
         host="0.0.0.0",
-        port=8000,
+        port=8001,
         reload=True,
         log_level="info"
     )

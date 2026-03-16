@@ -64,18 +64,20 @@ class TestGoodConditions:
     """Test scoring for good but cautious conditions (6-7)"""
 
     def test_light_rain_reduces_score(self):
-        """Light rain should reduce score but still be hikeable"""
+        """Light rain with slight wind should reduce score but still be hikeable"""
         score = calculate_hiking_suitability_score(
             temp_min_c=12, temp_max_c=18, wind_kph=20, rain_mm=2, snow_cm=0
         )
-        assert 5 <= score <= 7, f"Light rain should score 5-7, got {score}"
+        # wind (5/10)*3.0=1.5, rain 2*2.0=4.0 -> penalty 5.5 -> score 4.5
+        assert 4 <= score <= 7, f"Light rain should score 4-7, got {score}"
 
     def test_moderate_wind(self):
-        """Moderate winds (40kph) should reduce score"""
+        """Moderate winds (40kph) with stricter threshold are now challenging/dangerous"""
         score = calculate_hiking_suitability_score(
             temp_min_c=10, temp_max_c=15, wind_kph=40, rain_mm=0, snow_cm=0
         )
-        assert 5 <= score <= 8, f"Moderate wind should score 5-8, got {score}"
+        # (25/10)*3.0=7.5 penalty -> score 2.5
+        assert 2 <= score <= 5, f"Moderate wind should score 2-5, got {score}"
 
     def test_cool_but_manageable(self):
         """Cool temperatures (5°C) should still be good"""
@@ -89,32 +91,36 @@ class TestChallengingConditions:
     """Test scoring for challenging conditions (4-5)"""
 
     def test_freezing_temps(self):
-        """Freezing temperatures without wind chill"""
+        """Freezing temperatures without wind chill are now dangerous with stricter cold weight"""
         score = calculate_hiking_suitability_score(
             temp_min_c=-5, temp_max_c=2, wind_kph=20, rain_mm=0, snow_cm=0
         )
-        assert 3 <= score <= 6, f"Freezing temps should score 3-6, got {score}"
+        # cold 5*1.2=6.0, wind (5/10)*3.0=1.5 -> penalty 7.5 -> score 2.5
+        assert 2 <= score <= 5, f"Freezing temps should score 2-5, got {score}"
 
     def test_strong_winds(self):
-        """Strong winds (60kph) are challenging"""
+        """Strong winds (60kph) are dangerous — clamp to 1.0 with new weights"""
         score = calculate_hiking_suitability_score(
             temp_min_c=8, temp_max_c=12, wind_kph=60, rain_mm=0, snow_cm=0
         )
-        assert 2 <= score <= 5, f"Strong winds should score 2-5, got {score}"
+        # (45/10)*3.0=13.5 penalty -> score 1.0 (clamped)
+        assert 1 <= score <= 3, f"Strong winds should score 1-3, got {score}"
 
     def test_moderate_rain(self):
-        """Moderate rain makes hiking challenging"""
+        """Moderate rain + breezy wind makes hiking dangerous (stricter wind threshold)"""
         score = calculate_hiking_suitability_score(
             temp_min_c=10, temp_max_c=15, wind_kph=25, rain_mm=5, snow_cm=0
         )
-        assert 2 <= score <= 5, f"Moderate rain should score 2-5, got {score}"
+        # wind (10/10)*3.0=3.0, rain 5*2.0=10.0 -> penalty 13.0 -> score 1.0 (clamped)
+        assert 1 <= score <= 3, f"Moderate rain with wind should score 1-3, got {score}"
 
     def test_light_snow(self):
-        """Light snow conditions"""
+        """Light snow + breezy wind + cold — dangerous conditions"""
         score = calculate_hiking_suitability_score(
             temp_min_c=-2, temp_max_c=1, wind_kph=25, rain_mm=0, snow_cm=2
         )
-        assert 2 <= score <= 5, f"Light snow should score 2-5, got {score}"
+        # cold 2*1.2=2.4, wind (10/10)*3.0=3.0, snow 2*4.0=8.0 -> penalty 13.4 -> score 1.0
+        assert 1 <= score <= 3, f"Light snow with wind and cold should score 1-3, got {score}"
 
 
 class TestDangerousConditions:
@@ -187,12 +193,14 @@ class TestWindChillImpact:
 
     def test_wind_chill_more_severe_than_temp(self):
         """Wind chill should be used if more severe than actual temp"""
-        # -5°C actual, -15°C wind chill
+        # -5°C actual, -15°C wind chill; use wind_kph=20 so scores don't both clamp to 1.0
+        # with chill: cold 15*1.2=18.0, wind (5/10)*3.0=1.5 -> penalty 19.5 -> score 1.0
+        # without chill: cold 5*1.2=6.0, wind 1.5 -> penalty 7.5 -> score 2.5
         score_with_chill = calculate_hiking_suitability_score(
-            temp_min_c=-5, temp_chill_c=-15, wind_kph=40
+            temp_min_c=-5, temp_chill_c=-15, wind_kph=20
         )
         score_without_chill = calculate_hiking_suitability_score(
-            temp_min_c=-5, temp_chill_c=None, wind_kph=40
+            temp_min_c=-5, temp_chill_c=None, wind_kph=20
         )
         assert score_with_chill < score_without_chill, \
             "Wind chill should reduce score when more severe"
@@ -305,11 +313,12 @@ class TestEdgeCases:
         assert score >= 8, f"Exactly 25°C should score ≥8, got {score}"
 
     def test_exact_wind_threshold(self):
-        """Test exact 30kph wind threshold"""
+        """Test exact 15kph wind threshold — no penalty at the threshold itself"""
         score = calculate_hiking_suitability_score(
-            temp_min_c=15, wind_kph=30, rain_mm=0, snow_cm=0
+            temp_min_c=15, wind_kph=15, rain_mm=0, snow_cm=0
         )
-        assert score >= 8, f"Exactly 30kph wind should score ≥8, got {score}"
+        # (15-15)/10 * 3.0 = 0.0 penalty -> score 10.0
+        assert score >= 8, f"Exactly 15kph wind should score ≥8, got {score}"
 
     def test_score_never_exceeds_10(self):
         """Score should never exceed 10 even with perfect conditions"""
@@ -370,20 +379,22 @@ class TestRealWorldScenarios:
             f"Perfect summer Munro should score ≥8, got {score}"
 
     def test_scottish_drizzle(self):
-        """Typical Scottish drizzle"""
+        """Typical Scottish drizzle with moderate wind — now dangerous with stricter weights"""
         score = calculate_hiking_suitability_score(
             temp_min_c=8, temp_max_c=12, wind_kph=30, rain_mm=3, snow_cm=0
         )
-        assert 4 <= score <= 6, \
-            f"Scottish drizzle should score 4-6, got {score}"
+        # wind (15/10)*3.0=4.5, rain 3*2.0=6.0 -> penalty 10.5 -> score 1.0 (clamped)
+        assert 1 <= score <= 4, \
+            f"Scottish drizzle with 30kph wind should score 1-4, got {score}"
 
     def test_april_conditions(self):
-        """Typical April: mix of conditions"""
+        """Typical April: mix of conditions — challenging with stricter scoring"""
         score = calculate_hiking_suitability_score(
             temp_min_c=3, temp_max_c=10, wind_kph=35, rain_mm=1, snow_cm=0
         )
-        assert 4 <= score <= 8, \
-            f"April conditions should score 4-8, got {score}"
+        # wind (20/10)*3.0=6.0, rain 1*2.0=2.0 -> penalty 8.0 -> score 2.0
+        assert 1 <= score <= 4, \
+            f"April conditions should score 1-4, got {score}"
 
 
 # Summary Statistics for Test Suite

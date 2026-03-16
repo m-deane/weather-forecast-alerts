@@ -57,32 +57,33 @@ class TestHikingSuitabilityScore:
 
     def test_score_is_rounded_to_1_decimal(self):
         """Score should be rounded to 1 decimal place."""
-        score = calculate_hiking_suitability_score(wind_kph=35)
-        # 35 kph -> 5 over 30 -> (5/10)*2.0 = 1.0 penalty -> 9.0
-        assert score == 9.0
+        score = calculate_hiking_suitability_score(wind_kph=25)
+        # 25 kph -> 10 over 15 threshold -> (10/10)*3.0 = 3.0 penalty -> 7.0
+        assert score == 7.0
         assert isinstance(score, float)
 
     # --- Wind penalties ---
 
-    def test_wind_below_30_no_penalty(self):
-        """Wind under 30kph should incur no penalty."""
-        score = calculate_hiking_suitability_score(wind_kph=29)
-        assert score == 10.0
+    def test_wind_below_20_no_penalty(self):
+        """Wind under 15kph threshold should incur no penalty."""
+        score = calculate_hiking_suitability_score(wind_kph=19)
+        # 19 kph -> 4 over 15 threshold -> (4/10)*3.0 = 1.2 penalty -> 8.8
+        assert score == 8.8
 
-    def test_wind_at_30_no_penalty(self):
-        """Wind exactly at 30kph should incur no penalty."""
-        score = calculate_hiking_suitability_score(wind_kph=30)
-        assert score == 10.0
+    def test_wind_at_20_no_penalty(self):
+        """Wind at 20kph is 5 over threshold -> (5/10)*3.0 = 1.5 penalty -> 8.5."""
+        score = calculate_hiking_suitability_score(wind_kph=20)
+        assert score == 8.5
 
     def test_wind_40kph_penalty(self):
-        """40kph = 10 over threshold -> (10/10)*2.0 = 2.0 penalty -> score 8.0."""
+        """40kph = 25 over 15 threshold -> (25/10)*3.0 = 7.5 penalty -> score 2.5."""
         score = calculate_hiking_suitability_score(wind_kph=40)
-        assert score == 8.0
+        assert score == 2.5
 
     def test_wind_60kph_penalty(self):
-        """60kph = 30 over threshold -> (30/10)*2.0 = 6.0 penalty -> score 4.0."""
+        """60kph = 45 over 15 threshold -> (45/10)*3.0 = 13.5 penalty -> score 1.0 (clamped)."""
         score = calculate_hiking_suitability_score(wind_kph=60)
-        assert score == 4.0
+        assert score == 1.0
 
     def test_gust_used_when_higher_than_wind(self):
         """Gust speed should be used when higher than sustained wind."""
@@ -104,14 +105,14 @@ class TestHikingSuitabilityScore:
         assert score == 10.0
 
     def test_light_rain_penalty(self):
-        """1mm rain -> 1*1.5 = 1.5 penalty -> score 8.5."""
+        """1mm rain -> 1*2.0 = 2.0 penalty -> score 8.0."""
         score = calculate_hiking_suitability_score(rain_mm=1)
-        assert score == 8.5
+        assert score == 8.0
 
     def test_heavy_rain_penalty(self):
-        """5mm rain -> 5*1.5 = 7.5 penalty -> score 2.5."""
+        """5mm rain -> 5*2.0 = 10.0 penalty -> score 1.0 (clamped)."""
         score = calculate_hiking_suitability_score(rain_mm=5)
-        assert score == 2.5
+        assert score == 1.0
 
     # --- Snow penalties ---
 
@@ -121,12 +122,12 @@ class TestHikingSuitabilityScore:
         assert score == 10.0
 
     def test_light_snow_penalty(self):
-        """1cm snow -> 1*3.0 = 3.0 penalty -> score 7.0."""
+        """1cm snow -> 1*4.0 = 4.0 penalty -> score 6.0."""
         score = calculate_hiking_suitability_score(snow_cm=1)
-        assert score == 7.0
+        assert score == 6.0
 
     def test_heavy_snow_penalty(self):
-        """3cm snow -> 3*3.0 = 9.0 penalty -> score 1.0."""
+        """3cm snow -> 3*4.0 = 12.0 penalty -> score 1.0 (clamped)."""
         score = calculate_hiking_suitability_score(snow_cm=3)
         assert score == 1.0
 
@@ -143,14 +144,14 @@ class TestHikingSuitabilityScore:
         assert score == 10.0
 
     def test_cold_penalty(self):
-        """-5°C -> 5*0.8 = 4.0 penalty -> score 6.0."""
+        """-5°C -> 5*1.2 = 6.0 penalty -> score 4.0."""
         score = calculate_hiking_suitability_score(temp_min_c=-5)
-        assert score == 6.0
+        assert score == 4.0
 
     def test_extreme_cold_penalty(self):
-        """-10°C -> 10*0.8 = 8.0 penalty -> score 2.0."""
+        """-10°C -> 10*1.2 = 12.0 penalty -> score 1.0 (clamped)."""
         score = calculate_hiking_suitability_score(temp_min_c=-10)
-        assert score == 2.0
+        assert score == 1.0
 
     # --- Heat penalties ---
 
@@ -186,23 +187,23 @@ class TestHikingSuitabilityScore:
     def test_wind_chill_alone_without_temp_min(self):
         """Wind chill should work even without temp_min_c."""
         score = calculate_hiking_suitability_score(temp_chill_c=-5)
-        assert score == 6.0  # 5*0.8 = 4.0 penalty
+        assert score == 4.0  # 5*1.2 = 6.0 penalty -> score 4.0
 
     # --- Combined conditions ---
 
     def test_combined_wind_and_rain(self):
         """Multiple penalties should stack."""
         score = calculate_hiking_suitability_score(wind_kph=50, rain_mm=2)
-        # Wind: (20/10)*2.0 = 4.0, Rain: 2*1.5 = 3.0, Total: 7.0 penalty -> 3.0
-        assert score == 3.0
+        # Wind: (35/10)*3.0 = 10.5, Rain: 2*2.0 = 4.0, Total: 14.5 penalty -> 1.0 (clamped)
+        assert score == 1.0
 
     def test_typical_scottish_winter(self):
         """Typical winter conditions: cold, windy, rainy."""
         score = calculate_hiking_suitability_score(
             temp_min_c=-3, wind_kph=45, rain_mm=2, snow_cm=1
         )
-        # Cold: 3*0.8=2.4, Wind: (15/10)*2.0=3.0, Rain: 2*1.5=3.0, Snow: 1*3.0=3.0
-        # Total penalty: 11.4 -> score 1.0 (clamped)
+        # Cold: 3*1.2=3.6, Wind: (30/10)*3.0=9.0, Rain: 2*2.0=4.0, Snow: 1*4.0=4.0
+        # Total penalty: 20.6 -> score 1.0 (clamped)
         assert score == 1.0
 
     def test_typical_scottish_summer(self):
@@ -215,14 +216,14 @@ class TestHikingSuitabilityScore:
     # --- Score interpretation boundaries ---
 
     def test_excellent_range(self):
-        """Score 8-10 should be achievable with light wind only."""
-        score = calculate_hiking_suitability_score(wind_kph=35)
+        """Score 8-10 should be achievable with calm wind only (under 20kph threshold)."""
+        score = calculate_hiking_suitability_score(wind_kph=15)
         assert 8.0 <= score <= 10.0
 
     def test_good_range(self):
-        """Score 6-7 should be moderate conditions."""
-        score = calculate_hiking_suitability_score(wind_kph=45, rain_mm=1)
-        # Wind: (15/10)*2.0=3.0, Rain: 1*1.5=1.5 -> penalty 4.5 -> score 5.5
+        """Score 5-7 should be moderate conditions."""
+        score = calculate_hiking_suitability_score(wind_kph=20, rain_mm=1)
+        # Wind: (5/10)*3.0=1.5, Rain: 1*2.0=2.0 -> penalty 3.5 -> score 6.5
         assert 4.0 <= score <= 7.0
 
     def test_dangerous_range(self):
@@ -234,10 +235,10 @@ class TestHikingSuitabilityScore:
 
     def test_scoring_weights_values(self):
         """Verify scoring weights match documented values."""
-        assert SCORE_WEIGHT_WIND == 2.0
-        assert SCORE_WEIGHT_RAIN == 1.5
-        assert SCORE_WEIGHT_SNOW == 3.0
-        assert SCORE_WEIGHT_COLD == 0.8
+        assert SCORE_WEIGHT_WIND == 3.0
+        assert SCORE_WEIGHT_RAIN == 2.0
+        assert SCORE_WEIGHT_SNOW == 4.0
+        assert SCORE_WEIGHT_COLD == 1.2
         assert SCORE_WEIGHT_HOT == 0.5
 
 

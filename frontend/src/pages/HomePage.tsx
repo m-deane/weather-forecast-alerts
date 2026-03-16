@@ -1,13 +1,14 @@
-import { lazy, Suspense, useMemo } from 'react'
+import { lazy, Suspense, useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
-import { MapPinIcon, ClockIcon, HeartIcon } from '@heroicons/react/24/outline'
+import { MapPinIcon, ClockIcon, HeartIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 import { locationApi, weatherApi } from '@/api/client'
 import { useAppStore } from '@/stores/useAppStore'
 import { WeatherCard } from '@/components/WeatherCard'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { NoFavorites, NoRecentLocations, EmptyState } from '@/components/EmptyState'
 import { BestConditionsToday } from '@/components/BestConditionsToday'
+import { BestDayThisWeek } from '@/components/BestDayThisWeek'
 
 const LocationMap = lazy(() => import('@/components/LocationMap'))
 
@@ -15,6 +16,14 @@ export function HomePage() {
   const { favoriteLocationIds, recentLocationIds } = useAppStore()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const [quickSearch, setQuickSearch] = useState('')
+
+  const handleQuickSearch = (value: string) => {
+    setQuickSearch(value)
+    if (value.trim()) {
+      navigate(`/search?q=${encodeURIComponent(value.trim())}`)
+    }
+  }
 
   // Get areas for quick access
   const { data: areas, isLoading: areasLoading } = useQuery({
@@ -68,11 +77,19 @@ export function HomePage() {
           {/* Quick stats */}
           <div className="flex gap-4 mt-4 stagger-children">
             <div className="bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2">
-              <div className="text-xl font-bold mono-nums">{allLocations?.length || 0}</div>
+              {locationsLoading ? (
+                <div className="h-7 w-8 bg-white/20 rounded animate-pulse mb-0.5" />
+              ) : (
+                <div className="text-xl font-bold mono-nums">{allLocations?.length ?? 0}</div>
+              )}
               <div className="text-xs text-emerald-100 tracking-wider-custom uppercase">Locations</div>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2">
-              <div className="text-xl font-bold mono-nums">{areas?.length || 0}</div>
+              {areasLoading ? (
+                <div className="h-7 w-6 bg-white/20 rounded animate-pulse mb-0.5" />
+              ) : (
+                <div className="text-xl font-bold mono-nums">{areas?.length ?? 0}</div>
+              )}
               <div className="text-xs text-emerald-100 tracking-wider-custom uppercase">Areas</div>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2">
@@ -84,8 +101,29 @@ export function HomePage() {
       </header>
 
       <div className="px-4 py-6 space-y-6">
+        {/* Quick Search */}
+        <section className="fade-in-up" style={{ animationDelay: '0.15s' }}>
+          <div className="relative max-w-xl mx-auto">
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search mountains, areas..."
+              value={quickSearch}
+              onChange={(e) => handleQuickSearch(e.target.value)}
+              className="input pl-10"
+              aria-label="Search mountains and areas"
+            />
+          </div>
+        </section>
+
+        {/* Best Day This Week — one card per area */}
+        <BestDayThisWeek className="fade-in-up" style={{ animationDelay: '0.2s' }} />
+
+        {/* Best Conditions Today */}
+        <BestConditionsToday className="fade-in-up" style={{ animationDelay: '0.35s' }} />
+
         {/* Interactive Map Section - Hero Size */}
-        <section className="fade-in-up" style={{ animationDelay: '0.2s' }}>
+        <section className="fade-in-up" style={{ animationDelay: '0.5s' }}>
           <h2 className="section-title flex items-center gap-2">
             <MapPinIcon className="w-5 h-5 text-emerald-400 pulse" />
             Mountain Locations
@@ -98,9 +136,6 @@ export function HomePage() {
             />
           </Suspense>
         </section>
-
-        {/* Best Conditions Today */}
-        <BestConditionsToday className="fade-in-up" style={{ animationDelay: '0.4s' }} />
 
         {/* Favorites Section */}
         <section className="fade-in-up" style={{ animationDelay: '0.6s' }}>

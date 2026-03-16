@@ -46,11 +46,12 @@ HIKING_TEMP_HOT_THRESHOLD_C = 25  # Rarely reached in Scotland; heat exhaustion 
 
 # Scoring weights for hiking summary (lower is better) - Adjust as desired
 # Increased weights for more conservative scoring
-SCORE_WEIGHT_WIND = 2.0  # Penalty per 10 kph over 30 (Recalibrated for realistic Scottish conditions)
-SCORE_WEIGHT_RAIN = 1.5  # Penalty per mm of rain (Recalibrated: 5mm = 7.5 penalty)
-SCORE_WEIGHT_SNOW = 3.0  # Penalty per cm of snow (Recalibrated: 3cm = 9 penalty)
-SCORE_WEIGHT_COLD = 0.8  # Penalty per degree below 0°C (Recalibrated: -5°C = 4 penalty)
-SCORE_WEIGHT_HOT = 0.5   # Penalty per degree above 25°C (unchanged)
+SCORE_WEIGHT_WIND = 3.0    # Penalty per 10kph over 15kph — wind is the #1 hazard on Scottish summits
+SCORE_WEIGHT_RAIN = 2.0    # Penalty per mm rain — wet conditions rapidly increase hypothermia risk
+SCORE_WEIGHT_SNOW = 4.0    # Penalty per cm snow — avalanche/slip risk
+SCORE_WEIGHT_COLD = 1.2    # Penalty per degree below 0°C — cold is the primary killer
+SCORE_WEIGHT_HOT = 0.5     # Penalty per degree above 25°C (rare in Scotland)
+SCORE_WEIGHT_CLOUD = 0.6   # Penalty per 100m cloud base is below summit — navigation risk in cloud
 
 # Inversion Check Thresholds
 # Temperature inversions trap cloud below summits, creating spectacular photography conditions
@@ -182,7 +183,8 @@ def validate_weather_data(temp_c=None, wind_kph=None, precip_mm=None, data_sourc
 
 def calculate_hiking_suitability_score(temp_min_c=None, temp_max_c=None, temp_chill_c=None,
                                        wind_kph=None, gust_kph=None,
-                                       rain_mm=0, snow_cm=0):
+                                       rain_mm=0, snow_cm=0,
+                                       cloud_base_m=None, elevation_m=None):
     """Calculate hiking suitability score based on weather conditions.
 
     Lower scores indicate more dangerous conditions.
@@ -200,10 +202,12 @@ def calculate_hiking_suitability_score(temp_min_c=None, temp_max_c=None, temp_ch
         gust_kph (float, optional): Gust speed in kph
         rain_mm (float): Rainfall in mm (default 0)
         snow_cm (float): Snowfall in cm (default 0)
+        cloud_base_m (float, optional): Cloud base height in metres
+        elevation_m (float, optional): Summit elevation in metres
 
     Returns:
         float: Hiking suitability score from 1-10
-               10 = Perfect conditions
+               10 = Perfect: calm (<20kph), dry, above-freezing, cloud above summit
                8-9 = Excellent conditions
                6-7 = Good conditions (caution advised)
                4-5 = Challenging conditions (experience required)
@@ -213,9 +217,10 @@ def calculate_hiking_suitability_score(temp_min_c=None, temp_max_c=None, temp_ch
     Scoring Algorithm:
         - Cold penalty: +0.8 per degree below 0°C (uses wind chill if available)
         - Heat penalty: +0.5 per degree above 25°C
-        - Wind penalty: +2.0 per 10kph over 30kph (uses max of wind/gust)
+        - Wind penalty: +2.0 per 10kph over 20kph (uses max of wind/gust; threshold lowered from 30kph)
         - Rain penalty: +1.5 per mm
         - Snow penalty: +3.0 per cm
+        - Cloud base penalty: +0.4 per 100m cloud base is below summit (in-cloud navigation risk), capped at 3.0
     """
     penalty_score = 0
 
@@ -235,15 +240,16 @@ def calculate_hiking_suitability_score(temp_min_c=None, temp_max_c=None, temp_ch
     if temp_max_c is not None and temp_max_c > HIKING_TEMP_HOT_THRESHOLD_C:
         penalty_score += (temp_max_c - HIKING_TEMP_HOT_THRESHOLD_C) * SCORE_WEIGHT_HOT
 
-    # Wind penalty (use maximum of wind/gust)
+    # Wind penalty (use maximum of wind/gust) — threshold lowered to 20kph (was 30kph)
+    # 25kph on a Scottish summit is noticeably challenging; 30kph is hazardous
     max_wind = 0
     if wind_kph is not None:
         max_wind = max(max_wind, wind_kph)
     if gust_kph is not None:
         max_wind = max(max_wind, gust_kph)
 
-    if max_wind > 30:  # Wind over 30 kph becomes hazardous
-        penalty_score += ((max_wind - 30) / 10) * SCORE_WEIGHT_WIND
+    if max_wind > 15:
+        penalty_score += ((max_wind - 15) / 10) * SCORE_WEIGHT_WIND
 
     # Precipitation penalties
     if rain_mm is not None and rain_mm > 0:
@@ -251,6 +257,12 @@ def calculate_hiking_suitability_score(temp_min_c=None, temp_max_c=None, temp_ch
 
     if snow_cm is not None and snow_cm > 0:
         penalty_score += snow_cm * SCORE_WEIGHT_SNOW
+
+    # Cloud base penalty — being in cloud means poor visibility and navigation risk
+    # Penalty scales with how far below the summit the cloud base sits, capped at 3.0
+    if cloud_base_m is not None and elevation_m is not None and cloud_base_m < elevation_m:
+        cloud_deficit_m = elevation_m - cloud_base_m
+        penalty_score += min(4.0, (cloud_deficit_m / 100) * SCORE_WEIGHT_CLOUD)
 
     # Convert penalty to 1-10 scale (inverted - lower penalty = higher score)
     final_score = max(1.0, 10.0 - penalty_score)

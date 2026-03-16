@@ -1,0 +1,20 @@
+{
+  "Torridon": { "mrt": "Torridon MRT", "phone": "999 (Police Scotland)", "hospital": "Raigmore Hospital, Inverness" },
+  "Glencoe": { "mrt": "Glencoe MRT", "phone": "999 (Police Scotland)", "hospital": "Belford Hospital, Fort William" },
+  "Cairngorms": { "mrt": "Cairngorm MRT", "phone": "01479 861285", "hospital": "Raigmore Hospital, Inverness" },
+  "Ben Nevis": { "mrt": "Lochaber MRT", "phone": "999 (Police Scotland)", "hospital": "Belford Hospital, Fort William" },
+  "Skye (Cuillin)": { "mrt": "Skye MRT", "phone": "999 (Police Scotland)", "hospital": "Broadford Hospital, Skye" },
+  "Knoydart (Inverie)": { "mrt": "Lochaber MRT", "phone": "999 (Police Scotland)", "hospital": "Belford Hospital, Fort William" },
+  "Glen Shiel": { "mrt": "Kinloss MRT", "phone": "999 (Police Scotland)", "hospital": "Raigmore Hospital, Inverness" },
+  "Mamores": { "mrt": "Lochaber MRT", "phone": "999 (Police Scotland)", "hospital": "Belford Hospital, Fort William" },
+  "Ben Lawers": { "mrt": "Killin MRT", "phone": "999 (Police Scotland)", "hospital": "Ninewells Hospital, Dundee" },
+  "Arrochar Alps": { "mrt": "Arrochar MRT", "phone": "999 (Police Scotland)", "hospital": "Vale of Leven Hospital" },
+  "Crianlarich": { "mrt": "Killin MRT", "phone": "999 (Police Scotland)", "hospital": "Stirling Royal Infirmary" },
+  "Affric": { "mrt": "Kinloss MRT", "phone": "999 (Police Scotland)", "hospital": "Raigmore Hospital, Inverness" },
+  "Creag Meagaidh": { "mrt": "Lochaber MRT", "phone": "999 (Police Scotland)", "hospital": "Belford Hospital, Fort William" },
+  "Loch Lomond": { "mrt": "Arrochar MRT", "phone": "999 (Police Scotland)", "hospital": "Vale of Leven Hospital" },
+  "Eastern Highlands": { "mrt": "Braemar MRT", "phone": "999 (Police Scotland)", "hospital": "Aberdeen Royal Infirmary" },
+  "Far North": { "mrt": "Assynt MRT", "phone": "999 (Police Scotland)", "hospital": "Raigmore Hospital, Inverness" },
+  "Drumochter": { "mrt": "Cairngorm MRT", "phone": "999 (Police Scotland)", "hospital": "Raigmore Hospital, Inverness" },
+  "Coigach": { "mrt": "Torridon MRT", "phone": "999 (Police Scotland)", "hospital": "Raigmore Hospital, Inverness" }
+}
