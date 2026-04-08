@@ -1,8 +1,7 @@
 import { useMemo } from 'react'
 import { cn } from '@/utils/cn'
 import { ArrowTrendingUpIcon, ArrowTrendingDownIcon, MinusIcon } from '@heroicons/react/24/outline'
-import { WeatherIcon } from './WeatherIcon'
-import type { DailyForecast, WeatherPeriod } from '@/types'
+import type { DailyForecast } from '@/types'
 
 interface WeatherTrendProps {
   forecasts: DailyForecast[]
@@ -11,280 +10,135 @@ interface WeatherTrendProps {
 
 type TrendDirection = 'improving' | 'deteriorating' | 'stable'
 
-interface TrendPoint {
-  label: string
-  score: number
-  condition: string
-  time: string
+interface DayGroup {
+  dayLabel: string
+  periods: { label: string; score: number }[]
+  bestScore: number
 }
 
-function analyzeTrend(points: TrendPoint[]): {
-  direction: TrendDirection
-  change: number
-  bestWindow: { time: string; score: number } | null
-  summary: string
-} {
-  if (points.length < 2) {
-    return { direction: 'stable', change: 0, bestWindow: null, summary: 'Insufficient data' }
+function getDirection(groups: DayGroup[]): { direction: TrendDirection; summary: string } {
+  if (groups.length < 2) return { direction: 'stable', summary: 'Insufficient data' }
+
+  const firstBest = groups[0].bestScore
+  const lastBest = groups[groups.length - 1].bestScore
+  const change = lastBest - firstBest
+
+  const overallBest = groups.reduce((best, g) =>
+    g.bestScore > best.bestScore ? g : best, groups[0])
+
+  if (change > 1.5) return {
+    direction: 'improving',
+    summary: `Improving — best: ${overallBest.dayLabel} (${overallBest.bestScore.toFixed(1)}/10)`
   }
-
-  // Calculate trend
-  const firstScore = points[0].score
-  const lastScore = points[points.length - 1].score
-  const change = lastScore - firstScore
-
-  // Find best conditions in next 48h
-  const bestPoint = points.reduce((best, point) =>
-    point.score > best.score ? point : best
-  , points[0])
-
-  let direction: TrendDirection
-  if (change > 1.5) direction = 'improving'
-  else if (change < -1.5) direction = 'deteriorating'
-  else direction = 'stable'
-
-  // Generate summary
-  let summary: string
-  if (direction === 'improving') {
-    summary = `Conditions improving. Best: ${bestPoint.time} (${bestPoint.score.toFixed(1)}/10)`
-  } else if (direction === 'deteriorating') {
-    summary = `Conditions worsening. Current may be best window.`
-  } else {
-    summary = `Stable conditions. Score staying around ${points[0].score.toFixed(1)}/10`
+  if (change < -1.5) return {
+    direction: 'deteriorating',
+    summary: 'Worsening — current conditions may be best window'
   }
-
   return {
-    direction,
-    change: Math.abs(change),
-    bestWindow: bestPoint.score > firstScore ? { time: bestPoint.time, score: bestPoint.score } : null,
-    summary,
+    direction: 'stable',
+    summary: `Stable — scores around ${firstBest.toFixed(1)}/10`
   }
 }
 
-/** Convert period_type to a readable label relative to today */
-function getPeriodLabel(dayIndex: number, periodType: string | undefined): string {
-  const dayLabel = dayIndex === 0 ? 'Today' : dayIndex === 1 ? 'Tomorrow' : `Day ${dayIndex + 1}`
-
-  switch (periodType) {
-    case 'am': return `${dayLabel} AM`
-    case 'pm': return `${dayLabel} PM`
-    case 'night': return dayIndex === 0 ? 'Tonight' : `${dayLabel} Night`
-    case 'current': return 'Now'
-    default: return dayLabel
-  }
+function scoreColor(score: number): string {
+  if (score >= 7) return 'bg-emerald-500'
+  if (score >= 5) return 'bg-amber-500'
+  if (score >= 3) return 'bg-orange-500'
+  return 'bg-red-500'
 }
 
-const trendStyles: Record<TrendDirection, { bg: string; border: string; text: string; icon: typeof ArrowTrendingUpIcon }> = {
-  improving: {
-    bg: 'bg-gradient-to-r from-emerald-500/20 to-green-500/10',
-    border: 'border-emerald-500/40',
-    text: 'text-emerald-400',
-    icon: ArrowTrendingUpIcon,
-  },
-  deteriorating: {
-    bg: 'bg-gradient-to-r from-orange-500/20 to-red-500/10',
-    border: 'border-orange-500/40',
-    text: 'text-orange-400',
-    icon: ArrowTrendingDownIcon,
-  },
-  stable: {
-    bg: 'bg-gradient-to-r from-slate-500/20 to-slate-600/10',
-    border: 'border-slate-500/40',
-    text: 'text-slate-400',
-    icon: MinusIcon,
-  },
+function scoreBgTrack(score: number): string {
+  if (score >= 7) return 'bg-emerald-500/10'
+  if (score >= 5) return 'bg-amber-500/10'
+  if (score >= 3) return 'bg-orange-500/10'
+  return 'bg-red-500/10'
 }
 
-// SVG dimensions: wider to accommodate Y-axis labels on the left
-const SVG_WIDTH = 180
-const CHART_LEFT = 20 // left margin for Y-axis labels
-const CHART_RIGHT = SVG_WIDTH - 4
-const CHART_TOP = 4
-const CHART_BOTTOM = 36
-const CHART_WIDTH = CHART_RIGHT - CHART_LEFT
-const CHART_HEIGHT = CHART_BOTTOM - CHART_TOP
+function scoreTextColor(score: number): string {
+  if (score >= 7) return 'text-emerald-400'
+  if (score >= 5) return 'text-amber-400'
+  if (score >= 3) return 'text-orange-400'
+  return 'text-red-400'
+}
+
+const periodLabels: Record<string, string> = { am: 'AM', pm: 'PM', night: 'Nt' }
+
+const dirConfig = {
+  improving:    { label: 'Improving',     cls: 'text-emerald-400', icon: ArrowTrendingUpIcon },
+  deteriorating:{ label: 'Deteriorating', cls: 'text-orange-400',  icon: ArrowTrendingDownIcon },
+  stable:       { label: 'Stable',        cls: 'text-slate-400',   icon: MinusIcon },
+} as const
 
 export function WeatherTrend({ forecasts, className }: WeatherTrendProps) {
-  const trendData = useMemo(() => {
-    const points: TrendPoint[] = []
-
-    forecasts.slice(0, 3).forEach((day, dayIndex) => {
-      day.periods.forEach((period) => {
-        const label = getPeriodLabel(dayIndex, period.period_type)
-
-        points.push({
-          label,
-          score: period.hiking_score,
-          condition: period.weather_description || 'cloudy',
-          time: `${new Date(day.date).toLocaleDateString('en-GB', { weekday: 'short' })} ${period.period_type?.toUpperCase() || ''}`,
-        })
-      })
+  const groups = useMemo<DayGroup[]>(() => {
+    return forecasts.slice(0, 6).map((day, i) => {
+      const dayLabel = i === 0 ? 'Today' : i === 1 ? 'Tmrw' : new Date(day.date).toLocaleDateString('en-GB', { weekday: 'short' })
+      const periods = day.periods.map(p => ({
+        label: periodLabels[p.period_type || ''] || p.period_type || '?',
+        score: p.hiking_score,
+      }))
+      return {
+        dayLabel,
+        periods,
+        bestScore: Math.max(...periods.map(p => p.score), 0),
+      }
     })
-
-    return points.slice(0, 6) // Limit to 6 points
   }, [forecasts])
 
-  const trend = useMemo(() => analyzeTrend(trendData), [trendData])
-  const style = trendStyles[trend.direction]
-  const TrendIcon = style.icon
+  const { direction, summary } = useMemo(() => getDirection(groups), [groups])
+  const cfg = dirConfig[direction]
+  const Icon = cfg.icon
 
-  // Calculate sparkline points using new coordinate system
-  const sparklinePoints = useMemo(() => {
-    if (trendData.length === 0) return ''
-
-    return trendData.map((point, i) => {
-      const x = CHART_LEFT + (i / (trendData.length - 1)) * CHART_WIDTH
-      const y = CHART_BOTTOM - (point.score / 10) * CHART_HEIGHT
-      return `${i === 0 ? 'M' : 'L'} ${x} ${y}`
-    }).join(' ')
-  }, [trendData])
-
-  // Score zone color bands: green (7-10), amber (4-7), red (0-4)
-  const scoreBands = useMemo(() => {
-    const toY = (score: number) => CHART_BOTTOM - (score / 10) * CHART_HEIGHT
-    return [
-      { y: toY(10), height: toY(7) - toY(10), fill: 'rgba(16, 185, 129, 0.1)' },  // Green: 7-10
-      { y: toY(7), height: toY(4) - toY(7), fill: 'rgba(245, 158, 11, 0.1)' },    // Amber: 4-7
-      { y: toY(4), height: toY(0) - toY(4), fill: 'rgba(239, 68, 68, 0.1)' },     // Red: 0-4
-    ]
-  }, [])
+  if (groups.length === 0) return null
 
   return (
-    <div className={cn('card', style.bg, 'border', style.border, className)}>
+    <div className={cn('bg-slate-800/60 border border-slate-700/50 rounded-xl p-4', className)}>
+      {/* Header */}
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-          <TrendIcon className={cn('w-5 h-5', style.text)} />
-          Weather Trend
-        </h3>
-        <span className={cn('text-sm font-bold uppercase', style.text)}>
-          {trend.direction}
+        <div className="flex items-center gap-2">
+          <Icon className={cn('w-4 h-4', cfg.cls)} />
+          <span className="text-sm font-medium text-slate-300">6-Day Trend</span>
+        </div>
+        <span className={cn('text-xs font-semibold uppercase tracking-wide', cfg.cls)}>
+          {cfg.label}
         </span>
       </div>
 
-      {/* Sparkline Chart */}
-      <div className="relative h-12 mb-3 bg-slate-800/30 rounded-lg overflow-hidden">
-        <svg className="w-full h-full" viewBox={`0 0 ${SVG_WIDTH} 40`} preserveAspectRatio="none">
-          {/* Score zone color bands */}
-          {scoreBands.map((band, i) => (
-            <rect
-              key={i}
-              x={CHART_LEFT}
-              y={band.y}
-              width={CHART_WIDTH}
-              height={band.height}
-              fill={band.fill}
-            />
-          ))}
+      {/* Day columns */}
+      <div className="grid grid-cols-3 lg:grid-cols-6 gap-2">
+        {groups.map((group, gi) => (
+          <div key={gi} className="bg-slate-900/40 rounded-lg p-2.5">
+            {/* Day header + best score */}
+            <div className="flex items-baseline justify-between mb-2">
+              <span className="text-xs font-medium text-slate-400">{group.dayLabel}</span>
+              <span className={cn('text-sm font-bold tabular-nums', scoreTextColor(group.bestScore))}>
+                {group.bestScore.toFixed(1)}
+              </span>
+            </div>
 
-          {/* Grid lines */}
-          <line x1={CHART_LEFT} y1={10} x2={CHART_RIGHT} y2={10} stroke="currentColor" className="text-slate-700" strokeWidth="0.5" strokeDasharray="2,2" />
-          <line x1={CHART_LEFT} y1={20} x2={CHART_RIGHT} y2={20} stroke="currentColor" className="text-slate-700" strokeWidth="0.5" strokeDasharray="2,2" />
-          <line x1={CHART_LEFT} y1={30} x2={CHART_RIGHT} y2={30} stroke="currentColor" className="text-slate-700" strokeWidth="0.5" strokeDasharray="2,2" />
-
-          {/* Y-axis labels */}
-          <text x={CHART_LEFT - 3} y={CHART_TOP + 3} textAnchor="end" fill="#64748b" fontSize="5" fontFamily="sans-serif">10</text>
-          <text x={CHART_LEFT - 3} y={(CHART_TOP + CHART_BOTTOM) / 2 + 2} textAnchor="end" fill="#64748b" fontSize="5" fontFamily="sans-serif">5</text>
-          <text x={CHART_LEFT - 3} y={CHART_BOTTOM + 2} textAnchor="end" fill="#64748b" fontSize="5" fontFamily="sans-serif">0</text>
-
-          {/* Gradient fill under line */}
-          <defs>
-            <linearGradient id="trendFill" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor={
-                trend.direction === 'improving' ? '#10b981' :
-                trend.direction === 'deteriorating' ? '#f97316' :
-                '#64748b'
-              } stopOpacity="0.3" />
-              <stop offset="100%" stopColor="transparent" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-
-          {/* Area fill */}
-          {sparklinePoints && (
-            <path
-              d={`${sparklinePoints} L ${CHART_RIGHT} ${CHART_BOTTOM} L ${CHART_LEFT} ${CHART_BOTTOM} Z`}
-              fill="url(#trendFill)"
-            />
-          )}
-
-          {/* Trend line */}
-          {sparklinePoints && (
-            <path
-              d={sparklinePoints}
-              fill="none"
-              stroke={
-                trend.direction === 'improving' ? '#10b981' :
-                trend.direction === 'deteriorating' ? '#f97316' :
-                '#64748b'
-              }
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          )}
-
-          {/* Data points */}
-          {trendData.map((point, i) => {
-            const x = CHART_LEFT + (i / (trendData.length - 1)) * CHART_WIDTH
-            const y = CHART_BOTTOM - (point.score / 10) * CHART_HEIGHT
-            return (
-              <circle
-                key={i}
-                cx={x}
-                cy={y}
-                r="3"
-                fill={
-                  trend.direction === 'improving' ? '#10b981' :
-                  trend.direction === 'deteriorating' ? '#f97316' :
-                  '#64748b'
-                }
-                className={i === 0 ? 'animate-pulse' : ''}
-              />
-            )
-          })}
-        </svg>
-      </div>
-
-      {/* Timeline with icons */}
-      <div className="flex justify-between items-end mb-3 px-1">
-        {trendData.slice(0, 5).map((point, i) => (
-          <div key={i} className="flex flex-col items-center">
-            <WeatherIcon
-              condition={point.condition}
-              size="xs"
-              animated={i === 0}
-            />
-            <div className="text-[10px] text-slate-500 mt-1">{point.label}</div>
-            <div className={cn(
-              'text-xs font-semibold mono-nums',
-              point.score >= 7 ? 'text-emerald-400' :
-              point.score >= 5 ? 'text-yellow-400' :
-              point.score >= 3 ? 'text-orange-400' :
-              'text-red-400'
-            )}>
-              {point.score.toFixed(1)}
+            {/* Period bars */}
+            <div className="space-y-1.5">
+              {group.periods.map((p, pi) => (
+                <div key={pi} className="flex items-center gap-2">
+                  <span className="text-[10px] text-slate-500 w-5 shrink-0">{p.label}</span>
+                  <div className={cn('flex-1 h-2 rounded-full overflow-hidden', scoreBgTrack(p.score))}>
+                    <div
+                      className={cn('h-full rounded-full transition-all', scoreColor(p.score))}
+                      style={{ width: `${Math.max(p.score * 10, 3)}%` }}
+                    />
+                  </div>
+                  <span className={cn('text-[10px] tabular-nums w-6 text-right', scoreTextColor(p.score))}>
+                    {p.score.toFixed(1)}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
         ))}
       </div>
 
       {/* Summary */}
-      <div className="text-sm text-slate-300 bg-slate-800/40 rounded-lg px-3 py-2">
-        {trend.summary}
-      </div>
-
-      {/* Best window highlight */}
-      {trend.bestWindow && trend.direction === 'improving' && (
-        <div className="mt-2 flex items-center gap-2 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded px-2 py-1.5">
-          <span>Best window: <strong>{trend.bestWindow.time}</strong> (score {trend.bestWindow.score.toFixed(1)})</span>
-        </div>
-      )}
-
-      {/* Warning for deteriorating */}
-      {trend.direction === 'deteriorating' && (
-        <div className="mt-2 flex items-center gap-2 text-xs text-orange-400 bg-orange-500/10 border border-orange-500/20 rounded px-2 py-1.5">
-          <span>Conditions expected to worsen - consider going earlier</span>
-        </div>
-      )}
+      <p className="text-xs text-slate-400 mt-3">{summary}</p>
     </div>
   )
 }

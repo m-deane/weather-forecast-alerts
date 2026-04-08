@@ -6,7 +6,7 @@ import { locationApi, weatherApi } from '@/api/client'
 import { useAppStore } from '@/stores/useAppStore'
 import { WeatherCard } from '@/components/WeatherCard'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
-import { NoFavorites, NoRecentLocations, EmptyState } from '@/components/EmptyState'
+import { NoFavorites, EmptyState } from '@/components/EmptyState'
 import { BestConditionsToday } from '@/components/BestConditionsToday'
 import { BestDayThisWeek } from '@/components/BestDayThisWeek'
 
@@ -40,7 +40,7 @@ export function HomePage() {
   // Batch prefetch weather for all locations so WeatherCards find cached data
   const allLocationIds = useMemo(() => allLocations?.map(l => l.id) || [], [allLocations])
 
-  useQuery({
+  const { data: allWeather } = useQuery({
     queryKey: ['weather', 'compare', allLocationIds.join(',')],
     queryFn: async () => {
       const forecasts = await weatherApi.compareLocations(allLocationIds)
@@ -54,9 +54,32 @@ export function HomePage() {
     staleTime: 5 * 60 * 1000,
   })
 
+  // Top 12 locations sorted by today's hiking score (descending)
+  const top12LocationIds = useMemo(() => {
+    if (!allWeather || allWeather.length === 0) return allLocations?.map(l => l.id).slice(0, 12) || []
+    return [...allWeather]
+      .sort((a, b) => {
+        const scoreA = a.forecasts[0]?.periods[0]?.hiking_score ?? 0
+        const scoreB = b.forecasts[0]?.periods[0]?.hiking_score ?? 0
+        return scoreB - scoreA
+      })
+      .slice(0, 12)
+      .map(w => w.location.id)
+  }, [allWeather, allLocations])
+
+  const totalLocationCount = allLocations?.length ?? 0
+
+  // Determine what to show in the favorites/recents section
+  const hasFavorites = favoriteLocationIds.length > 0
+  const hasRecents = recentLocationIds.length > 0
+  const favoritesToShow = favoriteLocationIds.slice(0, 4)
+  const hasMoreFavorites = favoriteLocationIds.length > 4
+  // Filter recents to exclude any that are already in favorites
+  const filteredRecents = recentLocationIds.filter(id => !favoriteLocationIds.includes(id)).slice(0, 3)
+
   return (
     <div className="min-h-screen">
-      {/* Hero Header */}
+      {/* 1. Compact Hero Header — title + subtitle only, no stat pills */}
       <header className="header-gradient text-white safe-top relative overflow-hidden">
         {/* Subtle pattern overlay */}
         <div className="absolute inset-0 opacity-10">
@@ -70,39 +93,15 @@ export function HomePage() {
           </svg>
         </div>
 
-        <div className="relative px-4 py-8">
+        <div className="relative px-4 py-5">
           <h1 className="hero-title fade-in-down text-balance">Scottish Mountain Weather</h1>
-          <p className="hero-subtitle mt-2 fade-in-down" style={{ animationDelay: '0.1s' }}>Accurate forecasts for safe adventures</p>
-
-          {/* Quick stats */}
-          <div className="flex gap-4 mt-4 stagger-children">
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2">
-              {locationsLoading ? (
-                <div className="h-7 w-8 bg-white/20 rounded animate-pulse mb-0.5" />
-              ) : (
-                <div className="text-xl font-bold mono-nums">{allLocations?.length ?? 0}</div>
-              )}
-              <div className="text-xs text-emerald-100 tracking-wider-custom uppercase">Locations</div>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2">
-              {areasLoading ? (
-                <div className="h-7 w-6 bg-white/20 rounded animate-pulse mb-0.5" />
-              ) : (
-                <div className="text-xl font-bold mono-nums">{areas?.length ?? 0}</div>
-              )}
-              <div className="text-xs text-emerald-100 tracking-wider-custom uppercase">Areas</div>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2">
-              <div className="text-xl font-bold mono-nums">{favoriteLocationIds.length}</div>
-              <div className="text-xs text-emerald-100 tracking-wider-custom uppercase">Favorites</div>
-            </div>
-          </div>
+          <p className="hero-subtitle mt-1 fade-in-down" style={{ animationDelay: '0.1s' }}>Accurate forecasts for safe adventures</p>
         </div>
       </header>
 
       <div className="px-4 py-6 space-y-6">
-        {/* Quick Search */}
-        <section className="fade-in-up" style={{ animationDelay: '0.15s' }}>
+        {/* 2. Quick Search */}
+        <section className="fade-in-up" style={{ animationDelay: '0.1s' }}>
           <div className="relative max-w-xl mx-auto">
             <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 pointer-events-none" />
             <input
@@ -116,46 +115,128 @@ export function HomePage() {
           </div>
         </section>
 
-        {/* Best Day This Week — one card per area */}
-        <BestDayThisWeek className="fade-in-up" style={{ animationDelay: '0.2s' }} />
+        {/* 3. Best Day This Week */}
+        <BestDayThisWeek className="fade-in-up" style={{ animationDelay: '0.15s' }} />
 
-        {/* Best Conditions Today */}
-        <BestConditionsToday className="fade-in-up" style={{ animationDelay: '0.35s' }} />
+        {/* 4. Best Conditions Today */}
+        <BestConditionsToday className="fade-in-up" style={{ animationDelay: '0.2s' }} />
 
-        {/* Interactive Map Section - Hero Size */}
-        <section className="fade-in-up" style={{ animationDelay: '0.5s' }}>
-          <h2 className="section-title flex items-center gap-2">
-            <MapPinIcon className="w-5 h-5 text-emerald-400 pulse" />
-            Mountain Locations
-          </h2>
-          <Suspense fallback={<LoadingSkeleton height={400} className="rounded-xl" />}>
-            <LocationMap
-              locations={allLocations || []}
-              onLocationSelect={(location) => navigate(`/location/${location.id}`)}
-              className="w-full h-[50vh] min-h-[400px]"
-            />
-          </Suspense>
-        </section>
+        {/* 5. Favorites + Recent Locations (merged) */}
+        <section className="fade-in-up" style={{ animationDelay: '0.25s' }}>
+          {hasFavorites ? (
+            <>
+              {/* Favorites */}
+              <h2 className="section-title flex items-center gap-2">
+                <HeartIcon className="w-5 h-5 text-red-400" />
+                Favorite Locations
+              </h2>
+              <div className="space-y-3">
+                {favoritesToShow.map(locationId => (
+                  <WeatherCard key={locationId} locationId={locationId} />
+                ))}
+              </div>
+              {hasMoreFavorites && (
+                <Link
+                  to="/favorites"
+                  className="block text-center text-sm text-emerald-400 hover:text-emerald-300 transition-colors mt-3 py-2"
+                >
+                  View all {favoriteLocationIds.length} favorites
+                </Link>
+              )}
 
-        {/* Favorites Section */}
-        <section className="fade-in-up" style={{ animationDelay: '0.6s' }}>
-          <h2 className="section-title flex items-center gap-2">
-            <HeartIcon className="w-5 h-5 text-red-400" />
-            Favorite Locations
-          </h2>
-          {favoriteLocationIds.length > 0 ? (
-            <div className="space-y-3 stagger-children">
-              {favoriteLocationIds.map(locationId => (
-                <WeatherCard key={locationId} locationId={locationId} />
-              ))}
-            </div>
+              {/* Recently Viewed (compact row below favorites) */}
+              {filteredRecents.length > 0 && (
+                <div className="mt-5">
+                  <h3 className="text-sm font-medium text-slate-400 flex items-center gap-1.5 mb-2">
+                    <ClockIcon className="w-4 h-4 text-slate-500" />
+                    Recently Viewed
+                  </h3>
+                  <div className="space-y-2">
+                    {filteredRecents.map(locationId => (
+                      <WeatherCard key={locationId} locationId={locationId} compact />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          ) : hasRecents ? (
+            <>
+              {/* No favorites — show recents in the favorites position */}
+              <h2 className="section-title flex items-center gap-2">
+                <ClockIcon className="w-5 h-5 text-slate-400" />
+                Recently Viewed
+              </h2>
+              <div className="space-y-3">
+                {recentLocationIds.slice(0, 4).map(locationId => (
+                  <WeatherCard key={locationId} locationId={locationId} />
+                ))}
+              </div>
+            </>
           ) : (
-            <NoFavorites />
+            <>
+              <h2 className="section-title flex items-center gap-2">
+                <HeartIcon className="w-5 h-5 text-red-400" />
+                Favorite Locations
+              </h2>
+              <NoFavorites />
+            </>
           )}
         </section>
 
-        {/* Browse by Area */}
-        <section className="fade-in-up" style={{ animationDelay: '0.8s' }}>
+        {/* 6. All Locations — top 12 by hiking score */}
+        <section className="fade-in-up" style={{ animationDelay: '0.3s' }}>
+          <h2 className="section-title">Top Conditions Right Now</h2>
+          {locationsLoading ? (
+            <LoadingSkeleton count={5} height={80} />
+          ) : !allLocations || allLocations.length === 0 ? (
+            <EmptyState
+              variant="no-locations"
+              title="No locations available"
+              description="Weather data is being loaded. Please check back soon."
+            />
+          ) : (
+            <>
+              <div className="space-y-3">
+                {top12LocationIds.map(locationId => (
+                  <WeatherCard key={locationId} locationId={locationId} compact />
+                ))}
+              </div>
+              {totalLocationCount > 12 && (
+                <Link
+                  to="/search"
+                  className="flex items-center justify-center gap-2 mt-4 py-3 rounded-lg text-sm font-medium text-emerald-400 hover:text-emerald-300 hover:bg-slate-800/50 transition-colors"
+                >
+                  <MapPinIcon className="w-4 h-4" />
+                  View all {totalLocationCount} mountains
+                </Link>
+              )}
+            </>
+          )}
+        </section>
+
+        {/* 7. Compact Interactive Map */}
+        <section className="fade-in-up" style={{ animationDelay: '0.3s' }}>
+          <h2 className="section-title flex items-center gap-2">
+            <MapPinIcon className="w-5 h-5 text-emerald-400" />
+            Mountain Map
+          </h2>
+          <Suspense fallback={<LoadingSkeleton height={192} className="rounded-xl" />}>
+            <LocationMap
+              locations={allLocations || []}
+              onLocationSelect={(location) => navigate(`/location/${location.id}`)}
+              className="w-full h-48 rounded-xl"
+            />
+          </Suspense>
+          <Link
+            to="/search"
+            className="block text-center text-sm text-emerald-400 hover:text-emerald-300 transition-colors mt-2 py-1"
+          >
+            Explore full map
+          </Link>
+        </section>
+
+        {/* 8. Browse by Area */}
+        <section className="fade-in-up" style={{ animationDelay: '0.3s' }}>
           <h2 className="section-title">Browse by Area</h2>
           {areasLoading ? (
             <LoadingSkeleton count={5} height={60} />
@@ -166,7 +247,7 @@ export function HomePage() {
               description="Area data is being loaded."
             />
           ) : (
-            <div className="grid grid-cols-2 gap-3 stagger-children">
+            <div className="grid grid-cols-2 gap-3">
               {areas.map(area => (
                 <Link
                   key={area.id}
@@ -178,54 +259,6 @@ export function HomePage() {
                   </h3>
                   <p className="text-sm text-slate-500">{area.locationCount} locations</p>
                 </Link>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* Quick Actions */}
-        <section className="pt-4 pb-8 fade-in-up" style={{ animationDelay: '1.0s' }}>
-          <Link
-            to="/search"
-            className="btn btn-primary w-full flex items-center justify-center gap-2 py-3 ripple hover-scale"
-          >
-            <MapPinIcon className="w-5 h-5" />
-            Search All Mountains
-          </Link>
-        </section>
-
-        {/* Recent Locations */}
-        <section className="fade-in-up" style={{ animationDelay: '1.2s' }}>
-          <h2 className="section-title flex items-center gap-2">
-            <ClockIcon className="w-5 h-5 text-slate-400" />
-            Recent Locations
-          </h2>
-          {recentLocationIds.length > 0 ? (
-            <div className="space-y-3 stagger-children">
-              {recentLocationIds.slice(0, 3).map(locationId => (
-                <WeatherCard key={locationId} locationId={locationId} compact />
-              ))}
-            </div>
-          ) : (
-            <NoRecentLocations />
-          )}
-        </section>
-
-        {/* All Locations */}
-        <section className="fade-in-up" style={{ animationDelay: '1.4s' }}>
-          <h2 className="section-title">All Locations</h2>
-          {locationsLoading ? (
-            <LoadingSkeleton count={5} height={80} />
-          ) : !allLocations || allLocations.length === 0 ? (
-            <EmptyState
-              variant="no-locations"
-              title="No locations available"
-              description="Weather data is being loaded. Please check back soon."
-            />
-          ) : (
-            <div className="space-y-3 stagger-children">
-              {allLocations.map(location => (
-                <WeatherCard key={location.id} locationId={location.id} compact />
               ))}
             </div>
           )}

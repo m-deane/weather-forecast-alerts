@@ -99,7 +99,7 @@ export function WeatherCard({ locationId, compact = false, showDetails = false }
       </div>
 
       {/* Header with Weather Icon */}
-      <div className="flex justify-between items-start mb-3">
+      <div className="flex justify-between items-start mb-4">
         <div className="flex items-center gap-3">
           {/* Weather Icon */}
           <WeatherIcon
@@ -159,7 +159,7 @@ export function WeatherCard({ locationId, compact = false, showDetails = false }
 
       {/* Status indicators */}
       {!compact && (
-        <div className="mt-3 flex items-center justify-between fade-in-up" style={{ animationDelay: '0.2s' }}>
+        <div className="mt-4 flex items-center justify-between fade-in-up" style={{ animationDelay: '0.2s' }}>
           <div className="flex items-center gap-2">
             {isSafe ? (
               <span className="safety-badge safety-badge-safe">
@@ -187,16 +187,6 @@ export function WeatherCard({ locationId, compact = false, showDetails = false }
       {showDetails && (
         <div className="mt-4 pt-3 border-t border-slate-700/50 space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="text-slate-400">Feels like:</span>
-            <span className="text-slate-200">{formatTemperature(currentPeriod.feels_like_c, preferences)}</span>
-          </div>
-
-          <div className="flex justify-between text-sm">
-            <span className="text-slate-400">Wind direction:</span>
-            <span className="text-slate-200">{currentPeriod.wind_direction || 'Variable'}</span>
-          </div>
-
-          <div className="flex justify-between text-sm">
             <span className="text-slate-400">Risk level:</span>
             <span className={cn(
               'px-2 py-1 text-xs rounded-full font-medium',
@@ -222,14 +212,12 @@ export function WeatherCard({ locationId, compact = false, showDetails = false }
         </div>
       )}
 
-      {/* Last updated / data source warning */}
-      <div className="mt-3 text-xs text-slate-500">
-        {isEstimated ? (
+      {/* Data source warning (only shown for estimated data) */}
+      {isEstimated && (
+        <div className="mt-3 text-xs">
           <span className="text-amber-500/80">Estimated data - no real forecast available</span>
-        ) : (
-          <>Updated: {new Date(data.last_updated).toLocaleTimeString()}</>
-        )}
-      </div>
+        </div>
+      )}
     </Link>
   )
 }

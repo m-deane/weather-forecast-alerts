@@ -5,7 +5,8 @@ import {
   MagnifyingGlassIcon,
   MapPinIcon,
   AdjustmentsHorizontalIcon,
-  XMarkIcon
+  XMarkIcon,
+  ChevronDownIcon
 } from '@heroicons/react/24/outline'
 import { locationApi } from '@/api/client'
 import { useAppStore } from '@/stores/useAppStore'
@@ -29,6 +30,7 @@ export function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [query, setQuery] = useState(searchParams.get('q') || '')
   const [showFilters, setShowFilters] = useState(false)
+  const [mapOpen, setMapOpen] = useState(false)
   const [filters, setFilters] = useState<FilterOptions>({
     area: searchParams.get('area') || '',
     classification: '',
@@ -260,7 +262,7 @@ export function SearchPage() {
 
       {/* Results */}
       <PullToRefresh onRefresh={handleRefresh}>
-        <div className="px-4 py-4 space-y-6">
+        <div className="px-4 py-4 space-y-4">
           {/* Location Detection */}
           {query.length < 2 && !filters.area && (
             <LocationDetection
@@ -293,18 +295,29 @@ export function SearchPage() {
               {filteredLocations.length} location{filteredLocations.length !== 1 ? 's' : ''} found
             </p>
 
-            {/* Interactive map of filtered locations */}
+            {/* Collapsible map of filtered locations */}
             {filteredLocations.length > 0 && (
-              <Suspense fallback={<div className="w-full h-64 bg-slate-800 rounded-xl animate-pulse" />}>
-                <LocationMap
-                  locations={filteredLocations}
-                  onLocationSelect={(location) => {
-                    addRecent(location.id)
-                    navigate(`/location/${location.id}`)
-                  }}
-                  className="w-full h-64 rounded-xl mb-4"
-                />
-              </Suspense>
+              <>
+                <button
+                  onClick={() => setMapOpen(!mapOpen)}
+                  className="w-full flex items-center justify-between p-3 bg-slate-800/50 rounded-lg text-sm text-slate-300 hover:bg-slate-800/70 transition-colors"
+                >
+                  <span>Map View</span>
+                  <ChevronDownIcon className={cn("w-4 h-4 transition-transform", mapOpen && "rotate-180")} />
+                </button>
+                {mapOpen && (
+                  <Suspense fallback={<div className="w-full h-64 bg-slate-800 rounded-xl animate-pulse" />}>
+                    <LocationMap
+                      locations={filteredLocations}
+                      onLocationSelect={(location) => {
+                        addRecent(location.id)
+                        navigate(`/location/${location.id}`)
+                      }}
+                      className="w-full h-64 rounded-xl"
+                    />
+                  </Suspense>
+                )}
+              </>
             )}
 
             <div className="stagger-children space-y-3">

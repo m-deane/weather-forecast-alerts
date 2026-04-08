@@ -120,8 +120,9 @@ def find_latest_forecast(location_name: str) -> Optional[Dict]:
     if not files:
         return None
 
-    # Get the most recent file
-    latest_file = max(files, key=lambda p: p.stat().st_mtime)
+    # Get the most recent file by filename (YYYYMMDD_HHMMSS prefix gives chronological order).
+    # Using filename instead of st_mtime because in Docker all files share the same mtime.
+    latest_file = max(files, key=lambda p: p.name)
 
     try:
         with open(latest_file, 'r') as f:

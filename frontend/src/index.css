@@ -189,6 +189,15 @@
     transition-duration: 100ms;
   }
 
+  /* Compact card for list contexts - lighter than .card */
+  .card-compact {
+    @apply bg-slate-800/60 border border-slate-700/50 rounded-xl p-4 transition-colors;
+  }
+
+  .card-compact:hover {
+    @apply bg-slate-800/80 border-slate-600/50;
+  }
+
   .card-elevated {
     @apply bg-slate-800 rounded-xl border border-slate-700 p-4;
     @apply shadow-lg;

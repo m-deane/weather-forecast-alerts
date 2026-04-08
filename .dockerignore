@@ -1,0 +1,114 @@
+# Git
+.git
+.gitignore
+
+# Node modules (frontend deps are installed fresh in build stage)
+node_modules
+frontend/node_modules
+
+# Python artifacts
+__pycache__
+*.pyc
+*.pyo
+*.egg-info
+*.egg
+*.whl
+.eggs
+venv
+.venv
+backend/venv
+backend/__pycache__
+
+# Environment and secrets
+.env
+.env.*
+*.pem
+*.key
+credentials.json
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Build outputs (frontend dist is built in Docker)
+frontend/dist
+dist
+build
+
+# Logs
+logs
+*.log
+
+# Test artifacts
+.pytest_cache
+.coverage
+htmlcov
+coverage
+tests
+
+# Documentation (not needed at runtime)
+*.md
+!README.md
+
+# CI/CD
+.github
+
+# Database files (not used by simple_api)
+backend/database
+database
+
+# Docker compose (not needed inside container)
+docker-compose.yml
+docker-compose.override.yml
+
+# Development scripts
+run_all.sh
+run_scraper.sh
+check_urls.py
+
+# Backend files not needed for simple_api
+backend/main.py
+backend/api.py
+backend/cache.py
+backend/config.py
+backend/database.py
+backend/data_ingestion.py
+backend/data_migration.py
+backend/data_migration_simple.py
+backend/init_database.py
+backend/models.py
+backend/models_simple.py
+backend/security.py
+backend/weather_service.py
+backend/test_db.py
+backend/requirements.txt
+backend/requirements_simple.txt
+backend/run_migration.sh
+backend/Dockerfile
+backend/venv
+backend/api_simple.py
+backend/migration.log
+backend/migration2.log
+backend/migration_final.log
+
+# Images and PDFs (not needed at runtime)
+*.png
+*.pdf
+
+# Scraper failure logs
+failed_munros_*.csv
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Running process PIDs
+.running_pids
+
+# Claude/AI config
+.claude
+claude.md
+CLAUDE.md
+projectplan.md

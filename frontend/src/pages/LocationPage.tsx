@@ -7,8 +7,6 @@ import {
   ShareIcon,
   ExclamationTriangleIcon,
   CloudIcon,
-  EyeIcon,
-  SunIcon,
   BeakerIcon,
   MapPinIcon,
   ChevronDownIcon
@@ -18,7 +16,7 @@ import { weatherApi, locationApi } from '@/api/client'
 import { useAppStore } from '@/stores/useAppStore'
 import { useDataStalenessStore } from '@/stores/useDataStalenessStore'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
-import { DataLoadError, NoAlerts, EmptyState } from '@/components/EmptyState'
+import { DataLoadError } from '@/components/EmptyState'
 import { cn } from '@/utils/cn'
 import {
   formatTemperature,
@@ -64,6 +62,8 @@ export function LocationPage() {
   const { preferences, isFavorite, addFavorite, removeFavorite, addRecent } = useAppStore()
   const setLastUpdated = useDataStalenessStore((state) => state.setLastUpdated)
   const [expandedDayIndex, setExpandedDayIndex] = useState<number | null>(null)
+  const [planningOpen, setPlanningOpen] = useState(false)
+  const [photoRefOpen, setPhotoRefOpen] = useState(false)
 
   // Get weather forecast
   const { data: forecast, isLoading: forecastLoading, error: forecastError } = useQuery({
@@ -168,7 +168,7 @@ export function LocationPage() {
       </header>
 
       <div className="px-4 py-6 space-y-6">
-        {/* Estimated data warning banner */}
+        {/* 1. Estimated data warning banner */}
         {forecast.data_source?.includes('estimated') && (
           <div className="rounded-xl border border-amber-600/30 bg-amber-900/20 px-4 py-3 flex items-start gap-3 fade-in">
             <ExclamationTriangleIcon className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
@@ -181,139 +181,34 @@ export function LocationPage() {
           </div>
         )}
 
-        {/* Emergency info — reference card, collapsed by default */}
-        <EmergencyInfo area={location.area} locationName={location.name} />
-
-        {/* Export functionality */}
-        <div className="flex justify-end fade-in">
-          <ExportWeatherData forecasts={forecast.forecasts} location={forecast.location} />
-        </div>
-
-        {/* Go / No-Go verdict for next 3 days */}
-        <GoNoGoSummary forecasts={forecast.forecasts} />
-
-        {/* Winter conditions advisory for today */}
-        {currentDay && <WinterConditionsPanel forecast={currentDay} />}
-
-        {/* Mini Location Map */}
-        <section className="fade-in-up">
-          <h2 className="section-title flex items-center gap-2 mb-3">
-            <MapPinIcon className="w-5 h-5 text-emerald-400" />
-            Location
-          </h2>
-          <div className="card p-0 overflow-hidden">
-            <Suspense fallback={<LoadingSkeleton height={192} />}>
-              <LocationMap
-                locations={[location]}
-                selectedLocationId={location.id}
-                center={[location.latitude, location.longitude]}
-                zoom={11}
-                className="w-full h-48"
-                interactive={false}
-                showPopups={false}
-              />
-            </Suspense>
-            <div className="p-3 bg-slate-800/50 border-t border-slate-700/50">
-              <div className="flex items-center justify-between text-sm">
-                <div>
-                  <span className="text-slate-400">Coordinates:</span>
-                  <span className="text-slate-200 ml-2 mono-nums">
-                    {location.latitude.toFixed(4)}°N, {Math.abs(location.longitude).toFixed(4)}°W
-                  </span>
-                </div>
-                <div>
-                  <span className="text-slate-400">Elevation:</span>
-                  <span className="text-emerald-400 ml-2 font-medium mono-nums">{location.elevation_m}m</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Mountain Photos */}
-        <MountainPhotoGallery locationId={locationId} />
-
-        {/* Weather Trend - Shows improving/deteriorating conditions */}
-        <section className="fade-in-up" style={{ animationDelay: '0.05s' }}>
-          <WeatherTrend forecasts={forecast.forecasts} />
-        </section>
-
-        {/* Current conditions */}
-        <div className="fade-in-up" style={{ animationDelay: '0.1s' }}>
-          <CurrentConditionsCard day={currentDay} preferences={preferences} />
-        </div>
-
-        {/* Scottish Highland Features Grid */}
-        <section className="fade-in-up" style={{ animationDelay: '0.15s' }}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Daylight Hours */}
-            <DaylightHours
-              latitude={location.latitude}
-              longitude={location.longitude}
-            />
-
-            {/* Cloud Inversion Potential */}
-            <CloudInversionIndicator
-              cloudBase={currentDay?.periods[0]?.cloud_base_m}
-              freezingLevel={currentDay?.periods[0]?.freezing_level_m}
-              summitElevation={location.elevation_m}
-              humidity={undefined}
-              windSpeed={currentDay?.periods[0]?.wind_speed_kph}
-              temperature={currentDay?.periods[0]?.temperature_c}
-            />
-          </div>
-        </section>
-
-        {/* Photography Conditions */}
-        <section className="fade-in-up" style={{ animationDelay: '0.2s' }}>
-          <PhotographyConditions
-            visibility={currentDay?.periods[0]?.visibility_m}
-            cloudBase={currentDay?.periods[0]?.cloud_base_m}
-            cloudCover={undefined}
-            precipitation={currentDay?.periods[0]?.precipitation_mm}
-            windSpeed={currentDay?.periods[0]?.wind_speed_kph}
-            latitude={location.latitude}
-            longitude={location.longitude}
-          />
-        </section>
-
-        {/* Walking Routes */}
-        <WalkHighlandsRoutes
-          locationId={locationId}
-          hikingScore={currentDay?.summary.overall_hiking_score}
-        />
-
-        {/* Walk Time Estimator */}
-        <WalkTimeEstimator forecasts={forecast.forecasts} location={location} />
-
-        {/* Getting There / Parking */}
-        <GettingThere locationId={locationId} />
-
-        {/* Walk History Log */}
-        <WalkHistoryLog
-          location={location}
-          currentScore={currentDay?.summary.overall_hiking_score}
-        />
-
-        {/* Alerts */}
-        <section className="fade-in-up" style={{ animationDelay: '0.1s' }}>
-          <h2 className="section-title flex items-center gap-2 mb-3">
-            <ExclamationTriangleIcon className="w-5 h-5 text-amber-400" />
-            Weather Alerts
-          </h2>
-          {forecast.alerts && forecast.alerts.length > 0 ? (
+        {/* 2. Weather Alerts — safety-critical, shown first (only if alerts exist) */}
+        {forecast.alerts && forecast.alerts.length > 0 && (
+          <section className="fade-in">
+            <h2 className="section-title flex items-center gap-2 mb-3">
+              <ExclamationTriangleIcon className="w-5 h-5 text-amber-400" />
+              Weather Alerts
+            </h2>
             <div className="space-y-2">
               {forecast.alerts.map((alert, index) => (
                 <AlertCard key={index} alert={alert} />
               ))}
             </div>
-          ) : (
-            <NoAlerts />
-          )}
+          </section>
+        )}
+
+        {/* 3. Go / No-Go verdict for next 3 days */}
+        <GoNoGoSummary forecasts={forecast.forecasts} />
+
+        {/* 4. Winter conditions advisory for today */}
+        {currentDay && <WinterConditionsPanel forecast={currentDay} />}
+
+        {/* 5. Weather Trend — improving/deteriorating conditions */}
+        <section className="fade-in-up" style={{ animationDelay: '0.05s' }}>
+          <WeatherTrend forecasts={forecast.forecasts} />
         </section>
 
-        {/* Daily forecasts */}
-        <section className="fade-in-up" style={{ animationDelay: '0.2s' }}>
+        {/* 6. 6-Day Forecast — the core content users need */}
+        <section className="fade-in-up" style={{ animationDelay: '0.1s' }}>
           <h2 className="section-title">6-Day Forecast</h2>
           <div className="space-y-3 stagger-children">
             {forecast.forecasts.map((day, index) => (
@@ -329,7 +224,141 @@ export function LocationPage() {
           </div>
         </section>
 
-        {/* Customizable Dashboard */}
+        {/* 7. Current conditions */}
+        <div className="fade-in-up" style={{ animationDelay: '0.15s' }}>
+          <CurrentConditionsCard day={currentDay} preferences={preferences} />
+        </div>
+
+        {/* 8. Daylight Hours + Cloud Inversion grid */}
+        <section className="fade-in-up" style={{ animationDelay: '0.2s' }}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <DaylightHours
+              latitude={location.latitude}
+              longitude={location.longitude}
+            />
+            <CloudInversionIndicator
+              cloudBase={currentDay?.periods[0]?.cloud_base_m}
+              freezingLevel={currentDay?.periods[0]?.freezing_level_m}
+              summitElevation={location.elevation_m}
+              humidity={undefined}
+              windSpeed={currentDay?.periods[0]?.wind_speed_kph}
+              temperature={currentDay?.periods[0]?.temperature_c}
+            />
+          </div>
+        </section>
+
+        {/* 9. Collapsible Trip Planning section */}
+        <div className="card p-0 overflow-hidden fade-in-up" style={{ animationDelay: '0.25s' }}>
+          <button
+            type="button"
+            onClick={() => setPlanningOpen(!planningOpen)}
+            className="w-full flex items-center justify-between p-4 hover:bg-slate-700/30 transition-colors"
+            aria-expanded={planningOpen}
+          >
+            <h2 className="text-lg font-semibold text-slate-200">Trip Planning</h2>
+            <ChevronDownIcon
+              className={cn(
+                "w-5 h-5 text-slate-400 transition-transform duration-300",
+                planningOpen && "rotate-180"
+              )}
+              aria-hidden="true"
+            />
+          </button>
+          {planningOpen && (
+            <div className="space-y-6 px-4 pb-4">
+              <WalkHighlandsRoutes
+                locationId={locationId}
+                hikingScore={currentDay?.summary.overall_hiking_score}
+              />
+              <WalkTimeEstimator forecasts={forecast.forecasts} location={location} />
+              <GearChecklist location={location} forecasts={forecast.forecasts} />
+              <GettingThere locationId={locationId} />
+              <WalkHistoryLog
+                location={location}
+                currentScore={currentDay?.summary.overall_hiking_score}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* 10. Collapsible Photography & Reference section */}
+        <div className="card p-0 overflow-hidden fade-in-up" style={{ animationDelay: '0.3s' }}>
+          <button
+            type="button"
+            onClick={() => setPhotoRefOpen(!photoRefOpen)}
+            className="w-full flex items-center justify-between p-4 hover:bg-slate-700/30 transition-colors"
+            aria-expanded={photoRefOpen}
+          >
+            <h2 className="text-lg font-semibold text-slate-200">Photography & Reference</h2>
+            <ChevronDownIcon
+              className={cn(
+                "w-5 h-5 text-slate-400 transition-transform duration-300",
+                photoRefOpen && "rotate-180"
+              )}
+              aria-hidden="true"
+            />
+          </button>
+          {photoRefOpen && (
+            <div className="space-y-6 px-4 pb-4">
+              <PhotographyConditions
+                visibility={currentDay?.periods[0]?.visibility_m}
+                cloudBase={currentDay?.periods[0]?.cloud_base_m}
+                cloudCover={undefined}
+                precipitation={currentDay?.periods[0]?.precipitation_mm}
+                windSpeed={currentDay?.periods[0]?.wind_speed_kph}
+                latitude={location.latitude}
+                longitude={location.longitude}
+              />
+              <MountainPhotoGallery locationId={locationId} />
+              <section>
+                <h3 className="section-title flex items-center gap-2 mb-3">
+                  <MapPinIcon className="w-5 h-5 text-emerald-400" />
+                  Location
+                </h3>
+                <div className="card p-0 overflow-hidden">
+                  <Suspense fallback={<LoadingSkeleton height={192} />}>
+                    <LocationMap
+                      locations={[location]}
+                      selectedLocationId={location.id}
+                      center={[location.latitude, location.longitude]}
+                      zoom={11}
+                      className="w-full h-48"
+                      interactive={false}
+                      showPopups={false}
+                    />
+                  </Suspense>
+                  <div className="p-3 bg-slate-800/50 border-t border-slate-700/50">
+                    <div className="flex items-center justify-between text-sm">
+                      <div>
+                        <span className="text-slate-400">Coordinates:</span>
+                        <span className="text-slate-200 ml-2 mono-nums">
+                          {location.latitude.toFixed(4)}°N, {Math.abs(location.longitude).toFixed(4)}°W
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400">Elevation:</span>
+                        <span className="text-emerald-400 ml-2 font-medium mono-nums">{location.elevation_m}m</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+          )}
+        </div>
+
+        {/* 11. Emergency Info */}
+        <EmergencyInfo area={location.area} locationName={location.name} />
+
+        {/* 12. Export + Share row */}
+        <div className="flex items-center justify-between gap-4 fade-in-up">
+          <ExportWeatherData forecasts={forecast.forecasts} location={forecast.location} />
+          {currentDay && (
+            <ShareForecastCard location={location} forecast={currentDay} />
+          )}
+        </div>
+
+        {/* 13. Customizable Dashboard */}
         <Suspense fallback={<LoadingSkeleton height={300} className="rounded-xl" />}>
           <CustomizableDashboard
             locationId={locationId}
@@ -339,38 +368,7 @@ export function LocationPage() {
           />
         </Suspense>
 
-        {/* Detailed periods for today */}
-        {currentDay && (
-          <section className="fade-in-up" style={{ animationDelay: '0.4s' }}>
-            <h2 className="section-title">Today's Detailed Forecast</h2>
-            <div className="grid gap-3 stagger-children">
-              {currentDay.periods.map((period, index) => (
-                <PeriodCard key={index} period={period} preferences={preferences} />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Gear Checklist */}
-        <GearChecklist location={location} forecasts={forecast.forecasts} />
-
-        {/* Share Forecast */}
-        {currentDay && (
-          <section className="fade-in-up">
-            <h2 className="section-title flex items-center gap-2 mb-3">
-              <ShareIcon className="w-5 h-5 text-emerald-400" aria-hidden="true" />
-              Share
-            </h2>
-            <div className="card flex items-center justify-between gap-4">
-              <p className="text-sm text-slate-400">
-                Share today's forecast summary with your group.
-              </p>
-              <ShareForecastCard location={location} forecast={currentDay} />
-            </div>
-          </section>
-        )}
-
-        {/* Data source info */}
+        {/* 14. Data source footer */}
         <div className="text-xs text-slate-500 text-center pt-4">
           {forecast.data_source?.includes('estimated') ? (
             <p className="text-amber-500/70">Showing estimated data - no real forecast available</p>
@@ -828,125 +826,6 @@ function DayForecastCard({ day, preferences, isToday, isExpanded, onToggle }: {
           </div>
         </div>
       )}
-    </div>
-  )
-}
-
-function PeriodCard({ period, preferences }: { period: WeatherPeriod; preferences: any }) {
-  // Calculate wind chill difference for display emphasis
-  const windChillDiff = period.temperature_c - period.feels_like_c
-  const significantWindChill = windChillDiff >= 3
-
-  return (
-    <div className="card hover-lift">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-3">
-          <WeatherIcon
-            condition={period.weather_description || 'cloudy'}
-            size="md"
-            animated={false}
-          />
-          <h4 className="font-medium text-slate-100">{getPeriodLabel(period.period_type)}</h4>
-        </div>
-        <span className={cn(
-          'px-2 py-1 text-xs font-medium rounded-full border',
-          getRiskLevelColor(period.risk_level)
-        )}>
-          {period.risk_level} risk
-        </span>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4 text-sm">
-        <div>
-          <span className="text-slate-400">Temperature:</span><br />
-          <TemperatureDisplay
-            temperature={period.temperature_c}
-            size="sm"
-            showUnit={true}
-            variant="compact"
-          />
-        </div>
-
-        <div>
-          <span className={cn(
-            significantWindChill ? 'text-emerald-400' : 'text-slate-400'
-          )}>
-            Feels like{significantWindChill ? ' (wind chill)' : ''}:
-          </span><br />
-          <TemperatureDisplay
-            temperature={period.feels_like_c}
-            size="sm"
-            showUnit={true}
-            variant="compact"
-          />
-        </div>
-
-        <div>
-          <span className="text-slate-400">Wind:</span><br />
-          <WindIndicatorInline
-            direction={period.wind_direction || 'N'}
-            speed={period.wind_speed_kph}
-          />
-        </div>
-
-        <div>
-          <span className="text-slate-400">Hiking Score:</span><br />
-          <HikingScoreGauge
-            score={period.hiking_score}
-            variant="compact"
-            size="sm"
-            showLabel={true}
-            riskTolerance={preferences.riskTolerance}
-          />
-        </div>
-
-        {/* Safety-critical fields */}
-        {period.freezing_level_m !== undefined && (
-          <div>
-            <span className="text-emerald-400 flex items-center gap-1">
-              <BeakerIcon className="w-3.5 h-3.5" />
-              Freezing Level:
-            </span>
-            <span className="font-medium text-emerald-400">
-              {formatFreezingLevel(period.freezing_level_m)}
-            </span>
-          </div>
-        )}
-
-        {period.cloud_base_m !== undefined && (
-          <div>
-            <span className="text-slate-400 flex items-center gap-1">
-              <CloudIcon className="w-3.5 h-3.5" />
-              Cloud Base:
-            </span>
-            <span className="font-medium text-slate-200">
-              {formatCloudBase(period.cloud_base_m)}
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* Safety warnings */}
-      {(period.freezing_level_m !== undefined && period.freezing_level_m < 500) && (
-        <div className="mt-3 p-2 bg-emerald-900/30 border border-emerald-700/50 rounded text-xs text-emerald-300">
-          <strong>Winter Conditions:</strong> Freezing level at {formatFreezingLevel(period.freezing_level_m)} - expect ice, snow, and winter conditions on higher ground. Crampons and ice axe may be required.
-        </div>
-      )}
-
-      {(period.cloud_base_m !== undefined && period.cloud_base_m < 500) && (
-        <div className="mt-3 p-2 bg-slate-700/50 border border-slate-600/50 rounded text-xs text-slate-300">
-          <strong>Navigation Warning:</strong> Cloud base at {formatCloudBase(period.cloud_base_m)} - expect poor visibility on hills. Ensure competent navigation skills.
-        </div>
-      )}
-
-      <div className="mt-3 flex items-center gap-2 text-sm text-slate-400">
-        <WeatherIcon
-          condition={period.weather_description || 'cloudy'}
-          size="xs"
-          animated={false}
-        />
-        <span className="capitalize">{period.weather_description}</span>
-      </div>
     </div>
   )
 }
