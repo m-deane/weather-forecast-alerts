@@ -29,6 +29,7 @@ const defaultPreferences: UserPreferences = {
     distance: 'km',
     elevation: 'meters',
   },
+  theme: 'dark',
   riskTolerance: 'moderate',
   notifications: {
     enabled: false,
@@ -92,6 +93,7 @@ export const useAppStore = create<AppState>()(
               ...current.preferences.units,
               ...(stored.preferences?.units ?? {}),
             },
+            theme: stored.preferences?.theme ?? current.preferences.theme,
             riskTolerance: stored.preferences?.riskTolerance ?? current.preferences.riskTolerance,
             notifications: {
               ...current.preferences.notifications,

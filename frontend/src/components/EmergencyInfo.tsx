@@ -11,6 +11,8 @@ import emergencyData from '@/data/emergency_info.json'
 interface EmergencyInfoProps {
   area: string
   locationName: string
+  latitude?: number
+  longitude?: number
 }
 
 interface AreaEmergencyInfo {
@@ -23,7 +25,7 @@ type EmergencyInfoData = Record<string, AreaEmergencyInfo>
 
 const data = emergencyData as EmergencyInfoData
 
-export function EmergencyInfo({ area, locationName }: EmergencyInfoProps) {
+export function EmergencyInfo({ area, locationName, latitude, longitude }: EmergencyInfoProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [shareStatus, setShareStatus] = useState<'idle' | 'copied' | 'shared'>('idle')
 
@@ -201,6 +203,34 @@ export function EmergencyInfo({ area, locationName }: EmergencyInfoProps) {
                 Gets your GPS coordinates to share with rescue services
               </p>
             </div>
+
+            {/* What3Words location link */}
+            {latitude != null && longitude != null && (
+              <div className="pt-3 border-t border-slate-700/50">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-lg bg-red-700/20 border border-red-600/30">
+                    <span className="text-red-400 text-xs font-bold" aria-hidden="true">///</span>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs text-slate-500 uppercase tracking-wider">What3Words</p>
+                    <a
+                      href={`https://what3words.com/${latitude},${longitude}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm font-medium text-emerald-400 hover:text-emerald-300 transition-colors inline-flex items-center gap-1"
+                    >
+                      Open on What3Words
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
+                    <p className="text-xs text-slate-600 mt-1">
+                      Share this with Mountain Rescue for precise location
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

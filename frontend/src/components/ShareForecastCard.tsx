@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ShareIcon } from '@heroicons/react/24/outline'
+import { ShareIcon, LinkIcon } from '@heroicons/react/24/outline'
 import { CheckIcon } from '@heroicons/react/24/outline'
 import { cn } from '@/utils/cn'
 import type { Location, DailyForecast } from '@/types'
@@ -32,7 +32,7 @@ function buildShareText(location: Location, forecast: DailyForecast): { title: s
 }
 
 export function ShareForecastCard({ location, forecast }: ShareForecastCardProps) {
-  const [status, setStatus] = useState<'idle' | 'shared' | 'copied'>('idle')
+  const [status, setStatus] = useState<'idle' | 'shared' | 'copied' | 'link-copied'>('idle')
 
   async function handleShare() {
     const { title, text } = buildShareText(location, forecast)
@@ -60,28 +60,53 @@ export function ShareForecastCard({ location, forecast }: ShareForecastCardProps
     setTimeout(() => setStatus('idle'), 2000)
   }
 
-  const isActive = status !== 'idle'
+  async function handleCopyLink() {
+    try {
+      await navigator.clipboard.writeText(window.location.href)
+      setStatus('link-copied')
+      setTimeout(() => setStatus('idle'), 2000)
+    } catch {
+      // Clipboard write failed
+    }
+  }
+
+  const isActive = status === 'shared' || status === 'copied'
+  const isLinkCopied = status === 'link-copied'
   const label = status === 'shared' ? 'Shared!' : status === 'copied' ? 'Copied!' : 'Share forecast'
 
+  const btnBase = 'inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 border focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900'
+  const btnInactive = 'bg-white/60 dark:bg-slate-800/60 border-slate-300 dark:border-slate-700/60 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 hover:border-slate-400 dark:hover:border-slate-600/80 hover:bg-slate-100 dark:hover:bg-slate-700/60'
+  const btnActive = 'bg-emerald-50 dark:bg-emerald-900/40 border-emerald-500/60 dark:border-emerald-600/60 text-emerald-600 dark:text-emerald-400'
+
   return (
-    <button
-      type="button"
-      onClick={handleShare}
-      className={cn(
-        'inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200',
-        'border focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-900',
-        isActive
-          ? 'bg-emerald-900/40 border-emerald-600/60 text-emerald-400'
-          : 'bg-slate-800/60 border-slate-700/60 text-slate-300 hover:text-slate-100 hover:border-slate-600/80 hover:bg-slate-700/60'
-      )}
-      aria-label={`Share ${location.name} forecast`}
-    >
-      {isActive ? (
-        <CheckIcon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
-      ) : (
-        <ShareIcon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
-      )}
-      <span>{label}</span>
-    </button>
+    <div className="flex items-center gap-2">
+      <button
+        type="button"
+        onClick={handleShare}
+        className={cn(btnBase, isActive ? btnActive : btnInactive)}
+        aria-label={`Share ${location.name} forecast`}
+      >
+        {isActive ? (
+          <CheckIcon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+        ) : (
+          <ShareIcon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+        )}
+        <span>{label}</span>
+      </button>
+
+      <button
+        type="button"
+        onClick={handleCopyLink}
+        className={cn(btnBase, isLinkCopied ? btnActive : btnInactive)}
+        aria-label="Copy link to clipboard"
+      >
+        {isLinkCopied ? (
+          <CheckIcon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+        ) : (
+          <LinkIcon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+        )}
+        <span>{isLinkCopied ? 'Copied!' : 'Copy link'}</span>
+      </button>
+    </div>
   )
 }

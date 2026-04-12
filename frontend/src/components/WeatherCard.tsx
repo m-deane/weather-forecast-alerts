@@ -136,6 +136,7 @@ export function WeatherCard({ locationId, compact = false, showDetails = false }
           <WindIndicatorInline
             direction={currentPeriod.wind_direction || 'N'}
             speed={currentPeriod.wind_speed_kph}
+            gustSpeed={currentPeriod.gust_speed_kph}
           />
         </div>
 

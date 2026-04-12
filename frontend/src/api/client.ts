@@ -1,5 +1,6 @@
 import axios from 'axios'
 import type { WeatherForecast, Location, MountainPhoto, WalkHighlandsRoute, PhotographyViewpointData } from '@/types'
+import { cacheForecast, getCachedForecast, formatCacheAge } from '@/utils/offlineForecast'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1'
 
@@ -30,11 +31,31 @@ apiClient.interceptors.response.use(
   error => Promise.reject(error)
 )
 
+// Augmented forecast type that indicates cached data
+export interface ForecastResult extends WeatherForecast {
+  _fromCache?: boolean
+  _cacheAge?: string
+}
+
 // Weather API endpoints
 export const weatherApi = {
-  getForecast: async (locationId: string): Promise<WeatherForecast> => {
-    const { data } = await apiClient.get(`/weather/${locationId}`)
-    return data
+  getForecast: async (locationId: string): Promise<ForecastResult> => {
+    try {
+      const { data } = await apiClient.get(`/weather/${locationId}`)
+      // Cache the successful response for offline use
+      cacheForecast(locationId, data)
+      return data
+    } catch (error) {
+      // On network failure, try the local cache
+      const cached = getCachedForecast(locationId)
+      if (cached) {
+        const result = cached.data as ForecastResult
+        result._fromCache = true
+        result._cacheAge = formatCacheAge(cached.ageMs)
+        return result
+      }
+      throw error
+    }
   },
 
   compareLocations: async (locationIds: string[]): Promise<WeatherForecast[]> => {

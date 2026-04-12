@@ -4,10 +4,28 @@ import { MobileNavigation } from '@/components/MobileNavigation'
 import { DataStalenessWarning } from '@/components/DataStalenessWarning'
 import { useOfflineStatus } from '@/utils/offlineCache'
 import { setupApiInterceptor } from '@/utils/monitoring'
+import { useAppStore } from '@/stores/useAppStore'
 import { useEffect } from 'react'
 
 export function Layout() {
   const { isOnline } = useOfflineStatus()
+  const theme = useAppStore((state) => state.preferences.theme)
+
+  // Apply theme class on <html> element
+  useEffect(() => {
+    const root = document.documentElement
+    if (theme === 'system') {
+      const mq = window.matchMedia('(prefers-color-scheme: dark)')
+      root.classList.toggle('dark', mq.matches)
+      const handler = (e: MediaQueryListEvent) => {
+        root.classList.toggle('dark', e.matches)
+      }
+      mq.addEventListener('change', handler)
+      return () => mq.removeEventListener('change', handler)
+    } else {
+      root.classList.toggle('dark', theme === 'dark')
+    }
+  }, [theme])
 
   // Initialize monitoring
   useEffect(() => {
@@ -16,14 +34,14 @@ export function Layout() {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-slate-900">
+      <div className="min-h-screen bg-slate-100 dark:bg-slate-900 transition-colors duration-200">
         {/* Skip to main content link for keyboard navigation */}
         <a href="#main-content" className="skip-link">
           Skip to main content
         </a>
 
         {/* Subtle gradient overlay */}
-        <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950/20 pointer-events-none" />
+        <div className="fixed inset-0 bg-gradient-to-br from-slate-50 via-slate-100 to-emerald-50/20 dark:from-slate-900 dark:via-slate-900 dark:to-emerald-950/20 pointer-events-none" />
 
         {/* Content wrapper */}
         <div className="relative">

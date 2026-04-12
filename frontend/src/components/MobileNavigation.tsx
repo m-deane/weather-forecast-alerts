@@ -107,8 +107,8 @@ export function MobileNavigation() {
 
   return (
     <>
-      {/* Mobile Bottom Navigation - Dark Theme */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-md border-t border-slate-700/50 safe-bottom z-40 lg:hidden">
+      {/* Mobile Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-700/50 safe-bottom z-40 lg:hidden">
         <div
           ref={swipeRef}
           className="flex items-center justify-around px-2 py-1"
@@ -159,14 +159,14 @@ export function MobileNavigation() {
         </div>
 
         {/* Swipe indicator */}
-        <div className="absolute top-1 left-1/2 transform -translate-x-1/2 w-8 h-1 bg-slate-600 rounded-full opacity-50" />
+        <div className="absolute top-1 left-1/2 transform -translate-x-1/2 w-8 h-1 bg-slate-300 dark:bg-slate-600 rounded-full opacity-50" />
       </nav>
 
-      {/* Desktop Sidebar Navigation - Dark Theme */}
-      <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 lg:bg-slate-900 lg:border-r lg:border-slate-700/50 lg:z-30">
+      {/* Desktop Sidebar Navigation */}
+      <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 lg:bg-white dark:lg:bg-slate-900 lg:border-r lg:border-slate-200 dark:lg:border-slate-700/50 lg:z-30">
         <div className="flex flex-col flex-1 min-h-0">
           {/* Logo / Brand */}
-          <div className="flex items-center h-16 px-6 border-b border-slate-700/50 header-gradient">
+          <div className="flex items-center h-16 px-6 border-b border-slate-200 dark:border-slate-700/50 header-gradient">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
                 <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -192,8 +192,8 @@ export function MobileNavigation() {
                   className={cn(
                     'w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200',
                     isActive
-                      ? 'bg-emerald-600/20 text-emerald-400 border-l-2 border-emerald-500'
-                      : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                      ? 'bg-emerald-600/20 text-emerald-600 dark:text-emerald-400 border-l-2 border-emerald-500'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                   )}
                   aria-current={isActive ? 'page' : undefined}
                 >

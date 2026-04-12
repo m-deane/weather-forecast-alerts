@@ -177,19 +177,29 @@ export function WindArrow({
   )
 }
 
+// Get gust color based on severity thresholds (kph):
+// <30 emerald, 30-50 amber, 50-70 orange, >70 red
+function getGustColor(gustSpeed: number): string {
+  if (gustSpeed < 30) return 'text-emerald-400'
+  if (gustSpeed <= 50) return 'text-amber-400'
+  if (gustSpeed <= 70) return 'text-orange-400'
+  return 'text-red-400'
+}
+
 // Compact inline version
 interface WindIndicatorProps {
   direction: string
   speed: number
+  gustSpeed?: number
   className?: string
 }
 
-export function WindIndicatorInline({ direction, speed, className }: WindIndicatorProps) {
+export function WindIndicatorInline({ direction, speed, gustSpeed, className }: WindIndicatorProps) {
   const degrees = useMemo(() => directionToDegrees(direction), [direction])
   const colors = useMemo(() => getWindColor(speed), [speed])
 
   return (
-    <div className={cn('inline-flex items-center gap-1.5', className)}>
+    <div className={cn('inline-flex items-center gap-1.5 flex-wrap', className)}>
       <div
         style={{ transform: `rotate(${degrees}deg)` }}
         className="transition-transform duration-300"
@@ -204,9 +214,16 @@ export function WindIndicatorInline({ direction, speed, className }: WindIndicat
       <span className="text-slate-500 text-sm">
         kph {direction}
       </span>
+      {gustSpeed != null && gustSpeed > speed && (
+        <span className={cn('text-sm mono-nums', getGustColor(gustSpeed))}>
+          / gusts {gustSpeed} kph
+        </span>
+      )}
     </div>
   )
 }
+
+export { getGustColor }
 
 // Wind Speed Bar (horizontal visualization)
 interface WindSpeedBarProps {

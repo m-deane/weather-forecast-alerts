@@ -49,11 +49,14 @@ import { WalkHighlandsRoutes } from '@/components/WalkHighlandsRoutes'
 import { WalkTimeEstimator } from '@/components/WalkTimeEstimator'
 import { GettingThere } from '@/components/GettingThere'
 import { GoNoGoSummary } from '@/components/GoNoGoSummary'
+import { SafeWindowBar } from '@/components/weather/SafeWindowBar'
 import { WinterConditionsPanel } from '@/components/WinterConditionsPanel'
 import { GearChecklist } from '@/components/GearChecklist'
 import { ShareForecastCard } from '@/components/ShareForecastCard'
 import { EmergencyInfo } from '@/components/EmergencyInfo'
 import { WalkHistoryLog } from '@/components/WalkHistoryLog'
+import { WeatherNarrative } from '@/components/weather/WeatherNarrative'
+import { MountainWebcams } from '@/components/MountainWebcams'
 import type { WeatherPeriod, DailyForecast } from '@/types'
 
 export function LocationPage() {
@@ -133,6 +136,9 @@ export function LocationPage() {
             <p className="text-emerald-100 text-sm">
               {location.area} • {location.elevation_m}m • {location.classification}
             </p>
+            <p className="text-emerald-200/60 text-xs mt-0.5">
+              Summit forecast ({location.elevation_m}m)
+            </p>
           </div>
 
           <div className="flex gap-2">
@@ -199,6 +205,22 @@ export function LocationPage() {
         {/* 3. Go / No-Go verdict for next 3 days */}
         <GoNoGoSummary forecasts={forecast.forecasts} />
 
+        {/* 3a. AI-generated weather narrative for today */}
+        {currentDay && (
+          <WeatherNarrative
+            forecast={currentDay}
+            locationName={location.name}
+            elevation={location.elevation_m}
+          />
+        )}
+
+        {/* 3b. Safe Window Timeline — today's safety at a glance */}
+        {currentDay && currentDay.periods.length > 1 && (
+          <section className="fade-in-up">
+            <SafeWindowBar periods={currentDay.periods} />
+          </section>
+        )}
+
         {/* 4. Winter conditions advisory for today */}
         {currentDay && <WinterConditionsPanel forecast={currentDay} />}
 
@@ -211,17 +233,31 @@ export function LocationPage() {
         <section className="fade-in-up" style={{ animationDelay: '0.1s' }}>
           <h2 className="section-title">6-Day Forecast</h2>
           <div className="space-y-3 stagger-children">
-            {forecast.forecasts.map((day, index) => (
-              <DayForecastCard
-                key={day.date}
-                day={day}
-                preferences={preferences}
-                isToday={index === 0}
-                isExpanded={expandedDayIndex === index}
-                onToggle={() => setExpandedDayIndex(expandedDayIndex === index ? null : index)}
-              />
-            ))}
+            {forecast.forecasts.map((day, index) => {
+              // Forecast confidence decreases after day 3
+              const confidence = index <= 2 ? 'high' : index <= 4 ? 'medium' : 'low'
+              // Reduce opacity for lower confidence days (day 4+)
+              const opacityStyle = index >= 3
+                ? { opacity: 1 - (index - 2) * 0.1 }
+                : undefined
+
+              return (
+                <div key={day.date} style={opacityStyle} className="relative">
+                  <DayForecastCard
+                    day={day}
+                    preferences={preferences}
+                    isToday={index === 0}
+                    isExpanded={expandedDayIndex === index}
+                    onToggle={() => setExpandedDayIndex(expandedDayIndex === index ? null : index)}
+                    confidence={confidence}
+                  />
+                </div>
+              )
+            })}
           </div>
+          <p className="text-xs text-slate-500 text-center mt-3">
+            Forecasts beyond 3 days are less reliable — use for general planning only
+          </p>
         </section>
 
         {/* 7. Current conditions */}
@@ -310,6 +346,7 @@ export function LocationPage() {
                 longitude={location.longitude}
               />
               <MountainPhotoGallery locationId={locationId} />
+              <MountainWebcams locationId={locationId} />
               <section>
                 <h3 className="section-title flex items-center gap-2 mb-3">
                   <MapPinIcon className="w-5 h-5 text-emerald-400" />
@@ -327,7 +364,7 @@ export function LocationPage() {
                       showPopups={false}
                     />
                   </Suspense>
-                  <div className="p-3 bg-slate-800/50 border-t border-slate-700/50">
+                  <div className="p-3 bg-slate-800/50 border-t border-slate-700/50 space-y-1.5">
                     <div className="flex items-center justify-between text-sm">
                       <div>
                         <span className="text-slate-400">Coordinates:</span>
@@ -340,6 +377,12 @@ export function LocationPage() {
                         <span className="text-emerald-400 ml-2 font-medium mono-nums">{location.elevation_m}m</span>
                       </div>
                     </div>
+                    {location.os_grid_ref && (
+                      <div className="text-sm">
+                        <span className="text-slate-400">OS Grid:</span>
+                        <span className="text-slate-200 ml-2 mono-nums">{location.os_grid_ref}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </section>
@@ -348,7 +391,12 @@ export function LocationPage() {
         </div>
 
         {/* 11. Emergency Info */}
-        <EmergencyInfo area={location.area} locationName={location.name} />
+        <EmergencyInfo
+          area={location.area}
+          locationName={location.name}
+          latitude={location.latitude}
+          longitude={location.longitude}
+        />
 
         {/* 12. Export + Share row */}
         <div className="flex items-center justify-between gap-4 fade-in-up">
@@ -436,6 +484,7 @@ function CurrentConditionsCard({ day, preferences }: { day: DailyForecast; prefe
           <WindIndicatorInline
             direction={currentPeriod.wind_direction || 'N'}
             speed={currentPeriod.wind_speed_kph}
+            gustSpeed={currentPeriod.gust_speed_kph}
           />
         </div>
 
@@ -531,12 +580,13 @@ function CurrentConditionsCard({ day, preferences }: { day: DailyForecast; prefe
   )
 }
 
-function DayForecastCard({ day, preferences, isToday, isExpanded, onToggle }: {
+function DayForecastCard({ day, preferences, isToday, isExpanded, onToggle, confidence }: {
   day: DailyForecast;
   preferences: any;
   isToday: boolean;
   isExpanded: boolean;
   onToggle: () => void;
+  confidence?: 'high' | 'medium' | 'low';
 }) {
   const date = new Date(day.date)
   const dayName = isToday ? 'Today' : date.toLocaleDateString('en-GB', { weekday: 'short' })
@@ -594,10 +644,22 @@ function DayForecastCard({ day, preferences, isToday, isExpanded, onToggle }: {
             />
 
             <div>
-              <div className={cn(
-                "font-semibold",
-                isToday ? "text-emerald-400 text-lg" : "text-slate-100"
-              )}>{dayName}</div>
+              <div className="flex items-center gap-2">
+                <span className={cn(
+                  "font-semibold",
+                  isToday ? "text-emerald-400 text-lg" : "text-slate-100"
+                )}>{dayName}</span>
+                {confidence && confidence !== 'high' && (
+                  <span className={cn(
+                    'text-[10px] px-1.5 py-0.5 rounded-full border font-medium uppercase tracking-wider',
+                    confidence === 'medium'
+                      ? 'text-amber-400 bg-amber-900/20 border-amber-700/40'
+                      : 'text-slate-400 bg-slate-700/30 border-slate-600/40'
+                  )}>
+                    {confidence === 'medium' ? 'Med confidence' : 'Low confidence'}
+                  </span>
+                )}
+              </div>
               <div className="text-sm text-slate-500">{dateStr}</div>
             </div>
           </div>
@@ -775,6 +837,7 @@ function DayForecastCard({ day, preferences, isToday, isExpanded, onToggle }: {
                     <WindIndicatorInline
                       direction={period.wind_direction || 'N'}
                       speed={period.wind_speed_kph}
+                      gustSpeed={period.gust_speed_kph}
                     />
                   </div>
 

@@ -1,6 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAppStore } from '@/stores/useAppStore'
 import { cn } from '@/utils/cn'
+import {
+  requestNotificationPermission,
+  isNotificationsSupported,
+  getNotificationPermission,
+} from '@/utils/notifications'
 import {
   Cog6ToothIcon,
   BellIcon,
@@ -9,7 +14,9 @@ import {
   InformationCircleIcon,
   TrashIcon,
   MapPinIcon,
+  SunIcon,
 } from '@heroicons/react/24/outline'
+import type { ThemeMode } from '@/types'
 
 // Toggle Switch Component
 interface ToggleSwitchProps {
@@ -79,15 +86,15 @@ interface SettingsSectionProps {
 function SettingsSection({ icon: Icon, title, description, children }: SettingsSectionProps) {
   return (
     <div className="card overflow-hidden">
-      <div className="px-4 py-4 sm:px-6 border-b border-slate-700/50">
+      <div className="px-4 py-4 sm:px-6 border-b border-slate-200 dark:border-slate-700/50">
         <div className="flex items-center gap-3">
           <div className="flex-shrink-0">
             <Icon className="h-6 w-6 text-emerald-500" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-slate-100">{title}</h3>
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{title}</h3>
             {description && (
-              <p className="text-sm text-slate-400 mt-0.5">{description}</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{description}</p>
             )}
           </div>
         </div>
@@ -110,9 +117,9 @@ function SettingRow({ label, description, children }: SettingRowProps) {
   return (
     <div className="flex items-center justify-between gap-4">
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-slate-200">{label}</p>
+        <p className="text-sm font-medium text-slate-700 dark:text-slate-200">{label}</p>
         {description && (
-          <p className="text-sm text-slate-400 mt-0.5">{description}</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{description}</p>
         )}
       </div>
       <div className="flex-shrink-0">
@@ -133,6 +140,31 @@ export function SettingsPage() {
   const { preferences, setPreferences } = useAppStore()
   const [cacheSize, setCacheSize] = useState('Calculating...')
   const [isClearingCache, setIsClearingCache] = useState(false)
+  const [notificationPermission, setNotificationPermission] = useState<
+    NotificationPermission | 'unsupported'
+  >(getNotificationPermission())
+
+  // Refresh notification permission state on mount (handles external browser changes)
+  useEffect(() => {
+    setNotificationPermission(getNotificationPermission())
+  }, [])
+
+  const handleNotificationToggle = useCallback(
+    async (enabled: boolean) => {
+      if (enabled) {
+        const granted = await requestNotificationPermission()
+        setNotificationPermission(getNotificationPermission())
+        if (!granted) {
+          // Permission denied or unsupported -- don't enable the toggle
+          return
+        }
+      }
+      setPreferences({
+        notifications: { ...preferences.notifications, enabled },
+      })
+    },
+    [preferences.notifications, setPreferences]
+  )
 
   // Calculate actual localStorage size
   useEffect(() => {
@@ -177,13 +209,12 @@ export function SettingsPage() {
     })
   }
 
-  // Notification handlers
-  const handleNotificationsEnabledChange = (enabled: boolean) => {
-    setPreferences({
-      notifications: { ...preferences.notifications, enabled }
-    })
+  // Theme handler
+  const handleThemeChange = (value: ThemeMode) => {
+    setPreferences({ theme: value })
   }
 
+  // Notification handlers
   const handleSevereWeatherChange = (enabled: boolean) => {
     setPreferences({
       notifications: { ...preferences.notifications, severeWeather: enabled }
@@ -230,10 +261,10 @@ export function SettingsPage() {
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <div className="border-b border-slate-700/50">
+      <div className="border-b border-slate-200 dark:border-slate-700/50">
         <div className="max-w-2xl mx-auto px-4 py-6">
-          <h1 className="text-2xl font-bold text-slate-100">Settings</h1>
-          <p className="text-slate-400 mt-1">Customize your weather app experience</p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Settings</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">Customize your weather app experience</p>
         </div>
       </div>
 
@@ -295,46 +326,93 @@ export function SettingsPage() {
           </SettingRow>
         </SettingsSection>
 
+        {/* Appearance Section */}
+        <SettingsSection
+          icon={SunIcon}
+          title="Appearance"
+          description="Choose your preferred color theme"
+        >
+          <SettingRow label="Theme">
+            <SegmentedControl
+              options={[
+                { value: 'light' as ThemeMode, label: 'Light' },
+                { value: 'dark' as ThemeMode, label: 'Dark' },
+                { value: 'system' as ThemeMode, label: 'System' },
+              ]}
+              value={preferences.theme ?? 'dark'}
+              onChange={handleThemeChange}
+              ariaLabel="Theme preference"
+            />
+          </SettingRow>
+        </SettingsSection>
+
         {/* Notifications Section */}
         <SettingsSection
           icon={BellIcon}
           title="Notifications"
           description="Manage how you receive weather alerts"
         >
-          <SettingRow
-            label="Enable Notifications"
-            description="Master toggle for all notifications"
-          >
-            <ToggleSwitch
-              enabled={preferences.notifications.enabled}
-              onChange={handleNotificationsEnabledChange}
-              label="Enable notifications"
-            />
-          </SettingRow>
+          {notificationPermission === 'unsupported' ? (
+            <div className="rounded-lg bg-amber-900/30 border border-amber-700/50 px-4 py-3">
+              <p className="text-sm text-amber-300">
+                Your browser does not support notifications. Try using Chrome, Firefox, or Edge on desktop.
+              </p>
+            </div>
+          ) : (
+            <>
+              <SettingRow
+                label="Enable Notifications"
+                description={
+                  notificationPermission === 'denied'
+                    ? 'Notifications are blocked in your browser settings. Please allow them in your browser to enable this feature.'
+                    : 'Master toggle for all notifications'
+                }
+              >
+                <ToggleSwitch
+                  enabled={preferences.notifications.enabled}
+                  onChange={handleNotificationToggle}
+                  disabled={notificationPermission === 'denied'}
+                  label="Enable notifications"
+                />
+              </SettingRow>
 
-          <SettingRow
-            label="Severe Weather Alerts"
-            description="Get notified about dangerous conditions"
-          >
-            <ToggleSwitch
-              enabled={preferences.notifications.severeWeather}
-              onChange={handleSevereWeatherChange}
-              disabled={!preferences.notifications.enabled}
-              label="Severe weather alerts"
-            />
-          </SettingRow>
+              {notificationPermission === 'denied' && (
+                <div className="rounded-lg bg-amber-900/30 border border-amber-700/50 px-4 py-3">
+                  <p className="text-sm text-amber-300">
+                    Notifications are blocked. To re-enable, click the lock icon in your browser address bar and allow notifications for this site.
+                  </p>
+                </div>
+              )}
 
-          <SettingRow
-            label="Favorite Location Updates"
-            description="Daily forecasts for your favorite mountains"
-          >
-            <ToggleSwitch
-              enabled={preferences.notifications.favoriteUpdates}
-              onChange={handleFavoriteUpdatesChange}
-              disabled={!preferences.notifications.enabled}
-              label="Favorite location updates"
-            />
-          </SettingRow>
+              {notificationPermission === 'granted' && preferences.notifications.enabled && (
+                <p className="text-xs text-emerald-400">Notifications are active</p>
+              )}
+
+              <SettingRow
+                label="Severe Weather Alerts"
+                description="Get notified about dangerous conditions"
+              >
+                <ToggleSwitch
+                  enabled={preferences.notifications.severeWeather}
+                  onChange={handleSevereWeatherChange}
+                  disabled={!preferences.notifications.enabled}
+                  label="Severe weather alerts"
+                />
+              </SettingRow>
+
+              <SettingRow
+                label="Favorite Location Updates"
+                description="Daily forecasts for your favorite mountains"
+              >
+                <ToggleSwitch
+                  enabled={preferences.notifications.favoriteUpdates}
+                  onChange={handleFavoriteUpdatesChange}
+                  disabled={!preferences.notifications.enabled}
+                  label="Favorite location updates"
+                />
+              </SettingRow>
+            </>
+          )}
         </SettingsSection>
 
         {/* Risk Tolerance Section */}
@@ -351,8 +429,8 @@ export function SettingsPage() {
                 className={cn(
                   'flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all duration-200',
                   preferences.riskTolerance === level
-                    ? 'border-emerald-500 bg-emerald-900/20 ring-1 ring-emerald-500/20'
-                    : 'border-slate-600 hover:border-slate-500 bg-slate-800/50 hover:bg-slate-800'
+                    ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 ring-1 ring-emerald-500/20'
+                    : 'border-slate-300 dark:border-slate-600 hover:border-slate-400 dark:hover:border-slate-500 bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800'
                 )}
               >
                 <input
@@ -366,7 +444,7 @@ export function SettingsPage() {
                 <div className="flex-1 min-w-0">
                   <p className={cn(
                     'text-sm font-medium capitalize',
-                    preferences.riskTolerance === level ? 'text-emerald-400' : 'text-slate-200'
+                    preferences.riskTolerance === level ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-200'
                   )}>{level}</p>
                   <p className="text-sm text-slate-400 mt-1 leading-relaxed">
                     {riskToleranceDescriptions[level]}
@@ -420,8 +498,8 @@ export function SettingsPage() {
               <span className="text-sm text-slate-400">mountain-forecast.com</span>
             </SettingRow>
 
-            <div className="pt-2 border-t border-slate-700/50">
-              <p className="text-xs text-slate-400 leading-relaxed">
+            <div className="pt-2 border-t border-slate-200 dark:border-slate-700/50">
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
                 Scottish Mountain Weather provides weather forecasts and hiking suitability
                 scores to help you make informed decisions. Always exercise caution and
                 check multiple sources before heading into the mountains.
@@ -452,7 +530,7 @@ export function SettingsPage() {
               value={preferences.homeAddress || ''}
               onChange={(e) => setPreferences({ homeAddress: e.target.value || undefined })}
               placeholder="e.g. Glasgow, UK"
-              className="w-48 text-sm bg-slate-700 border border-slate-600 rounded-md px-3 py-1.5 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              className="w-48 text-sm bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md px-3 py-1.5 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               aria-label="Home address for navigation"
             />
           </SettingRow>

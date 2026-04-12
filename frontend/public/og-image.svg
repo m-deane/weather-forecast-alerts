@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="mountain1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#334155"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="mountain2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#475569"/>
+      <stop offset="100%" stop-color="#334155"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#059669"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Mountain silhouettes - back layer -->
+  <polygon points="0,630 200,280 400,380 550,220 700,350 900,200 1050,320 1200,250 1200,630" fill="url(#mountain1)" opacity="0.6"/>
+
+  <!-- Mountain silhouettes - front layer -->
+  <polygon points="0,630 100,400 250,350 400,420 550,300 700,400 850,320 1000,380 1200,340 1200,630" fill="url(#mountain2)" opacity="0.4"/>
+
+  <!-- Snow caps -->
+  <polygon points="530,220 550,220 570,240 540,235" fill="#e2e8f0" opacity="0.5"/>
+  <polygon points="880,200 900,200 920,220 890,215" fill="#e2e8f0" opacity="0.5"/>
+
+  <!-- Accent bar at top -->
+  <rect x="0" y="0" width="1200" height="4" fill="url(#accent)"/>
+
+  <!-- Title text -->
+  <text x="600" y="220" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="64" font-weight="700" fill="#f1f5f9" letter-spacing="-2">Scottish Mountain Weather</text>
+
+  <!-- Subtitle -->
+  <text x="600" y="290" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="28" font-weight="400" fill="#94a3b8">73 Munros  &#x2022;  18 Areas  &#x2022;  Live Forecasts</text>
+
+  <!-- Emerald accent line below subtitle -->
+  <rect x="480" y="310" width="240" height="3" rx="1.5" fill="url(#accent)"/>
+
+  <!-- Tagline -->
+  <text x="600" y="360" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="20" font-weight="500" fill="#64748b">Hiking suitability scores &amp; safety-focused forecasts</text>
+</svg>

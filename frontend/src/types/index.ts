@@ -6,6 +6,8 @@ export interface User {
   favoriteLocations: string[]
 }
 
+export type ThemeMode = 'dark' | 'light' | 'system'
+
 export interface UserPreferences {
   units: {
     temperature: 'celsius' | 'fahrenheit'
@@ -13,6 +15,7 @@ export interface UserPreferences {
     distance: 'km' | 'miles'
     elevation: 'meters' | 'feet'
   }
+  theme: ThemeMode
   riskTolerance: 'conservative' | 'moderate' | 'aggressive'
   notifications: {
     enabled: boolean

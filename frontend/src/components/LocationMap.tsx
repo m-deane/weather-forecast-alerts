@@ -1,5 +1,5 @@
-import { useState, useCallback, useMemo, useRef } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
+import { MapContainer, TileLayer, Marker, Popup, useMap, LayersControl } from 'react-leaflet'
 import { DivIcon } from 'leaflet'
 import { useQuery } from '@tanstack/react-query'
 import { locationApi } from '@/api/client'
@@ -8,7 +8,8 @@ import 'leaflet/dist/leaflet.css'
 import {
   ArrowsPointingOutIcon,
   ArrowsPointingInIcon,
-  MapIcon
+  MapIcon,
+  CloudIcon
 } from '@heroicons/react/24/outline'
 
 interface LocationMapProps {
@@ -20,6 +21,13 @@ interface LocationMapProps {
   className?: string
   interactive?: boolean
   showPopups?: boolean
+}
+
+// RainViewer API response shape (only the fields we use)
+interface RainViewerResponse {
+  radar: {
+    past: Array<{ path: string }>
+  }
 }
 
 // Color based on hiking score
@@ -115,6 +123,52 @@ function ResetViewControl({ locations, center, zoom }: { locations: Location[], 
   )
 }
 
+// Rain radar overlay component that fetches the latest radar timestamp from RainViewer
+function RainRadarOverlay({ visible }: { visible: boolean }) {
+  const [radarPath, setRadarPath] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!visible) return
+
+    let cancelled = false
+
+    async function fetchRadarTimestamp() {
+      try {
+        const response = await fetch('https://api.rainviewer.com/public/weather-maps.json')
+        const data: RainViewerResponse = await response.json()
+        const pastFrames = data.radar?.past
+        if (!cancelled && pastFrames && pastFrames.length > 0) {
+          // Use the most recent radar frame
+          setRadarPath(pastFrames[pastFrames.length - 1].path)
+        }
+      } catch {
+        // RainViewer API unavailable - silently fail, radar just won't show
+      }
+    }
+
+    fetchRadarTimestamp()
+
+    // Refresh radar timestamp every 5 minutes (300000ms) to keep overlay current
+    const interval = setInterval(fetchRadarTimestamp, 300000)
+
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [visible])
+
+  if (!visible || !radarPath) return null
+
+  return (
+    <TileLayer
+      url={`https://tilecache.rainviewer.com${radarPath}/256/{z}/{x}/{y}/2/1_1.png`}
+      attribution='<a href="https://www.rainviewer.com/">RainViewer</a>'
+      opacity={0.5}
+      zIndex={400}
+    />
+  )
+}
+
 export default function LocationMap({
   locations = [],
   center = [57.0, -5.0], // Center of Scottish Highlands
@@ -128,6 +182,7 @@ export default function LocationMap({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_activePopup, setActivePopup] = useState<string | null>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [showRadar, setShowRadar] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
   // Toggle fullscreen
@@ -153,9 +208,23 @@ export default function LocationMap({
     onLocationSelect?.(location)
   }, [onLocationSelect, showPopups])
 
-  // Dark tile layers (free, no API key required)
+  // Tile layer URLs and attributions
   const darkTileUrl = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-  const attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+  const darkAttribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+
+  const topoTileUrl = 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png'
+  const topoAttribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
+
+  // OpenWeatherMap tile layers require an API key.
+  // To enable, set VITE_OWM_API_KEY in your frontend .env file.
+  // Available layers: wind_new, clouds_new, precipitation_new
+  // Tile format: https://tile.openweathermap.org/map/{layer}/{z}/{x}/{y}.png?appid={API_KEY}
+  // These are left as commented configuration for when an API key is available:
+  //
+  // const owmApiKey = import.meta.env.VITE_OWM_API_KEY
+  // const owmWindUrl = `https://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png?appid=${owmApiKey}`
+  // const owmCloudsUrl = `https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${owmApiKey}`
+  // const owmPrecipUrl = `https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${owmApiKey}`
 
   return (
     <div
@@ -171,10 +240,25 @@ export default function LocationMap({
         zoomControl={interactive}
         attributionControl={true}
       >
-        <TileLayer
-          url={darkTileUrl}
-          attribution={attribution}
-        />
+        {/* Base layer switcher: Standard (dark) and Topographic */}
+        <LayersControl position="topright">
+          <LayersControl.BaseLayer checked name="Standard">
+            <TileLayer
+              url={darkTileUrl}
+              attribution={darkAttribution}
+            />
+          </LayersControl.BaseLayer>
+          <LayersControl.BaseLayer name="Topographic">
+            <TileLayer
+              url={topoTileUrl}
+              attribution={topoAttribution}
+              maxZoom={17}
+            />
+          </LayersControl.BaseLayer>
+        </LayersControl>
+
+        {/* Rain radar overlay (toggled via custom button below) */}
+        <RainRadarOverlay visible={showRadar} />
 
         {locations.length > 1 && <MapBounds locations={locations} />}
         {interactive && <ResetViewControl locations={locations} center={center} zoom={zoom} />}
@@ -265,6 +349,23 @@ export default function LocationMap({
         <span className="text-slate-400 text-sm ml-1">locations</span>
       </div>
 
+      {/* Rain radar toggle button */}
+      {interactive && (
+        <button
+          onClick={() => setShowRadar(prev => !prev)}
+          className={`absolute top-24 left-3 bg-slate-800/90 backdrop-blur-sm rounded-lg p-2 border z-[1000] transition-colors ${
+            showRadar
+              ? 'border-emerald-500/70 text-emerald-400 hover:bg-emerald-900/30'
+              : 'border-slate-700/50 text-slate-300 hover:bg-slate-700/90'
+          }`}
+          title={showRadar ? 'Hide rain radar' : 'Show rain radar'}
+          aria-label={showRadar ? 'Hide rain radar' : 'Show rain radar'}
+          aria-pressed={showRadar}
+        >
+          <CloudIcon className="w-4 h-4" />
+        </button>
+      )}
+
       {/* Fullscreen toggle button */}
       {interactive && (
         <button
@@ -281,7 +382,7 @@ export default function LocationMap({
         </button>
       )}
 
-      {/* Add CSS for marker animation */}
+      {/* Add CSS for marker animation and layer control dark theme */}
       <style>{`
         @keyframes pulse {
           0%, 100% { opacity: 1; }
@@ -363,6 +464,31 @@ export default function LocationMap({
         }
         .map-container:fullscreen {
           background: #0f172a;
+        }
+        /* Dark theme for LayersControl */
+        .leaflet-control-layers {
+          background: rgba(30, 41, 59, 0.95) !important;
+          border: 1px solid #334155 !important;
+          border-radius: 0.5rem !important;
+          color: #e2e8f0 !important;
+          backdrop-filter: blur(8px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+        }
+        .leaflet-control-layers-toggle {
+          background-color: #1e293b !important;
+          border: 1px solid #334155 !important;
+          border-radius: 0.5rem !important;
+          width: 32px !important;
+          height: 32px !important;
+        }
+        .leaflet-control-layers-separator {
+          border-top-color: #334155 !important;
+        }
+        .leaflet-control-layers label {
+          color: #cbd5e1 !important;
+        }
+        .leaflet-control-layers label span {
+          color: #cbd5e1 !important;
         }
       `}</style>
     </div>

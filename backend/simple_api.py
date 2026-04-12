@@ -7,6 +7,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Dict, Any, Optional
 import json
+import math
 from datetime import datetime, timedelta
 import uvicorn
 import glob
@@ -18,6 +19,7 @@ import threading
 from pathlib import Path
 from collections import defaultdict
 import logging
+import yaml
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +28,292 @@ def stable_mock_value(location_id: str, field: str, lo: int, hi: int) -> int:
     """Generate a deterministic mock value based on location+field so repeated calls return stable data"""
     seed = int(hashlib.md5(f"{location_id}:{field}".encode()).hexdigest(), 16) % (hi - lo + 1)
     return lo + seed
+
+
+# --- OS Grid Reference conversion (WGS84 -> OSGB36 -> grid ref) ---
+
+def latlong_to_osgrid(lat: float, lng: float) -> Optional[str]:
+    """Convert WGS84 lat/lng to Ordnance Survey grid reference (e.g. 'NN 166 713').
+
+    Uses Helmert transformation from WGS84 to OSGB36, then Transverse Mercator
+    projection to easting/northing, then grid letter encoding.
+    Accurate to ~10m which is sufficient for mountain summit references.
+    Returns None if the coordinate falls outside the OS grid.
+    """
+    # --- Step 1: WGS84 to OSGB36 via Helmert transformation ---
+    # WGS84 ellipsoid
+    a_wgs = 6378137.0
+    b_wgs = 6356752.3142
+    e2_wgs = (a_wgs**2 - b_wgs**2) / a_wgs**2
+
+    phi = math.radians(lat)
+    lam = math.radians(lng)
+
+    sin_phi = math.sin(phi)
+    cos_phi = math.cos(phi)
+    nu_wgs = a_wgs / math.sqrt(1 - e2_wgs * sin_phi**2)
+
+    # Cartesian coordinates (WGS84)
+    x = (nu_wgs + 0) * cos_phi * math.cos(lam)  # height ~0 for mountains vs geoid
+    y = (nu_wgs + 0) * cos_phi * math.sin(lam)
+    z = (nu_wgs * (1 - e2_wgs) + 0) * sin_phi
+
+    # Helmert parameters (WGS84 -> OSGB36)
+    tx, ty, tz = -446.448, 125.157, -542.060  # metres
+    s = 20.4894e-6  # scale (ppm)
+    rx = math.radians(-0.1502 / 3600)
+    ry = math.radians(-0.2470 / 3600)
+    rz = math.radians(-0.8421 / 3600)
+
+    x2 = tx + (1 + s) * x + (-rz) * y + (ry) * z
+    y2 = ty + (rz) * x + (1 + s) * y + (-rx) * z
+    z2 = tz + (-ry) * x + (rx) * y + (1 + s) * z
+
+    # --- Step 2: Cartesian to lat/lng on Airy 1830 ellipsoid ---
+    a_airy = 6377563.396
+    b_airy = 6356256.909
+    e2_airy = (a_airy**2 - b_airy**2) / a_airy**2
+
+    p = math.sqrt(x2**2 + y2**2)
+    phi_iter = math.atan2(z2, p * (1 - e2_airy))
+    for _ in range(10):
+        nu = a_airy / math.sqrt(1 - e2_airy * math.sin(phi_iter)**2)
+        phi_iter = math.atan2(z2 + e2_airy * nu * math.sin(phi_iter), p)
+
+    lam_osgb = math.atan2(y2, x2)
+    phi_osgb = phi_iter
+
+    # --- Step 3: Lat/lng (OSGB36) to easting/northing via Transverse Mercator ---
+    # National Grid constants
+    F0 = 0.9996012717  # scale factor on central meridian
+    phi0 = math.radians(49)
+    lam0 = math.radians(-2)
+    N0 = -100000  # northing of true origin
+    E0 = 400000   # easting of true origin
+
+    n = (a_airy - b_airy) / (a_airy + b_airy)
+    n2 = n * n
+    n3 = n * n2
+
+    cos_phi_osgb = math.cos(phi_osgb)
+    sin_phi_osgb = math.sin(phi_osgb)
+    nu_val = a_airy * F0 / math.sqrt(1 - e2_airy * sin_phi_osgb**2)
+    rho = a_airy * F0 * (1 - e2_airy) / (1 - e2_airy * sin_phi_osgb**2)**1.5
+    eta2 = nu_val / rho - 1
+
+    # Meridional arc
+    Ma = (1 + n + (5 / 4) * n2 + (5 / 4) * n3) * (phi_osgb - phi0)
+    Mb = (3 * n + 3 * n2 + (21 / 8) * n3) * math.sin(phi_osgb - phi0) * math.cos(phi_osgb + phi0)
+    Mc = ((15 / 8) * n2 + (15 / 8) * n3) * math.sin(2 * (phi_osgb - phi0)) * math.cos(2 * (phi_osgb + phi0))
+    Md = (35 / 24) * n3 * math.sin(3 * (phi_osgb - phi0)) * math.cos(3 * (phi_osgb + phi0))
+    M = b_airy * F0 * (Ma - Mb + Mc - Md)
+
+    dl = lam_osgb - lam0
+    dl2 = dl * dl
+    dl3 = dl * dl2
+    dl4 = dl2 * dl2
+    dl5 = dl3 * dl2
+    dl6 = dl3 * dl3
+
+    tan_phi = math.tan(phi_osgb)
+    tan2 = tan_phi * tan_phi
+    tan4 = tan2 * tan2
+
+    I = M + N0
+    II = (nu_val / 2) * sin_phi_osgb * cos_phi_osgb
+    III = (nu_val / 24) * sin_phi_osgb * cos_phi_osgb**3 * (5 - tan2 + 9 * eta2)
+    IIIA = (nu_val / 720) * sin_phi_osgb * cos_phi_osgb**5 * (61 - 58 * tan2 + tan4)
+    IV = nu_val * cos_phi_osgb
+    V = (nu_val / 6) * cos_phi_osgb**3 * (nu_val / rho - tan2)
+    VI = (nu_val / 120) * cos_phi_osgb**5 * (5 - 18 * tan2 + tan4 + 14 * eta2 - 58 * tan2 * eta2)
+
+    northing = I + II * dl2 + III * dl4 + IIIA * dl6
+    easting = E0 + IV * dl + V * dl3 + VI * dl5
+
+    # --- Step 4: Easting/northing to grid reference string ---
+    if easting < 0 or easting > 700000 or northing < 0 or northing > 1300000:
+        return None
+
+    e100k = int(easting / 100000)
+    n100k = int(northing / 100000)
+
+    # Grid letter lookup: first letter from 500km square, second from 100km square
+    letters_1 = "VWXYZ"[n100k // 5] if n100k < 25 else None
+    if letters_1 is None:
+        return None
+    l1_idx = (19 - 5 * (n100k // 5) + e100k)
+    # National Grid uses two-letter codes: first from 500km grid, second from 100km grid
+    grid_sq_n = n100k % 5
+    grid_sq_e = e100k % 5
+    first_letters = "STNOHJ"  # Row-major 500km squares covering GB
+    # Simplified: use index into the 25-cell grid of 100km squares
+    # The OS grid uses letters H,N,S,T,O,J for the first 500km squares
+    # and A-Z (excluding I) for second letters
+    idx_500k_e = e100k // 5
+    idx_500k_n = n100k // 5
+
+    first_letter_grid = [
+        ['S', 'T'],
+        ['N', 'O'],
+        ['H', 'J'],
+    ]
+    if idx_500k_n > 2 or idx_500k_e > 1:
+        return None
+    first_letter = first_letter_grid[idx_500k_n][idx_500k_e]
+
+    # Grid rows ordered top-to-bottom (highest northing first) so that
+    # index [4 - sub_n] correctly maps sub_n=4 (top) -> row 0 -> A-E
+    second_letter_grid = [
+        ['A', 'B', 'C', 'D', 'E'],  # sub_n=4 (highest northing in 500km square)
+        ['F', 'G', 'H', 'J', 'K'],  # sub_n=3 (I omitted per OS convention)
+        ['L', 'M', 'N', 'O', 'P'],  # sub_n=2
+        ['Q', 'R', 'S', 'T', 'U'],  # sub_n=1
+        ['V', 'W', 'X', 'Y', 'Z'],  # sub_n=0 (lowest northing in 500km square)
+    ]
+    sub_e = e100k % 5
+    sub_n = n100k % 5
+    second_letter = second_letter_grid[4 - sub_n][sub_e]
+
+    # 3-digit (100m resolution) easting and northing within the 100km square
+    e_remainder = int(round(easting % 100000 / 100))
+    n_remainder = int(round(northing % 100000 / 100))
+
+    return f"{first_letter}{second_letter} {e_remainder:03d} {n_remainder:03d}"
+
+
+# --- What3Words URL from coordinates ---
+
+def what3words_url(lat: float, lng: float) -> str:
+    """Generate a What3Words coordinate-based URL. No API key needed."""
+    return f"https://what3words.com//{lat:.6f},{lng:.6f}"
+
+
+# --- UV index estimation ---
+
+def estimate_uv_index(period_type: str, month: int, cloud_cover_pct: int = 50) -> int:
+    """Estimate UV index based on period, month, and cloud cover.
+
+    UV in Scotland is low year-round due to high latitude (55-58N).
+    Summer max is typically UV 5-6 at sea level, much less in winter.
+    Cloud cover reduces UV by ~25-75% depending on thickness.
+    Night UV is always 0.
+    """
+    if period_type == "night":
+        return 0
+
+    # Seasonal base UV at Scottish latitudes (clear sky, midday)
+    # Jan=0.5, Feb=1, Mar=2, Apr=3, May=4, Jun=5, Jul=5, Aug=4, Sep=3, Oct=1.5, Nov=0.5, Dec=0.3
+    seasonal_uv = {
+        1: 0.5, 2: 1.0, 3: 2.0, 4: 3.0, 5: 4.0, 6: 5.0,
+        7: 5.0, 8: 4.0, 9: 3.0, 10: 1.5, 11: 0.5, 12: 0.3
+    }
+    base = seasonal_uv.get(month, 2.0)
+
+    # AM gets ~70% of peak, PM gets ~90% of peak
+    if period_type == "am":
+        base *= 0.7
+    else:
+        base *= 0.9
+
+    # Cloud cover reduction: 0% cloud = 100% UV, 100% cloud = ~30% UV
+    cloud_factor = 1.0 - 0.007 * cloud_cover_pct
+    base *= cloud_factor
+
+    return max(0, round(base))
+
+
+# --- Pressure trend mock generation ---
+
+def generate_mock_pressure(location_id: str, date_str: str, period_type: str) -> int:
+    """Generate a realistic mock pressure value in hPa.
+
+    Scottish mountain pressure typically ranges 980-1030 hPa.
+    Creates a coherent multi-day trend (rising or falling) per location.
+    """
+    # Determine if this location has a rising or falling trend
+    trend_seed = stable_mock_value(location_id, "pressure_trend", 0, 100)
+    is_rising = trend_seed > 50
+
+    # Base pressure for the location
+    base = stable_mock_value(location_id, "pressure_base", 995, 1020)
+
+    # Day offset creates a gradual trend
+    try:
+        day_num = int(date_str.replace("-", "")[-2:]) if date_str else 0
+    except (ValueError, IndexError):
+        day_num = 0
+
+    # Period adjustments: slight diurnal variation
+    period_adj = {"am": -1, "pm": 0, "night": 1}.get(period_type, 0)
+
+    # Trend: +/- 2 hPa per day
+    trend_adj = (day_num % 6) * (2 if is_rising else -2)
+
+    pressure = base + trend_adj + period_adj
+    return max(960, min(1050, pressure))
+
+
+# --- Load config.yaml for area/location mappings ---
+
+def load_config() -> Dict:
+    """Load config.yaml and return parsed data."""
+    config_path = Path(__file__).parent.parent / "config.yaml"
+    if not config_path.exists():
+        return {}
+    try:
+        with open(config_path, 'r') as f:
+            return yaml.safe_load(f) or {}
+    except Exception as e:
+        logger.error("Error loading config.yaml: %s", e)
+        return {}
+
+
+def get_area_for_location(location_id: str) -> Optional[str]:
+    """Get the area name for a location from MOCK_LOCATIONS."""
+    loc = next((l for l in MOCK_LOCATIONS if l["id"] == location_id), None)
+    return loc["area"] if loc else None
+
+
+def find_proxy_forecast(area_name: str) -> Optional[Dict]:
+    """Find the latest proxy (valley) forecast for an area."""
+    if not FORECAST_DIR.exists():
+        return None
+
+    # Proxy files are named like: *_AreaName_Proxy_mountain-forecast.com.json
+    clean_area = area_name.replace(" ", "_").replace("(", "").replace(")", "")
+    pattern = f"**/*{clean_area}_Proxy_mountain-forecast.com.json"
+    files = list(FORECAST_DIR.glob(pattern))
+
+    if not files:
+        return None
+
+    latest_file = max(files, key=lambda p: p.name)
+    try:
+        with open(latest_file, 'r') as f:
+            return json.load(f)
+    except Exception as e:
+        logger.error("Error loading proxy forecast for %s: %s", area_name, e)
+        return None
+
+
+def get_proxy_elevation(area_name: str) -> Optional[int]:
+    """Get the proxy elevation from config.yaml area_proxy_url.
+
+    The URL typically ends with /forecasts/NNN where NNN is the elevation.
+    """
+    config = load_config()
+    for loc_config in config.get("locations", []):
+        if loc_config.get("area") == area_name:
+            url = loc_config.get("area_proxy_url", "")
+            # Extract elevation from URL like .../forecasts/500
+            parts = url.rstrip("/").split("/")
+            if parts:
+                try:
+                    return int(parts[-1])
+                except ValueError:
+                    pass
+    return None
+
 
 app = FastAPI(
     title="Scottish Mountain Weather API (Mock)",
@@ -176,22 +464,54 @@ def convert_forecast_to_api_format(forecast_data: Dict, location: Dict) -> Optio
             else:
                 precip_type = "rain"
 
+            period_type_str = p.get("time", "").lower()
+            loc_id = location.get("id", "")
+            cloud_cover_est = stable_mock_value(loc_id + date_str, "cloud_cover", 30, 90)
+
+            # Wind gust: pass through from scraper (OWM data) or estimate as 1.6x wind speed
+            # (standard mountain gust factor — exposed summits typically see gusts 1.4-1.8x mean wind)
+            raw_gust = p.get("gust_kph")
+            wind_speed = p.get("wind_kph", 0)
+            if raw_gust is not None:
+                wind_gust_kph = raw_gust
+                wind_gust_estimated = False
+            else:
+                wind_gust_kph = round(wind_speed * 1.6, 1) if wind_speed else 0
+                wind_gust_estimated = True
+
+            # Pressure: not available from mountain-forecast.com scraper
+            pressure_hpa = generate_mock_pressure(loc_id, date_str, period_type_str)
+
+            # UV index: not available from scraper; estimate from period, season, cloud cover
+            current_month = datetime.now().month
+            try:
+                current_month = int(date_str.split("-")[1]) if date_str else datetime.now().month
+            except (ValueError, IndexError):
+                pass
+            uv_index = estimate_uv_index(period_type_str, current_month, cloud_cover_est)
+
             api_periods.append({
-                "period_type": p.get("time", "").lower(),
+                "period_type": period_type_str,
                 "temperature_c": temp_c,
                 "feels_like_c": p.get("temp_chill_c"),
-                "wind_speed_kph": p.get("wind_kph", 0),
+                "wind_speed_kph": wind_speed,
+                "wind_gust_kph": wind_gust_kph,
+                "wind_gust_estimated": wind_gust_estimated,
                 "wind_direction": p.get("wind_dir", ""),
                 "precipitation_mm": total_precip,
                 "precipitation_type": precip_type,
                 "weather_description": p.get("summary", ""),
                 # MOCK FALLBACK: Scraper does not collect visibility data;
                 # deterministic per location+date to avoid non-deterministic UI changes
-                "visibility_m": stable_mock_value(location.get("id", "") + date_str, "visibility", 2000, 15000),
+                "visibility_m": stable_mock_value(loc_id + date_str, "visibility", 2000, 15000),
                 "cloud_base_m": p.get("cloud_base_m", 1000),
                 # MOCK FALLBACK: Scraper does not collect humidity data;
                 # deterministic per location+date to avoid non-deterministic UI changes
-                "humidity_percent": stable_mock_value(location.get("id", "") + date_str, "humidity", 50, 95),
+                "humidity_percent": stable_mock_value(loc_id + date_str, "humidity", 50, 95),
+                "pressure_hpa": pressure_hpa,
+                "pressure_estimated": True,  # mountain-forecast.com does not provide pressure
+                "uv_index": uv_index,
+                "uv_index_estimated": True,  # derived from season/period/cloud, not measured
                 "hiking_score": score,
                 "risk_level": get_risk_level(score),
                 "snow_cm": p.get("snow_cm", 0),
@@ -222,11 +542,24 @@ def convert_forecast_to_api_format(forecast_data: Dict, location: Dict) -> Optio
                 "periods": api_periods
             })
 
+    # Enrich location with elevation label, OS grid ref, what3words
+    enriched_location = dict(location)
+    elev = enriched_location.get("elevation_m")
+    if elev:
+        enriched_location["forecast_altitude_label"] = f"Summit forecast ({elev}m)"
+    lat_val = enriched_location.get("latitude")
+    lng_val = enriched_location.get("longitude")
+    if lat_val is not None and lng_val is not None:
+        grid_ref = latlong_to_osgrid(lat_val, lng_val)
+        enriched_location["os_grid_ref"] = grid_ref
+        enriched_location["what3words_url"] = what3words_url(lat_val, lng_val)
+
     return {
-        "location": location,
+        "location": enriched_location,
         "forecasts": forecasts,
         "last_updated": forecast_data.get("scrape_time", datetime.now().isoformat()),
         "data_source": "mountain-forecast.com (scraped)",
+        "hourly_available": False,
         "alerts": []
     }
 
@@ -1075,11 +1408,16 @@ def generate_mock_weather_period(period_type: str, base_temp: int = None, days_o
     else:
         precip_type = "rain"
 
+    # Wind gust estimate: 1.6x mean wind (standard mountain gust factor)
+    wind_gust_kph = round(wind_speed * 1.6, 1)
+
     return {
         "period_type": period_type,
         "temperature_c": temperature,
         "feels_like_c": temperature - 2,
         "wind_speed_kph": wind_speed,
+        "wind_gust_kph": wind_gust_kph,
+        "wind_gust_estimated": True,
         "wind_direction": random.choice(["N", "NE", "E", "SE", "S", "SW", "W", "NW"]),
         "precipitation_mm": rain_mm + (snow_cm * 10),
         "precipitation_type": precip_type,
@@ -1087,6 +1425,10 @@ def generate_mock_weather_period(period_type: str, base_temp: int = None, days_o
         "visibility_m": random.randint(2000, 25000),
         "cloud_base_m": random.randint(300, 2000),
         "humidity_percent": random.randint(60, 95),
+        "pressure_hpa": random.randint(990, 1025),
+        "pressure_estimated": True,
+        "uv_index": estimate_uv_index(period_type, datetime.now().month, random.randint(30, 90)),
+        "uv_index_estimated": True,
         "hiking_score": score,
         "risk_level": risk_level,
         "snow_cm": snow_cm
@@ -1128,11 +1470,24 @@ def generate_mock_forecast(location: Dict[str, Any]) -> Dict[str, Any]:
         }
         forecasts.append(daily_forecast)
     
+    # Enrich location with elevation label, OS grid ref, what3words
+    enriched_location = dict(location)
+    elev = enriched_location.get("elevation_m")
+    if elev:
+        enriched_location["forecast_altitude_label"] = f"Summit forecast ({elev}m)"
+    lat_val = enriched_location.get("latitude")
+    lng_val = enriched_location.get("longitude")
+    if lat_val is not None and lng_val is not None:
+        grid_ref = latlong_to_osgrid(lat_val, lng_val)
+        enriched_location["os_grid_ref"] = grid_ref
+        enriched_location["what3words_url"] = what3words_url(lat_val, lng_val)
+
     return {
-        "location": location,
+        "location": enriched_location,
         "forecasts": forecasts,
         "last_updated": datetime.now().isoformat(),
         "data_source": "estimated (no forecast data available)",
+        "hourly_available": False,
         "alerts": [{
             "severity": "info",
             "message": "This location is showing estimated data. Real forecast data is not yet available."
@@ -1320,6 +1675,127 @@ async def get_location_photography(location_id: str):
     if not entry:
         raise HTTPException(status_code=404, detail="No photography data for this location")
     return entry
+
+
+# ---- Task 4: Valley vs summit comparison endpoint ----
+
+@app.get("/api/v1/weather/{location_id}/comparison")
+async def get_weather_comparison(location_id: str):
+    """Compare summit forecast with valley (area proxy) forecast.
+
+    Returns both the summit forecast and the lower-elevation area proxy forecast
+    side by side, useful for understanding conditions at different altitudes.
+    """
+    location = next((loc for loc in MOCK_LOCATIONS if loc["id"] == location_id), None)
+    if not location:
+        raise HTTPException(status_code=404, detail="Location not found")
+
+    # Get summit forecast
+    summit_forecast_data = find_latest_forecast(location["name"])
+    if summit_forecast_data:
+        summit_forecast = convert_forecast_to_api_format(summit_forecast_data, location)
+    else:
+        summit_forecast = generate_mock_forecast(location)
+
+    # Get valley (proxy) forecast for the area
+    area_name = location["area"]
+    proxy_data = find_proxy_forecast(area_name)
+    proxy_elevation = get_proxy_elevation(area_name)
+    summit_elevation = location.get("elevation_m", 0)
+
+    valley_forecast = None
+    if proxy_data:
+        # Create a pseudo-location for the proxy
+        proxy_location = dict(location)
+        proxy_location["name"] = f"{area_name} (Valley)"
+        proxy_location["elevation_m"] = proxy_elevation
+        if proxy_elevation:
+            proxy_location["forecast_altitude_label"] = f"Valley forecast ({proxy_elevation}m)"
+        valley_forecast = convert_forecast_to_api_format(proxy_data, proxy_location)
+
+    elevation_diff = None
+    if summit_elevation and proxy_elevation:
+        elevation_diff = summit_elevation - proxy_elevation
+
+    return {
+        "summit": summit_forecast,
+        "valley": valley_forecast,
+        "elevation_difference_m": elevation_diff,
+        "summit_elevation_m": summit_elevation,
+        "valley_elevation_m": proxy_elevation,
+        "area": area_name
+    }
+
+
+# ---- Task 8: Webcam endpoint ----
+
+@app.get("/api/v1/webcams/{location_id}")
+async def get_webcams(location_id: str):
+    """Get matching webcams for a mountain location.
+
+    Matches webcams from data/mountain_webcams.json based on location name/area patterns.
+    """
+    location = next((loc for loc in MOCK_LOCATIONS if loc["id"] == location_id), None)
+    if not location:
+        raise HTTPException(status_code=404, detail="Location not found")
+
+    webcams_data = _load_json_data("mountain_webcams.json")
+    if not webcams_data:
+        return {"webcams": [], "location_id": location_id}
+
+    # Match webcams by checking location_pattern against location id, name, and area
+    loc_name_lower = location["name"].lower()
+    loc_area_lower = location["area"].lower()
+    loc_id_lower = location_id.lower()
+
+    matched = []
+    for cam in webcams_data:
+        pattern = cam.get("location_pattern", "").lower()
+        if pattern and (pattern in loc_id_lower or pattern in loc_name_lower or pattern in loc_area_lower):
+            matched.append(cam)
+
+    return {"webcams": matched, "location_id": location_id}
+
+
+# ---- Task 9: Hourly forecast placeholder endpoint ----
+
+@app.get("/api/v1/weather/{location_id}/hourly")
+async def get_hourly_forecast(location_id: str):
+    """Placeholder for hourly forecast data.
+
+    Mountain-forecast.com only provides 3 periods per day (AM/PM/Night).
+    Hourly data would require an additional data source such as OpenWeatherMap.
+    """
+    location = next((loc for loc in MOCK_LOCATIONS if loc["id"] == location_id), None)
+    if not location:
+        raise HTTPException(status_code=404, detail="Location not found")
+
+    return {
+        "location_id": location_id,
+        "hourly_available": False,
+        "message": (
+            "Hourly forecast data is not currently available. "
+            "The mountain-forecast.com data source provides 3 periods per day (AM, PM, Night). "
+            "Hourly resolution requires integration with an additional data source "
+            "such as the OpenWeatherMap One Call API (requires API key)."
+        ),
+        "available_resolution": "3 periods per day (AM/PM/Night)",
+        "suggested_sources": [
+            {
+                "name": "OpenWeatherMap One Call API",
+                "url": "https://openweathermap.org/api/one-call-3",
+                "resolution": "Hourly for 48 hours",
+                "requires_api_key": True
+            },
+            {
+                "name": "Met Office DataPoint",
+                "url": "https://www.metoffice.gov.uk/services/data/datapoint",
+                "resolution": "3-hourly for 5 days",
+                "requires_api_key": True
+            }
+        ],
+        "periods": []
+    }
 
 
 if __name__ == "__main__":

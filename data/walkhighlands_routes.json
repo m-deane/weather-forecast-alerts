@@ -14,7 +14,8 @@
           "latitude": 56.8037,
           "longitude": -5.0794,
           "postcode": "PH33 6PF"
-        }
+        },
+        "trip_reports_url": "https://www.walkhighlands.co.uk/fortwilliam/ben-nevis.shtml"
       },
       {
         "name": "Ben Nevis via the Carn Mor Dearg Arete",
@@ -29,7 +30,8 @@
           "latitude": 56.8101,
           "longitude": -5.0413,
           "postcode": "PH33 6SY"
-        }
+        },
+        "trip_reports_url": "https://www.walkhighlands.co.uk/fortwilliam/ben-nevis-cmd.shtml"
       }
     ]
   },
@@ -48,7 +50,8 @@
           "latitude": 57.6035,
           "longitude": -5.3048,
           "postcode": "IV22 2PA"
-        }
+        },
+        "trip_reports_url": "https://www.walkhighlands.co.uk/torridon/beinn-eighe.shtml"
       }
     ]
   },
@@ -67,7 +70,8 @@
           "latitude": 57.5433,
           "longitude": -5.5103,
           "postcode": "IV22 2EZ"
-        }
+        },
+        "trip_reports_url": "https://www.walkhighlands.co.uk/torridon/liathach.shtml"
       }
     ]
   },
@@ -86,7 +90,8 @@
           "latitude": 56.6536,
           "longitude": -5.0515,
           "postcode": "PH49 4HX"
-        }
+        },
+        "trip_reports_url": "https://www.walkhighlands.co.uk/fortwilliam/buachaille-etive-mor.shtml"
       }
     ]
   },
@@ -105,7 +110,8 @@
           "latitude": 56.6685,
           "longitude": -5.0628,
           "postcode": "PH49 4LA"
-        }
+        },
+        "trip_reports_url": "https://www.walkhighlands.co.uk/fortwilliam/bidean-nam-bian.shtml"
       }
     ]
   },
@@ -124,7 +130,8 @@
           "latitude": 57.2892,
           "longitude": -6.1726,
           "postcode": "IV47 8SW"
-        }
+        },
+        "trip_reports_url": "https://www.walkhighlands.co.uk/skye/sgurr-nan-gillean.shtml"
       }
     ]
   },
@@ -143,7 +150,8 @@
           "latitude": 57.2047,
           "longitude": -6.1253,
           "postcode": "IV49 9AJ"
-        }
+        },
+        "trip_reports_url": "https://www.walkhighlands.co.uk/skye/blabheinn.shtml"
       }
     ]
   },
@@ -162,7 +170,8 @@
           "latitude": 57.1342,
           "longitude": -3.6608,
           "postcode": "PH22 1RB"
-        }
+        },
+        "trip_reports_url": "https://www.walkhighlands.co.uk/cairngorms/ben-macdui.shtml"
       }
     ]
   },
@@ -181,7 +190,8 @@
           "latitude": 57.1342,
           "longitude": -3.6608,
           "postcode": "PH22 1RB"
-        }
+        },
+        "trip_reports_url": "https://www.walkhighlands.co.uk/cairngorms/cairngorm.shtml"
       }
     ]
   },
@@ -200,7 +210,8 @@
           "latitude": 58.0733,
           "longitude": -5.2601,
           "postcode": "IV27 4LR"
-        }
+        },
+        "trip_reports_url": "https://www.walkhighlands.co.uk/ullapool/suilven.shtml"
       }
     ]
   },
@@ -217,9 +228,10 @@
         "parking": {
           "name": "Stac Pollaidh Car Park",
           "latitude": 58.0456,
-          "longitude": -5.1980,
+          "longitude": -5.198,
           "postcode": "IV26 2YB"
-        }
+        },
+        "trip_reports_url": "https://www.walkhighlands.co.uk/ullapool/stacpollaidh.shtml"
       }
     ]
   },
@@ -238,7 +250,8 @@
           "latitude": 57.8536,
           "longitude": -5.1742,
           "postcode": "IV23 2QT"
-        }
+        },
+        "trip_reports_url": "https://www.walkhighlands.co.uk/ullapool/an-teallach.shtml"
       }
     ]
   },
@@ -254,10 +267,11 @@
         "category": "Munros",
         "parking": {
           "name": "Incheril Car Park, Kinlochewe",
-          "latitude": 57.6080,
+          "latitude": 57.608,
           "longitude": -5.2984,
           "postcode": "IV22 2PA"
-        }
+        },
+        "trip_reports_url": "https://www.walkhighlands.co.uk/torridon/slioch.shtml"
       }
     ]
   },
@@ -276,7 +290,8 @@
           "latitude": 56.1636,
           "longitude": -4.6322,
           "postcode": "G63 0AR"
-        }
+        },
+        "trip_reports_url": "https://www.walkhighlands.co.uk/lochlomond/ben-lomond.shtml"
       }
     ]
   },
@@ -295,7 +310,8 @@
           "latitude": 58.0556,
           "longitude": -5.3472,
           "postcode": "IV26 2YG"
-        }
+        },
+        "trip_reports_url": "https://www.walkhighlands.co.uk/ullapool/benmorecoigach.shtml"
       }
     ]
   }

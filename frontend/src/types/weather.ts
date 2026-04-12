@@ -8,6 +8,7 @@ export interface Location {
   classification: 'munro' | 'corbett' | 'graham' | 'hill'
   difficulty: 'easy' | 'moderate' | 'challenging' | 'extreme'
   current_score?: number // Current hiking score (1-10), if available
+  os_grid_ref?: string // OS Grid Reference e.g. "NN 166 713"
 }
 
 export interface PhotographyOpportunity {

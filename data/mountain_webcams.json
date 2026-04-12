@@ -1,0 +1,72 @@
+[
+  {
+    "location_pattern": "cairngorm",
+    "name": "Cairngorm Mountain Summit Webcam",
+    "url": "https://www.cairngormmountain.co.uk/webcam/",
+    "source": "Cairngorm Mountain Resort",
+    "description": "Live webcam from the Cairngorm summit area showing conditions on the plateau"
+  },
+  {
+    "location_pattern": "ben nevis",
+    "name": "Nevis Range Summit Webcam",
+    "url": "https://www.nevisrange.co.uk/mountain-experience/webcams/",
+    "source": "Nevis Range",
+    "description": "Webcam views from the Nevis Range ski area adjacent to Ben Nevis"
+  },
+  {
+    "location_pattern": "glencoe",
+    "name": "Glencoe Mountain Webcam",
+    "url": "https://www.glencoemountain.co.uk/webcams/",
+    "source": "Glencoe Mountain Resort",
+    "description": "Live views from Glencoe ski centre showing conditions in the Glencoe hills"
+  },
+  {
+    "location_pattern": "skye",
+    "name": "Portree Harbour Webcam",
+    "url": "https://www.skyewebcams.com/",
+    "source": "Skye Webcams",
+    "description": "Views across Portree and towards the Cuillin Ridge from Skye"
+  },
+  {
+    "location_pattern": "torridon",
+    "name": "Torridon Village Webcam",
+    "url": "https://www.torridon.org/webcam/",
+    "source": "Torridon Community",
+    "description": "View towards Liathach and Beinn Eighe from the Torridon area"
+  },
+  {
+    "location_pattern": "ben lomond",
+    "name": "Loch Lomond Shores Webcam",
+    "url": "https://www.lochlomond-trossachs.org/things-to-see/webcams/",
+    "source": "Loch Lomond & Trossachs National Park",
+    "description": "Views across Loch Lomond towards Ben Lomond"
+  },
+  {
+    "location_pattern": "mamores",
+    "name": "Nevis Range Aonach Mor Webcam",
+    "url": "https://www.nevisrange.co.uk/mountain-experience/webcams/",
+    "source": "Nevis Range",
+    "description": "Views from Aonach Mor towards the Mamores ridge"
+  },
+  {
+    "location_pattern": "drumochter",
+    "name": "A9 Drumochter Pass Webcam",
+    "url": "https://trafficscotland.org/currentincidents/",
+    "source": "Traffic Scotland",
+    "description": "Road camera at Drumochter Pass showing weather conditions at 460m elevation"
+  },
+  {
+    "location_pattern": "lawers",
+    "name": "Killin Village Webcam",
+    "url": "https://www.killin.info/webcam/",
+    "source": "Killin Community",
+    "description": "Views from Killin towards the Ben Lawers range"
+  },
+  {
+    "location_pattern": "creag meagaidh",
+    "name": "Laggan Dam Webcam",
+    "url": "https://www.sse.com/what-we-do/hydro-power/webcams/",
+    "source": "SSE Hydro",
+    "description": "Views from Laggan towards the Creag Meagaidh massif"
+  }
+]
