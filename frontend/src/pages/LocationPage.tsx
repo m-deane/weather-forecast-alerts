@@ -203,7 +203,7 @@ export function LocationPage() {
         )}
 
         {/* 3. Go / No-Go verdict for next 3 days */}
-        <GoNoGoSummary forecasts={forecast.forecasts} />
+        <GoNoGoSummary forecasts={forecast.forecasts} isEstimated={forecast.data_source?.includes('estimated')} />
 
         {/* 3a. AI-generated weather narrative for today */}
         {currentDay && (

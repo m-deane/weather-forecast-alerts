@@ -4,6 +4,7 @@ import type { DailyForecast } from '@/types'
 
 interface GoNoGoSummaryProps {
   forecasts: DailyForecast[]
+  isEstimated?: boolean
 }
 
 type Verdict = 'go' | 'caution' | 'no-go'
@@ -60,10 +61,30 @@ const verdictConfig = {
   },
 }
 
-export function GoNoGoSummary({ forecasts }: GoNoGoSummaryProps) {
+export function GoNoGoSummary({ forecasts, isEstimated = false }: GoNoGoSummaryProps) {
   const days = forecasts.slice(0, 3)
 
   if (days.length === 0) return null
+
+  // On the estimated/scrape-failure path the score is derived from non-real data,
+  // so we do not present a Go/No-Go verdict — that would be a fabricated safety call.
+  if (isEstimated) {
+    return (
+      <section aria-label="Go/No-Go daily verdict">
+        <h2 className="section-title mb-3">Should You Go?</h2>
+        <div className="rounded-xl border border-amber-600/30 bg-amber-900/20 px-4 py-3 flex items-start gap-3">
+          <ExclamationTriangleIcon className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
+          <div>
+            <p className="text-sm font-medium text-amber-300">Verdict unavailable</p>
+            <p className="text-xs text-amber-400/70 mt-0.5">
+              A Go/No-Go verdict needs a real forecast. This location is showing estimated
+              data, so no verdict is given — check back when live data is available.
+            </p>
+          </div>
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section className="fade-in-up" aria-label="Go/No-Go daily verdict">

@@ -149,12 +149,21 @@ export function WeatherCard({ locationId, compact = false, showDetails = false }
 
         <div>
           <span className="text-slate-400 data-label">Score</span>
-          <HikingScoreGauge
-            score={currentPeriod.hiking_score}
-            variant="compact"
-            size="sm"
-            riskTolerance={preferences.riskTolerance}
-          />
+          {isEstimated ? (
+            <div
+              className="font-medium text-slate-500 mono-nums text-sm"
+              title="Estimated data — hiking score unavailable"
+            >
+              —
+            </div>
+          ) : (
+            <HikingScoreGauge
+              score={currentPeriod.hiking_score}
+              variant="compact"
+              size="sm"
+              riskTolerance={preferences.riskTolerance}
+            />
+          )}
         </div>
       </div>
 
