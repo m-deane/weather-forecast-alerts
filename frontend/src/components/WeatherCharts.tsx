@@ -21,12 +21,33 @@ import {
 } from '@heroicons/react/24/outline'
 import { cn } from '@/utils/cn'
 import { getPeriodLabel } from '@/utils/weather'
+import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion'
 import type { DailyForecast } from '@/types'
 
 interface WeatherChartsProps {
   forecasts: DailyForecast[]
   preferences: any
 }
+
+// Theme-aware tooltip styling (driven by CSS vars so it adapts to light/dark mode)
+const tooltipContentStyle: React.CSSProperties = {
+  backgroundColor: 'var(--chart-tooltip-bg)',
+  border: '1px solid var(--chart-tooltip-border)',
+  borderRadius: '8px',
+  fontSize: '12px',
+  color: 'var(--chart-tooltip-fg)',
+}
+
+// Map stored unit enums to display symbols (preferences store 'celsius'/'fahrenheit', 'kph'/'mph')
+type UnitPrefs = { units?: { temperature?: string; wind?: string } } | null | undefined
+const tempSymbol = (preferences: UnitPrefs): string =>
+  preferences?.units?.temperature === 'fahrenheit' ? 'F' : 'C'
+const windSymbol = (preferences: UnitPrefs): string =>
+  preferences?.units?.wind === 'mph' ? 'mph' : 'km/h'
+
+// Distinguish "no data" (null → gap) from a genuine 0 reading (e.g. a real whiteout)
+const visibilityKm = (visibilityM?: number | null): number | null =>
+  visibilityM != null ? visibilityM / 1000 : null
 
 interface ChartDataPoint {
   date: string
@@ -37,8 +58,8 @@ interface ChartDataPoint {
   precipitation: number
   windSpeed: number
   hikingScore: number
-  visibility: number
-  humidity: number
+  visibility: number | null
+  humidity: number | null
 }
 
 interface PeriodDataPoint {
@@ -48,14 +69,16 @@ interface PeriodDataPoint {
   feelsLike: number
   precipitation: number
   windSpeed: number
-  humidity: number
-  visibility: number
+  humidity: number | null
+  visibility: number | null
   hikingScore: number
 }
 
 export function WeatherCharts({ forecasts, preferences }: WeatherChartsProps) {
   const [activeChart, setActiveChart] = useState<'overview' | 'temperature' | 'precipitation' | 'wind' | 'byPeriod' | 'periods'>('overview')
   const [selectedDay, setSelectedDay] = useState<DailyForecast | null>(null)
+  // Gate Recharts' JS mount animation for reduced-motion users (CSS guard can't reach it)
+  const animate = !usePrefersReducedMotion()
 
   // Prepare daily chart data
   const dailyData: ChartDataPoint[] = forecasts.map((forecast, index) => {
@@ -69,8 +92,8 @@ export function WeatherCharts({ forecasts, preferences }: WeatherChartsProps) {
       precipitation: forecast.summary.total_precipitation_mm,
       windSpeed: forecast.summary.max_wind_speed_kph,
       hikingScore: forecast.summary.overall_hiking_score,
-      visibility: forecast.periods[0]?.visibility_m ? forecast.periods[0].visibility_m / 1000 : 0,
-      humidity: forecast.periods[0]?.humidity_percent || 0
+      visibility: visibilityKm(forecast.periods[0]?.visibility_m),
+      humidity: forecast.periods[0]?.humidity_percent ?? null
     }
   })
 
@@ -83,8 +106,8 @@ export function WeatherCharts({ forecasts, preferences }: WeatherChartsProps) {
         feelsLike: period.feels_like_c,
         precipitation: period.precipitation_mm,
         windSpeed: period.wind_speed_kph,
-        humidity: period.humidity_percent || 0,
-        visibility: period.visibility_m ? period.visibility_m / 1000 : 0,
+        humidity: period.humidity_percent ?? null,
+        visibility: visibilityKm(period.visibility_m),
         hikingScore: period.hiking_score
       }))
     : []
@@ -100,7 +123,7 @@ export function WeatherCharts({ forecasts, preferences }: WeatherChartsProps) {
       precipitation: period.precipitation_mm,
       windSpeed: period.wind_speed_kph,
       humidity: period.humidity_percent || 0,
-      visibility: period.visibility_m ? period.visibility_m / 1000 : 0,
+      visibility: visibilityKm(period.visibility_m),
       hikingScore: period.hiking_score
     }))
   })
@@ -172,12 +195,12 @@ export function WeatherCharts({ forecasts, preferences }: WeatherChartsProps) {
 
         {/* Chart display */}
         <div className="h-80">
-          {activeChart === 'overview' && <OverviewChart data={dailyData} preferences={preferences} />}
-          {activeChart === 'temperature' && <TemperatureChart data={dailyData} preferences={preferences} />}
-          {activeChart === 'precipitation' && <PrecipitationChart data={dailyData} />}
-          {activeChart === 'wind' && <WindVisibilityChart data={dailyData} preferences={preferences} />}
-          {activeChart === 'byPeriod' && <PeriodDetailChart data={allPeriodsData} preferences={preferences} />}
-          {activeChart === 'periods' && selectedDay && <PeriodDetailChart data={periodData} preferences={preferences} />}
+          {activeChart === 'overview' && <OverviewChart data={dailyData} preferences={preferences} animate={animate} />}
+          {activeChart === 'temperature' && <TemperatureChart data={dailyData} preferences={preferences} animate={animate} />}
+          {activeChart === 'precipitation' && <PrecipitationChart data={dailyData} animate={animate} />}
+          {activeChart === 'wind' && <WindVisibilityChart data={dailyData} preferences={preferences} animate={animate} />}
+          {activeChart === 'byPeriod' && <PeriodDetailChart data={allPeriodsData} preferences={preferences} animate={animate} />}
+          {activeChart === 'periods' && selectedDay && <PeriodDetailChart data={periodData} preferences={preferences} animate={animate} />}
           {activeChart === 'periods' && !selectedDay && (
             <div className="h-full flex items-center justify-center text-slate-500">
               <div className="text-center fade-in-scale">
@@ -192,24 +215,25 @@ export function WeatherCharts({ forecasts, preferences }: WeatherChartsProps) {
   )
 }
 
-function OverviewChart({ data, preferences }: { data: ChartDataPoint[]; preferences: any }) {
+function OverviewChart({ data, preferences, animate }: { data: ChartDataPoint[]; preferences: any; animate: boolean }) {
+  const tu = tempSymbol(preferences)
   return (
     <ResponsiveContainer width="100%" height="100%">
       <ComposedChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
         <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-        <XAxis 
-          dataKey="day" 
+        <XAxis
+          dataKey="day"
           tick={{ fontSize: 12 }}
           axisLine={false}
         />
-        <YAxis 
+        <YAxis
           yAxisId="temp"
           orientation="left"
           tick={{ fontSize: 12 }}
           axisLine={false}
-          label={{ value: `Temp (°${preferences?.units?.temperature || 'C'})`, angle: -90, position: 'insideLeft' }}
+          label={{ value: `Temp (°${tu})`, angle: -90, position: 'insideLeft' }}
         />
-        <YAxis 
+        <YAxis
           yAxisId="score"
           orientation="right"
           tick={{ fontSize: 12 }}
@@ -217,16 +241,10 @@ function OverviewChart({ data, preferences }: { data: ChartDataPoint[]; preferen
           label={{ value: 'Hiking Score', angle: 90, position: 'insideRight' }}
         />
         <Tooltip
-          contentStyle={{
-            backgroundColor: 'rgb(30, 41, 59)',
-            border: '1px solid rgb(71, 85, 105)',
-            borderRadius: '8px',
-            fontSize: '12px',
-            color: 'rgb(226, 232, 240)'
-          }}
+          contentStyle={tooltipContentStyle}
           formatter={(value: any, name: string) => {
             if (name === 'maxTemp' || name === 'minTemp') {
-              return [`${value}°${preferences?.units?.temperature || 'C'}`, name === 'maxTemp' ? 'High' : 'Low']
+              return [`${value}°${tu}`, name === 'maxTemp' ? 'High' : 'Low']
             }
             if (name === 'hikingScore') return [`${value}/10`, 'Hiking Score']
             return [value, name]
@@ -241,6 +259,7 @@ function OverviewChart({ data, preferences }: { data: ChartDataPoint[]; preferen
           stroke="#ef4444"
           fill="rgba(239, 68, 68, 0.2)"
           name="High Temp"
+          isAnimationActive={animate}
         />
         <Area
           yAxisId="temp"
@@ -250,6 +269,7 @@ function OverviewChart({ data, preferences }: { data: ChartDataPoint[]; preferen
           stroke="#3b82f6"
           fill="rgba(59, 130, 246, 0.2)"
           name="Low Temp"
+          isAnimationActive={animate}
         />
         <Line
           yAxisId="score"
@@ -259,40 +279,35 @@ function OverviewChart({ data, preferences }: { data: ChartDataPoint[]; preferen
           strokeWidth={3}
           name="Hiking Score"
           dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
+          isAnimationActive={animate}
         />
       </ComposedChart>
     </ResponsiveContainer>
   )
 }
 
-function TemperatureChart({ data, preferences }: { data: ChartDataPoint[]; preferences: any }) {
+function TemperatureChart({ data, preferences, animate }: { data: ChartDataPoint[]; preferences: any; animate: boolean }) {
+  const tu = tempSymbol(preferences)
   return (
     <ResponsiveContainer width="100%" height="100%">
       <LineChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
         <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-        <XAxis 
-          dataKey="day" 
+        <XAxis
+          dataKey="day"
           tick={{ fontSize: 12 }}
           axisLine={false}
         />
-        <YAxis 
+        <YAxis
           tick={{ fontSize: 12 }}
           axisLine={false}
-          label={{ value: `Temperature (°${preferences?.units?.temperature || 'C'})`, angle: -90, position: 'insideLeft' }}
+          label={{ value: `Temperature (°${tu})`, angle: -90, position: 'insideLeft' }}
         />
         <Tooltip
-          contentStyle={{
-            backgroundColor: 'rgb(30, 41, 59)',
-            border: '1px solid rgb(71, 85, 105)',
-            borderRadius: '8px',
-            fontSize: '12px',
-            color: 'rgb(226, 232, 240)'
-          }}
+          contentStyle={tooltipContentStyle}
           formatter={(value: any, name: string) => {
-            const tempUnit = preferences?.units?.temperature || 'C'
-            if (name === 'maxTemp') return [`${value}°${tempUnit}`, 'High']
-            if (name === 'minTemp') return [`${value}°${tempUnit}`, 'Low']
-            if (name === 'avgTemp') return [`${value}°${tempUnit}`, 'Average']
+            if (name === 'maxTemp') return [`${value}°${tu}`, 'High']
+            if (name === 'minTemp') return [`${value}°${tu}`, 'Low']
+            if (name === 'avgTemp') return [`${value}°${tu}`, 'Average']
             return [value, name]
           }}
         />
@@ -304,6 +319,7 @@ function TemperatureChart({ data, preferences }: { data: ChartDataPoint[]; prefe
           strokeWidth={2}
           name="High"
           dot={{ fill: '#ef4444', strokeWidth: 2, r: 4 }}
+          isAnimationActive={animate}
         />
         <Line
           type="monotone"
@@ -312,6 +328,7 @@ function TemperatureChart({ data, preferences }: { data: ChartDataPoint[]; prefe
           strokeWidth={2}
           name="Low"
           dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
+          isAnimationActive={animate}
         />
         <Line
           type="monotone"
@@ -321,30 +338,31 @@ function TemperatureChart({ data, preferences }: { data: ChartDataPoint[]; prefe
           strokeDasharray="5 5"
           name="Average"
           dot={{ fill: '#8b5cf6', strokeWidth: 2, r: 3 }}
+          isAnimationActive={animate}
         />
       </LineChart>
     </ResponsiveContainer>
   )
 }
 
-function PrecipitationChart({ data }: { data: ChartDataPoint[] }) {
+function PrecipitationChart({ data, animate }: { data: ChartDataPoint[]; animate: boolean }) {
   return (
     <ResponsiveContainer width="100%" height="100%">
       <ComposedChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
         <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-        <XAxis 
-          dataKey="day" 
+        <XAxis
+          dataKey="day"
           tick={{ fontSize: 12 }}
           axisLine={false}
         />
-        <YAxis 
+        <YAxis
           yAxisId="precip"
           orientation="left"
           tick={{ fontSize: 12 }}
           axisLine={false}
           label={{ value: 'Precipitation (mm)', angle: -90, position: 'insideLeft' }}
         />
-        <YAxis 
+        <YAxis
           yAxisId="humidity"
           orientation="right"
           tick={{ fontSize: 12 }}
@@ -352,16 +370,10 @@ function PrecipitationChart({ data }: { data: ChartDataPoint[] }) {
           label={{ value: 'Humidity (%)', angle: 90, position: 'insideRight' }}
         />
         <Tooltip
-          contentStyle={{
-            backgroundColor: 'rgb(30, 41, 59)',
-            border: '1px solid rgb(71, 85, 105)',
-            borderRadius: '8px',
-            fontSize: '12px',
-            color: 'rgb(226, 232, 240)'
-          }}
+          contentStyle={tooltipContentStyle}
           formatter={(value: any, name: string) => {
             if (name === 'precipitation') return [`${value}mm`, 'Precipitation']
-            if (name === 'humidity') return [`${value}%`, 'Humidity']
+            if (name === 'humidity') return value == null ? ['No data', 'Humidity'] : [`${value}%`, 'Humidity']
             return [value, name]
           }}
         />
@@ -372,6 +384,7 @@ function PrecipitationChart({ data }: { data: ChartDataPoint[] }) {
           fill="#3b82f6"
           name="Precipitation"
           radius={[2, 2, 0, 0]}
+          isAnimationActive={animate}
         />
         <Line
           yAxisId="humidity"
@@ -381,30 +394,33 @@ function PrecipitationChart({ data }: { data: ChartDataPoint[] }) {
           strokeWidth={2}
           name="Humidity"
           dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
+          connectNulls={false}
+          isAnimationActive={animate}
         />
       </ComposedChart>
     </ResponsiveContainer>
   )
 }
 
-function WindVisibilityChart({ data, preferences }: { data: ChartDataPoint[]; preferences: any }) {
+function WindVisibilityChart({ data, preferences, animate }: { data: ChartDataPoint[]; preferences: any; animate: boolean }) {
+  const wu = windSymbol(preferences)
   return (
     <ResponsiveContainer width="100%" height="100%">
       <ComposedChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
         <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-        <XAxis 
-          dataKey="day" 
+        <XAxis
+          dataKey="day"
           tick={{ fontSize: 12 }}
           axisLine={false}
         />
-        <YAxis 
+        <YAxis
           yAxisId="wind"
           orientation="left"
           tick={{ fontSize: 12 }}
           axisLine={false}
-          label={{ value: `Wind (${preferences?.units?.wind || 'km/h'})`, angle: -90, position: 'insideLeft' }}
+          label={{ value: `Wind (${wu})`, angle: -90, position: 'insideLeft' }}
         />
-        <YAxis 
+        <YAxis
           yAxisId="visibility"
           orientation="right"
           tick={{ fontSize: 12 }}
@@ -412,16 +428,10 @@ function WindVisibilityChart({ data, preferences }: { data: ChartDataPoint[]; pr
           label={{ value: 'Visibility (km)', angle: 90, position: 'insideRight' }}
         />
         <Tooltip
-          contentStyle={{
-            backgroundColor: 'rgb(30, 41, 59)',
-            border: '1px solid rgb(71, 85, 105)',
-            borderRadius: '8px',
-            fontSize: '12px',
-            color: 'rgb(226, 232, 240)'
-          }}
+          contentStyle={tooltipContentStyle}
           formatter={(value: any, name: string) => {
-            if (name === 'windSpeed') return [`${value} ${preferences?.units?.wind || 'km/h'}`, 'Wind Speed']
-            if (name === 'visibility') return [`${value}km`, 'Visibility']
+            if (name === 'windSpeed') return [`${value} ${wu}`, 'Wind Speed']
+            if (name === 'visibility') return value == null ? ['No data', 'Visibility'] : [`${value}km`, 'Visibility']
             return [value, name]
           }}
         />
@@ -433,6 +443,7 @@ function WindVisibilityChart({ data, preferences }: { data: ChartDataPoint[]; pr
           stroke="#f59e0b"
           fill="rgba(245, 158, 11, 0.2)"
           name="Wind Speed"
+          isAnimationActive={animate}
         />
         <Line
           yAxisId="visibility"
@@ -442,30 +453,33 @@ function WindVisibilityChart({ data, preferences }: { data: ChartDataPoint[]; pr
           strokeWidth={2}
           name="Visibility"
           dot={{ fill: '#6366f1', strokeWidth: 2, r: 4 }}
+          connectNulls={false}
+          isAnimationActive={animate}
         />
       </ComposedChart>
     </ResponsiveContainer>
   )
 }
 
-function PeriodDetailChart({ data, preferences }: { data: PeriodDataPoint[]; preferences: any }) {
+function PeriodDetailChart({ data, preferences, animate }: { data: PeriodDataPoint[]; preferences: any; animate: boolean }) {
+  const tu = tempSymbol(preferences)
   return (
     <ResponsiveContainer width="100%" height="100%">
       <ComposedChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
         <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-        <XAxis 
-          dataKey="time" 
+        <XAxis
+          dataKey="time"
           tick={{ fontSize: 12 }}
           axisLine={false}
         />
-        <YAxis 
+        <YAxis
           yAxisId="temp"
           orientation="left"
           tick={{ fontSize: 12 }}
           axisLine={false}
-          label={{ value: `Temp (°${preferences?.units?.temperature || 'C'})`, angle: -90, position: 'insideLeft' }}
+          label={{ value: `Temp (°${tu})`, angle: -90, position: 'insideLeft' }}
         />
-        <YAxis 
+        <YAxis
           yAxisId="score"
           orientation="right"
           tick={{ fontSize: 12 }}
@@ -473,17 +487,10 @@ function PeriodDetailChart({ data, preferences }: { data: PeriodDataPoint[]; pre
           label={{ value: 'Hiking Score', angle: 90, position: 'insideRight' }}
         />
         <Tooltip
-          contentStyle={{
-            backgroundColor: 'rgb(30, 41, 59)',
-            border: '1px solid rgb(71, 85, 105)',
-            borderRadius: '8px',
-            fontSize: '12px',
-            color: 'rgb(226, 232, 240)'
-          }}
+          contentStyle={tooltipContentStyle}
           formatter={(value: any, name: string) => {
-            const tempUnit = preferences?.units?.temperature || 'C'
-            if (name === 'temperature') return [`${value}°${tempUnit}`, 'Temperature']
-            if (name === 'feelsLike') return [`${value}°${tempUnit}`, 'Feels Like']
+            if (name === 'temperature') return [`${value}°${tu}`, 'Temperature']
+            if (name === 'feelsLike') return [`${value}°${tu}`, 'Feels Like']
             if (name === 'hikingScore') return [`${value}/10`, 'Hiking Score']
             if (name === 'precipitation') return [`${value}mm`, 'Precipitation']
             return [value, name]
@@ -498,6 +505,7 @@ function PeriodDetailChart({ data, preferences }: { data: PeriodDataPoint[]; pre
           strokeWidth={2}
           name="Temperature"
           dot={{ fill: '#ef4444', strokeWidth: 2, r: 4 }}
+          isAnimationActive={animate}
         />
         <Line
           yAxisId="temp"
@@ -508,6 +516,7 @@ function PeriodDetailChart({ data, preferences }: { data: PeriodDataPoint[]; pre
           strokeDasharray="5 5"
           name="Feels Like"
           dot={{ fill: '#f59e0b', strokeWidth: 2, r: 3 }}
+          isAnimationActive={animate}
         />
         <Bar
           yAxisId="temp"
@@ -515,6 +524,7 @@ function PeriodDetailChart({ data, preferences }: { data: PeriodDataPoint[]; pre
           fill="#3b82f6"
           name="Precipitation"
           opacity={0.6}
+          isAnimationActive={animate}
         />
         <Line
           yAxisId="score"
@@ -524,6 +534,7 @@ function PeriodDetailChart({ data, preferences }: { data: PeriodDataPoint[]; pre
           strokeWidth={3}
           name="Hiking Score"
           dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
+          isAnimationActive={animate}
         />
       </ComposedChart>
     </ResponsiveContainer>

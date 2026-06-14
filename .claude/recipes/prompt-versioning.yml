@@ -1,0 +1,111 @@
+name: prompt-versioning
+description: >
+  Ship a skill/prompt change safely through the versioning lifecycle. Snapshots
+  the current skill as a new immutable version, evaluates it (rubric + stability),
+  compares it against the active version, and promotes it only if it wins on every
+  criterion and is stable. Chains /version-prompt subcommands with gates between
+  steps. Use when changing a skill that is synced downstream or used in production.
+trigger-phrases:
+  - "version this skill"
+  - "ship this skill change"
+  - "promote this prompt"
+  - "run the versioning pipeline"
+  - "prompt versioning"
+
+context:
+  notes: >
+    Pass the target skill name as the recipe argument, e.g.
+    `/compose prompt-versioning hallucination-check`. Each step invokes a
+    /version-prompt subcommand against that skill. The pipeline stops before
+    promotion if the candidate does not beat the active version on every
+    rubric criterion or is not stable (>= 0.80).
+
+steps:
+  - skill: version-prompt
+    args: "create {skill-name}"
+    gate: snapshot-created
+    description: >
+      Snapshot the current live skill as a new immutable candidate version.
+      Auto-increments the version number and prompts for a one-line motivation.
+    produces: "new candidate version vN with an immutable SKILL.md snapshot and a registry entry"
+    failure-action: "Stop. Cannot version a skill with no SKILL.md, or if the versions directory is not writable."
+
+  - skill: version-prompt
+    args: "eval {skill-name} {vN}"
+    gate: eval-not-fail
+    description: >
+      Score the candidate version with /rubric-eval (per-criterion + overall)
+      and /stability-test (mean Jaccard). Writes eval_scores + stability_score
+      to registry.yml and the detailed record to scores.json. Verdict:
+      PASS (overall >= 0.70 AND stable) / WARN (>= 0.70 AND marginal) /
+      FAIL (overall < 0.70 OR unstable/broken).
+    consumes: "the candidate version vN created in the prior step"
+    produces: "eval verdict, per-criterion scores, and stability_score for vN"
+    failure-action: >
+      If verdict is FAIL, stop — do not compare or promote a failing candidate.
+      Report the overall score and the criteria below their floor (0.40).
+
+  - skill: version-prompt
+    args: "compare {skill-name} --from {active} --to {vN}"
+    gate: candidate-wins
+    description: >
+      Structural diff and per-criterion score comparison of the candidate
+      against the current active version. Applies the promotion policy:
+      the candidate wins only if it scores >= the active version on EVERY
+      criterion AND its stability_score >= 0.80.
+    consumes: "vN eval_scores and the active version's eval_scores"
+    produces: "winner recommendation with the specific criterion or stability gap if the candidate loses"
+    failure-action: >
+      If the candidate does not win, stop. Report which criterion regressed or
+      whether stability < 0.80. Do not promote a regression.
+
+  - skill: version-prompt
+    args: "promote {skill-name} {vN}"
+    gate: user-approval
+    description: >
+      Copy the winning candidate to the live skill file and mark the previous
+      active version superseded. Tier B — requires explicit user confirmation
+      because it overwrites the live skill (a reversible-but-outward change).
+    consumes: "the winning candidate vN from the compare step"
+    produces: "vN promoted to active; previous active marked superseded; registry updated"
+    failure-action: "If the user declines promotion, leave vN as a candidate. No files are overwritten."
+
+gates:
+  snapshot-created:
+    description: >
+      Confirm the new version directory and SKILL.md snapshot were created and a
+      registry entry was written.
+    parse: "version-prompt create confirmation line naming vN and its snapshot path"
+    threshold: "vN/SKILL.md exists AND registry entry present"
+
+  eval-not-fail:
+    description: >
+      Parse the eval verdict. PASS or WARN proceed; FAIL stops the pipeline.
+      WARN proceeds but is reported (marginal stability — recommend extra runs).
+    parse: "eval verdict line (PASS / WARN / FAIL) and per-criterion table"
+    threshold: "verdict != FAIL"
+
+  candidate-wins:
+    description: >
+      Parse the compare winner recommendation. PASS if the candidate's weighted
+      overall >= active, stability_score >= 0.80, and no criterion regresses by
+      more than the 0.02 noise floor (a <= 0.02 single-criterion dip is treated as
+      a tie, consistent with /prompt-ab-test). A regression > 0.02 on any criterion
+      or a drop in weighted overall FAILS.
+    parse: "compare winner recommendation, weighted overall, and per-criterion delta table"
+    threshold: "overall >= active AND stability >= 0.80 AND no criterion regression > 0.02"
+
+  user-approval:
+    description: >
+      Present the candidate and its scores; promotion overwrites the live skill.
+      Requires explicit user confirmation (the only human-input gate).
+    parse: "user confirmation (yes/no)"
+    threshold: "user confirms"
+
+output:
+  scorecard: >
+    After promotion (or a declined/blocked promotion), compile a summary at
+    .claude/checkpoints/{sprint_id}/versioning-scorecard.md: the candidate
+    version, its eval verdict and per-criterion scores, the compare result vs
+    active, and the final action taken (promoted / left as candidate / blocked).
+    If a downstream sync applies, recommend running /skill-regression-test next.

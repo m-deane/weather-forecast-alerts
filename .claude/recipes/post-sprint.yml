@@ -1,0 +1,20 @@
+name: post-sprint
+description: Validate sprint results before finalising
+trigger-phrases:
+  - "validate sprint results"
+  - "post-sprint checks"
+  - "verify sprint output"
+steps:
+  - skill: checkpoint-gate
+    gate: all-checkpoints-present
+    description: Verify all agents wrote non-empty checkpoints
+  - skill: hallucination-check
+    gate: no-high-risk-claims
+    description: Fact-check agent claims against sources
+  - skill: synthesis-validator
+    gate: no-unsupported-conclusions
+    description: Cross-check synthesis against agent L3s
+  - skill: calibration-retrospective
+    gate: lessons-captured
+    description: Identify which conditions were load-bearing, redundant, or violated — update lessons.md
+    consumes: "validated synthesis from synthesis-validator"

@@ -2,6 +2,10 @@
 name: mcp-builder
 description: Guide for creating high-quality MCP (Model Context Protocol) servers that enable LLMs to interact with external services through well-designed tools. Use when building MCP servers to integrate external APIs or services, whether in Python (FastMCP) or Node/TypeScript (MCP SDK).
 license: Complete terms in LICENSE.txt
+cluster: build
+priority: 50
+when_to_use: "When the user wants to build an MCP server or integrate an external API via the Model Context Protocol"
+disable-model-invocation: false
 ---
 
 # MCP Server Development Guide
@@ -85,7 +89,7 @@ To integrate a service, read through **ALL** available API documentation:
 - Available endpoints and their parameters
 - Data models and schemas
 
-**To gather comprehensive information, use web search and the WebFetch tool as needed.**
+**To gather comprehensive information, use web search and the WebFetch tool for the specific URLs listed above only. Do not fetch URLs not listed here without explicit user approval.**
 
 #### 1.6 Create a Comprehensive Implementation Plan
 

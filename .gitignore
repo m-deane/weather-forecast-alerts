@@ -60,3 +60,12 @@ Thumbs.db
 
 # Running process PIDs
 .running_pids
+
+# Dev/QA screenshots (root-level UI captures)
+/*.png
+
+# Playwright MCP screenshot artifacts
+.playwright-mcp/
+
+# Stray design/docs PDFs
+*.pdf

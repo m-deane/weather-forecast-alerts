@@ -181,7 +181,7 @@ export function LocationPage() {
             <div>
               <p className="text-sm font-medium text-amber-300">Estimated Data</p>
               <p className="text-xs text-amber-400/70 mt-0.5">
-                Real forecast data is not yet available for this location. Conditions shown are seasonal estimates and should not be used for planning.
+                Real forecast data is not yet available for this location. All conditions shown — including the hiking score and Go/No-Go verdict — are seasonal estimates and must not be relied on for safety decisions.
               </p>
             </div>
           </div>
@@ -203,7 +203,7 @@ export function LocationPage() {
         )}
 
         {/* 3. Go / No-Go verdict for next 3 days */}
-        <GoNoGoSummary forecasts={forecast.forecasts} />
+        <GoNoGoSummary forecasts={forecast.forecasts} isEstimated={forecast.data_source?.includes('estimated')} />
 
         {/* 3a. AI-generated weather narrative for today */}
         {currentDay && (

@@ -1,0 +1,95 @@
+name: eval-summarisation
+description: >
+  End-to-end summarisation quality evaluation -- stability, rubric scoring,
+  and source-grounded faithfulness. Chains three existing skills with gates
+  between steps. Uses the dataset and rubric defined in
+  .claude/evals/summarise-email/dataset.yml.
+trigger-phrases:
+  - "evaluate summarisation"
+  - "eval summarisation"
+  - "test summarisation quality"
+  - "summarisation eval pipeline"
+  - "run summarisation eval"
+
+context:
+  dataset: .claude/evals/summarise-email/dataset.yml
+  rubric-criteria: "coverage:0.25,faithfulness:0.30,conciseness:0.15,salience:0.15,actionability:0.15"
+  notes: >
+    This recipe evaluates a single summarisation prompt against one input email.
+    To evaluate across the full dataset, use the /eval-runner skill, which drives
+    this same per-example pipeline (stability-test → rubric-eval →
+    hallucination-check --source) over every example in dataset.yml and aggregates
+    a dataset scorecard.
+
+steps:
+  - skill: stability-test
+    gate: similarity-above-0.80
+    description: >
+      Run the summarisation prompt 3 times on the reference input email to
+      verify output consistency. Produces a stability report with mean Jaccard
+      similarity and variance localisation. If similarity is below 0.80, the
+      prompt is too unstable for reliable evaluation -- fix consistency before
+      scoring quality.
+    produces: "stability-report with mean Jaccard similarity and variance localisation"
+    failure-action: "Stop pipeline. Unstable prompts yield unreliable quality scores."
+
+  - skill: rubric-eval
+    gate: quality-score-above-0.70
+    description: >
+      Score the generated summary against 5 weighted criteria using G-Eval
+      methodology (N=3 chain-of-thought passes per criterion, weighted mean).
+      Criteria: coverage (0.25), faithfulness (0.30), conciseness (0.15),
+      salience (0.15), actionability (0.15). Per-criterion floor: 0.40.
+    args: "--criteria \"coverage:0.25,faithfulness:0.30,conciseness:0.15,salience:0.15,actionability:0.15\" --n 3"
+    consumes: "summary output from the prompt under test"
+    produces: "rubric-scores with per-criterion scores and overall quality score"
+    failure-action: >
+      Report which criteria scored below 0.60. If any criterion is below 0.40,
+      this is a hard FAIL regardless of overall score.
+
+  - skill: hallucination-check
+    gate: faithfulness-overall-not-unfaithful
+    description: >
+      Extract factual claims from the summary and verify each against the
+      source email using ChainPoll with source-grounding (N=5 boolean
+      chain-of-thought passes per claim). The --source flag switches
+      verification context from self-consistency to source-document grounding.
+      Each claim is classified as SUPPORTED, UNCERTAIN, or UNSUPPORTED with
+      quoted source evidence.
+    args: "--source {source-email-file} --n 5 --threshold 0.5"
+    consumes: "summary output and original source email"
+    produces: "faithfulness-report with per-claim verdicts, source evidence, and overall faithfulness"
+    failure-action: >
+      Report all UNSUPPORTED claims with their source evidence (or lack thereof).
+      A single UNSUPPORTED claim triggers UNFAITHFUL verdict and pipeline FAIL.
+
+gates:
+  similarity-above-0.80:
+    description: >
+      Parse the stability-test output for mean Jaccard similarity.
+      PASS if >= 0.80. FAIL if < 0.80.
+    parse: "Mean Jaccard similarity line in stability report"
+    threshold: ">= 0.80"
+
+  quality-score-above-0.70:
+    description: >
+      Parse the rubric-eval output for the overall quality score.
+      PASS if >= 0.70 AND no individual criterion below 0.40.
+      FAIL if overall < 0.70 OR any criterion below 0.40.
+    parse: "Overall quality score line and per-criterion score table"
+    threshold: ">= 0.70 overall, >= 0.40 per criterion"
+
+  faithfulness-overall-not-unfaithful:
+    description: >
+      Parse the hallucination-check output for the Overall faithfulness line.
+      PASS if FAITHFUL or PARTIALLY FAITHFUL.
+      FAIL if UNFAITHFUL (1+ UNSUPPORTED claims).
+    parse: "Overall faithfulness verdict line"
+    threshold: "!= UNFAITHFUL"
+
+output:
+  scorecard: >
+    After all three steps pass, compile results into a scorecard at
+    .claude/checkpoints/{sprint_id}/scorecard.md with stability score,
+    per-criterion rubric scores, faithfulness verdict, and overall PASS/FAIL.
+    Append a machine-readable JSON block for programmatic consumption.

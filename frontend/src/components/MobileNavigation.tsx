@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
   HomeIcon,
   MagnifyingGlassIcon,
-  MapPinIcon,
   HeartIcon,
   Cog6ToothIcon,
   Bars3Icon,
@@ -12,7 +11,6 @@ import {
 import {
   HomeIcon as HomeIconSolid,
   MagnifyingGlassIcon as SearchIconSolid,
-  MapPinIcon as LocationIconSolid,
   HeartIcon as HeartIconSolid,
   Cog6ToothIcon as SettingsIconSolid
 } from '@heroicons/react/24/solid'
@@ -104,6 +102,50 @@ export function MobileNavigation() {
     setActiveIndex(index)
     setIsMenuOpen(false)
   }
+
+  // --- Mobile menu accessibility: focus management, Escape, focus trap, scroll-lock ---
+  const menuPanelRef = useRef<HTMLDivElement>(null)
+  const menuButtonRef = useRef<HTMLButtonElement>(null)
+  const menuCloseRef = useRef<HTMLButtonElement>(null)
+
+  const closeMenu = useCallback(() => {
+    setIsMenuOpen(false)
+    requestAnimationFrame(() => menuButtonRef.current?.focus())
+  }, [])
+
+  useEffect(() => {
+    if (!isMenuOpen) return
+
+    menuCloseRef.current?.focus()
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        closeMenu()
+      } else if (e.key === 'Tab') {
+        const focusables = menuPanelRef.current?.querySelectorAll<HTMLElement>('button, a[href]')
+        if (!focusables || focusables.length === 0) return
+        const first = focusables[0]
+        const last = focusables[focusables.length - 1]
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault()
+          last.focus()
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault()
+          first.focus()
+        }
+      }
+    }
+
+    document.addEventListener('keydown', onKey)
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prevOverflow
+    }
+  }, [isMenuOpen, closeMenu])
 
   return (
     <>
@@ -235,9 +277,12 @@ export function MobileNavigation() {
             </span>
           </div>
           <button
+            ref={menuButtonRef}
             onClick={() => setIsMenuOpen(true)}
             className="p-2 text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-slate-800"
             aria-label="Open menu"
+            aria-haspopup="dialog"
+            aria-expanded={isMenuOpen}
           >
             <Bars3Icon className="w-6 h-6" />
           </button>
@@ -249,13 +294,20 @@ export function MobileNavigation() {
         <div className="lg:hidden fixed inset-0 z-50">
           <div
             className="fixed inset-0 bg-black/60 backdrop-blur-sm fade-in"
-            onClick={() => setIsMenuOpen(false)}
+            onClick={closeMenu}
           />
-          <div className="fixed inset-y-0 right-0 w-72 bg-slate-900 shadow-2xl border-l border-slate-700/50 slide-in-right">
+          <div
+            ref={menuPanelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menu"
+            className="fixed inset-y-0 right-0 w-72 bg-slate-900 shadow-2xl border-l border-slate-700/50 slide-in-right"
+          >
             <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700/50 header-gradient">
               <h2 className="text-lg font-semibold text-white">Menu</h2>
               <button
-                onClick={() => setIsMenuOpen(false)}
+                ref={menuCloseRef}
+                onClick={closeMenu}
                 className="p-2 text-white/80 hover:text-white transition-colors rounded-lg hover:bg-white/10"
                 aria-label="Close menu"
               >

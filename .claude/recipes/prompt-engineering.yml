@@ -1,0 +1,16 @@
+name: prompt-engineering
+description: Create, critique, and test a prompt
+trigger-phrases:
+  - "create and test a prompt"
+  - "full prompt pipeline"
+  - "engineer a prompt"
+steps:
+  - skill: generate-prompt
+    gate: prompt-generated
+    description: Generate the initial prompt
+  - skill: prompt-critique-rewrite
+    gate: failure-modes-addressed
+    description: Identify and fix vulnerability to 5 canonical failure modes
+  - skill: stability-test
+    gate: similarity-above-0.80
+    description: Verify consistent output across runs

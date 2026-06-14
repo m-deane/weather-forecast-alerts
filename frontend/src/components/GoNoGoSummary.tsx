@@ -1,8 +1,10 @@
+import { CheckCircleIcon, ExclamationTriangleIcon, XCircleIcon } from '@heroicons/react/24/solid'
 import { cn } from '@/utils/cn'
 import type { DailyForecast } from '@/types'
 
 interface GoNoGoSummaryProps {
   forecasts: DailyForecast[]
+  isEstimated?: boolean
 }
 
 type Verdict = 'go' | 'caution' | 'no-go'
@@ -32,6 +34,7 @@ function formatDate(dateStr: string, isToday: boolean): string {
 const verdictConfig = {
   'go': {
     label: 'GO',
+    icon: CheckCircleIcon,
     cardClass: 'border-emerald-500/40 bg-emerald-900/20',
     badgeClass: 'bg-emerald-500 text-white',
     dateClass: 'text-emerald-400',
@@ -40,6 +43,7 @@ const verdictConfig = {
   },
   'caution': {
     label: 'CAUTION',
+    icon: ExclamationTriangleIcon,
     cardClass: 'border-amber-500/40 bg-amber-900/20',
     badgeClass: 'bg-amber-500 text-white',
     dateClass: 'text-amber-400',
@@ -48,6 +52,7 @@ const verdictConfig = {
   },
   'no-go': {
     label: 'NO GO',
+    icon: XCircleIcon,
     cardClass: 'border-red-500/40 bg-red-900/20',
     badgeClass: 'bg-red-500 text-white',
     dateClass: 'text-red-400',
@@ -56,10 +61,30 @@ const verdictConfig = {
   },
 }
 
-export function GoNoGoSummary({ forecasts }: GoNoGoSummaryProps) {
+export function GoNoGoSummary({ forecasts, isEstimated = false }: GoNoGoSummaryProps) {
   const days = forecasts.slice(0, 3)
 
   if (days.length === 0) return null
+
+  // On the estimated/scrape-failure path the score is derived from non-real data,
+  // so we do not present a Go/No-Go verdict — that would be a fabricated safety call.
+  if (isEstimated) {
+    return (
+      <section aria-label="Go/No-Go daily verdict">
+        <h2 className="section-title mb-3">Should You Go?</h2>
+        <div className="rounded-xl border border-amber-600/30 bg-amber-900/20 px-4 py-3 flex items-start gap-3">
+          <ExclamationTriangleIcon className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
+          <div>
+            <p className="text-sm font-medium text-amber-300">Verdict unavailable</p>
+            <p className="text-xs text-amber-400/70 mt-0.5">
+              A Go/No-Go verdict needs a real forecast. This location is showing estimated
+              data, so no verdict is given — check back when live data is available.
+            </p>
+          </div>
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section className="fade-in-up" aria-label="Go/No-Go daily verdict">
@@ -69,6 +94,7 @@ export function GoNoGoSummary({ forecasts }: GoNoGoSummaryProps) {
           const verdict = getVerdict(day.summary.overall_hiking_score)
           const reason = getReason(day)
           const config = verdictConfig[verdict]
+          const Icon = config.icon
           const dateLabel = formatDate(day.date, index === 0)
 
           return (
@@ -89,11 +115,12 @@ export function GoNoGoSummary({ forecasts }: GoNoGoSummaryProps) {
                   </span>
                   <span
                     className={cn(
-                      'px-2 py-0.5 rounded-full text-xs font-bold tracking-wide flex-shrink-0',
+                      'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold tracking-wide flex-shrink-0',
                       config.badgeClass
                     )}
                     aria-label={`Verdict: ${config.label}`}
                   >
+                    <Icon className="w-3.5 h-3.5" aria-hidden="true" />
                     {config.label}
                   </span>
                 </div>
