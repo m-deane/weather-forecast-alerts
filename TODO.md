@@ -8,4 +8,9 @@
 ## Next
 - [ ] Sort by score on homepage — show average score by area
 - [ ] Cinematic-web-kit review follow-ups — see `cinematic-web-kit/reviews/WEATHER-APP-CINEMATIC-OPPORTUNITIES.md` (7 verified survivors shipped; hero score numeral deferred as decoration)
-- [ ] Data integrity: confirm the deployed `simple_api.py` is not serving mock/`None` for `freezing_level_m` / `cloud_base_m` / `visibility_m` (surfaced during review — outranks UI polish)
+- [ ] (optional) Hard-suppress `hiking_score` on the estimated/scrape-failure path — currently labelled via a strengthened warning banner rather than nulled (nulling would touch ~15 components)
+- [ ] (optional) Untrack `forecasts/` (needs a Dockerfile change — it `COPY`s forecasts/) and a history rewrite to drop the old `backend/venv` blob so plain `git push` to HF works (deploy currently via `hf upload`)
+
+## Done (cinematic-review session)
+- [x] Data integrity — `visibility_m`/`humidity_percent` were never scraped (fabricated md5/random); now emit `null` (UI shows "Unavailable"); dropped the fabricated `cloud_base_m` 1000m default; estimated-data alert raised to `warning`. Deployed live + verified.
+- [x] Repo hygiene — untracked ~4666 committed-but-ignored files (venv, caches, dev screenshots, PDF) and extended `.gitignore`.
