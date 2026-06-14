@@ -9,8 +9,16 @@ import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { NoFavorites, EmptyState } from '@/components/EmptyState'
 import { BestConditionsToday } from '@/components/BestConditionsToday'
 import { BestDayThisWeek } from '@/components/BestDayThisWeek'
+import { cn } from '@/utils/cn'
 
 const LocationMap = lazy(() => import('@/components/LocationMap'))
+
+// Colour an area's average hiking score using the same thresholds as the Go/No-Go verdict
+function areaScoreBadgeClass(score: number): string {
+  if (score >= 7) return 'text-emerald-300 bg-emerald-500/15 border-emerald-500/30'
+  if (score >= 4) return 'text-amber-300 bg-amber-500/15 border-amber-500/30'
+  return 'text-red-300 bg-red-500/15 border-red-500/30'
+}
 
 export function HomePage() {
   const { favoriteLocationIds, recentLocationIds } = useAppStore()
@@ -68,6 +76,37 @@ export function HomePage() {
   }, [allWeather, allLocations])
 
   const totalLocationCount = allLocations?.length ?? 0
+
+  // Average of today's hiking score per area (for sorting + display in Browse by Area)
+  const areaAvgScores = useMemo(() => {
+    const acc: Record<string, { sum: number; count: number }> = {}
+    for (const w of allWeather ?? []) {
+      const area = w.location?.area
+      const score = w.forecasts?.[0]?.summary?.overall_hiking_score
+      if (area && typeof score === 'number') {
+        acc[area] = acc[area] || { sum: 0, count: 0 }
+        acc[area].sum += score
+        acc[area].count += 1
+      }
+    }
+    const out: Record<string, number> = {}
+    for (const [area, { sum, count }] of Object.entries(acc)) {
+      out[area] = Math.round((sum / count) * 10) / 10
+    }
+    return out
+  }, [allWeather])
+
+  const sortedAreas = useMemo(() => {
+    if (!areas) return []
+    return [...areas].sort((a, b) => {
+      const sa = areaAvgScores[a.name]
+      const sb = areaAvgScores[b.name]
+      if (sa == null && sb == null) return a.name.localeCompare(b.name)
+      if (sa == null) return 1
+      if (sb == null) return -1
+      return sb - sa
+    })
+  }, [areas, areaAvgScores])
 
   // Determine what to show in the favorites/recents section
   const hasFavorites = favoriteLocationIds.length > 0
@@ -238,6 +277,9 @@ export function HomePage() {
         {/* 8. Browse by Area */}
         <section className="fade-in-up" style={{ animationDelay: '0.3s' }}>
           <h2 className="section-title">Browse by Area</h2>
+          {Object.keys(areaAvgScores).length > 0 && (
+            <p className="text-xs text-slate-500 -mt-2 mb-3">Sorted by today's average hiking score</p>
+          )}
           {areasLoading ? (
             <LoadingSkeleton count={5} height={60} />
           ) : !areas || areas.length === 0 ? (
@@ -248,18 +290,35 @@ export function HomePage() {
             />
           ) : (
             <div className="grid grid-cols-2 gap-3">
-              {areas.map(area => (
-                <Link
-                  key={area.id}
-                  to={`/search?area=${area.name}`}
-                  className="card group hover:border-emerald-600/50 hover-scale"
-                >
-                  <h3 className="font-medium text-slate-100 group-hover:text-emerald-400 transition-colors">
-                    {area.name}
-                  </h3>
-                  <p className="text-sm text-slate-500">{area.locationCount} locations</p>
-                </Link>
-              ))}
+              {sortedAreas.map(area => {
+                const avg = areaAvgScores[area.name]
+                return (
+                  <Link
+                    key={area.id}
+                    to={`/search?area=${area.name}`}
+                    className="card group hover:border-emerald-600/50 hover-scale"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="font-medium text-slate-100 group-hover:text-emerald-400 transition-colors">
+                        {area.name}
+                      </h3>
+                      {avg != null && (
+                        <span
+                          className={cn(
+                            'flex-shrink-0 text-xs font-bold mono-nums px-1.5 py-0.5 rounded-md border',
+                            areaScoreBadgeClass(avg)
+                          )}
+                          title="Average hiking score today (1–10)"
+                          aria-label={`Average hiking score ${avg.toFixed(1)} out of 10`}
+                        >
+                          {avg.toFixed(1)}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-slate-500">{area.locationCount} locations</p>
+                  </Link>
+                )
+              })}
             </div>
           )}
         </section>
