@@ -1667,7 +1667,19 @@
   100% { transform: scale(1); }
 }
 
-/* Recharts customization for dark theme */
+/* Chart tooltip theme tokens (adapt to light/dark mode) */
+:root {
+  --chart-tooltip-bg: #ffffff;
+  --chart-tooltip-border: #e2e8f0;
+  --chart-tooltip-fg: #1e293b;
+}
+.dark {
+  --chart-tooltip-bg: #1e293b;
+  --chart-tooltip-border: #475569;
+  --chart-tooltip-fg: #e2e8f0;
+}
+
+/* Recharts customization */
 .recharts-cartesian-grid-horizontal line,
 .recharts-cartesian-grid-vertical line {
   stroke: #334155 !important;
@@ -1678,5 +1690,9 @@
 }
 
 .recharts-tooltip-wrapper .recharts-default-tooltip {
-  @apply bg-slate-800 border-slate-700 rounded-lg shadow-xl !important;
+  background-color: var(--chart-tooltip-bg) !important;
+  border: 1px solid var(--chart-tooltip-border) !important;
+  border-radius: 0.5rem !important;
+  color: var(--chart-tooltip-fg) !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3) !important;
 }
