@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation, useNavigationType } from 'react-router-dom'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { MobileNavigation } from '@/components/MobileNavigation'
 import { DataStalenessWarning } from '@/components/DataStalenessWarning'
@@ -31,6 +31,15 @@ export function Layout() {
   useEffect(() => {
     setupApiInterceptor()
   }, [])
+
+  // Scroll to top on forward navigation; preserve scroll on browser back/forward (POP)
+  const { pathname } = useLocation()
+  const navigationType = useNavigationType()
+  useEffect(() => {
+    if (navigationType !== 'POP') {
+      window.scrollTo(0, 0)
+    }
+  }, [pathname, navigationType])
 
   return (
     <ErrorBoundary>

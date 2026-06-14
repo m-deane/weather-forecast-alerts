@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, useMap, LayersControl } from 'react-leaflet'
 import { DivIcon } from 'leaflet'
 import { useQuery } from '@tanstack/react-query'
@@ -88,7 +88,7 @@ const createMarkerIcon = (color: string, isSelected: boolean, elevation?: number
 function MapBounds({ locations }: { locations: Location[] }) {
   const map = useMap()
 
-  useMemo(() => {
+  useEffect(() => {
     if (locations.length > 0) {
       const bounds = locations.map(loc => [loc.latitude, loc.longitude] as [number, number])
       map.fitBounds(bounds, { padding: [50, 50], maxZoom: 10 })

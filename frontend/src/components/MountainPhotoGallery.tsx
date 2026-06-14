@@ -1,6 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { PhotoIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import {
+  PhotoIcon,
+  XMarkIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+} from '@heroicons/react/24/outline'
 import { integrationsApi } from '@/api/client'
 import type { MountainPhoto } from '@/types'
 import { cn } from '@/utils/cn'
@@ -17,13 +22,87 @@ const seasonColors: Record<string, string> = {
 }
 
 export function MountainPhotoGallery({ locationId }: MountainPhotoGalleryProps) {
-  const [selectedPhoto, setSelectedPhoto] = useState<MountainPhoto | null>(null)
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
+  const triggerRefs = useRef<Array<HTMLButtonElement | null>>([])
+  const closeBtnRef = useRef<HTMLButtonElement>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
+  // Track the open index without making `close` depend on it (keeps the keydown effect stable)
+  const indexRef = useRef<number | null>(null)
 
   const { data: photos } = useQuery({
     queryKey: ['photos', locationId],
     queryFn: () => integrationsApi.getPhotos(locationId),
     enabled: !!locationId,
   })
+
+  useEffect(() => {
+    indexRef.current = selectedIndex
+  }, [selectedIndex])
+
+  const isOpen = selectedIndex !== null
+  const total = photos?.length ?? 0
+  const selectedPhoto: MountainPhoto | null =
+    isOpen && photos ? photos[selectedIndex as number] : null
+
+  const close = useCallback(() => {
+    const idx = indexRef.current
+    setSelectedIndex(null)
+    // Restore focus to the thumbnail that was being viewed
+    if (idx !== null) {
+      requestAnimationFrame(() => triggerRefs.current[idx]?.focus())
+    }
+  }, [])
+
+  const showPrev = useCallback(() => {
+    setSelectedIndex((i) => (i === null ? i : (i - 1 + total) % total))
+  }, [total])
+
+  const showNext = useCallback(() => {
+    setSelectedIndex((i) => (i === null ? i : (i + 1) % total))
+  }, [total])
+
+  // Focus management, keyboard handling (Escape / arrows / Tab trap) and body scroll-lock
+  useEffect(() => {
+    if (!isOpen) return
+
+    closeBtnRef.current?.focus()
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        close()
+      } else if (e.key === 'ArrowLeft' && total > 1) {
+        e.preventDefault()
+        showPrev()
+      } else if (e.key === 'ArrowRight' && total > 1) {
+        e.preventDefault()
+        showNext()
+      } else if (e.key === 'Tab') {
+        const focusables = dialogRef.current?.querySelectorAll<HTMLElement>(
+          'button, a[href]'
+        )
+        if (!focusables || focusables.length === 0) return
+        const first = focusables[0]
+        const last = focusables[focusables.length - 1]
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault()
+          last.focus()
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault()
+          first.focus()
+        }
+      }
+    }
+
+    document.addEventListener('keydown', onKey)
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prevOverflow
+    }
+  }, [isOpen, total, close, showPrev, showNext])
 
   if (!photos || photos.length === 0) {
     return null
@@ -40,7 +119,9 @@ export function MountainPhotoGallery({ locationId }: MountainPhotoGalleryProps) 
           {photos.map((photo, index) => (
             <button
               key={index}
-              onClick={() => setSelectedPhoto(photo)}
+              ref={(el) => (triggerRefs.current[index] = el)}
+              onClick={() => setSelectedIndex(index)}
+              aria-haspopup="dialog"
               className="flex-shrink-0 group relative rounded-xl overflow-hidden border border-slate-700/50 hover:border-emerald-500/50 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
             >
               <img
@@ -75,19 +156,44 @@ export function MountainPhotoGallery({ locationId }: MountainPhotoGalleryProps) 
       {selectedPhoto && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
-          onClick={() => setSelectedPhoto(null)}
+          onClick={close}
         >
           <div
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={selectedPhoto.alt || 'Mountain photo'}
             className="relative max-w-3xl w-full rounded-2xl overflow-hidden bg-slate-900 border border-slate-700"
             onClick={(e) => e.stopPropagation()}
           >
             <button
-              onClick={() => setSelectedPhoto(null)}
-              className="absolute top-3 right-3 z-10 p-2 rounded-full bg-slate-900/80 hover:bg-slate-800 transition-colors text-slate-300 hover:text-white"
+              ref={closeBtnRef}
+              onClick={close}
+              className="absolute top-3 right-3 z-10 p-2 rounded-full bg-slate-900/80 hover:bg-slate-800 transition-colors text-slate-300 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
               aria-label="Close photo"
             >
               <XMarkIcon className="w-5 h-5" />
             </button>
+
+            {total > 1 && (
+              <>
+                <button
+                  onClick={showPrev}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-slate-900/80 hover:bg-slate-800 transition-colors text-slate-300 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                  aria-label="Previous photo"
+                >
+                  <ChevronLeftIcon className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={showNext}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-slate-900/80 hover:bg-slate-800 transition-colors text-slate-300 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                  aria-label="Next photo"
+                >
+                  <ChevronRightIcon className="w-5 h-5" />
+                </button>
+              </>
+            )}
+
             <img
               src={selectedPhoto.url}
               alt={selectedPhoto.alt}

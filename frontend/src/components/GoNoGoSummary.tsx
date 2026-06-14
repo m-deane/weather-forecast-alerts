@@ -1,3 +1,4 @@
+import { CheckCircleIcon, ExclamationTriangleIcon, XCircleIcon } from '@heroicons/react/24/solid'
 import { cn } from '@/utils/cn'
 import type { DailyForecast } from '@/types'
 
@@ -32,6 +33,7 @@ function formatDate(dateStr: string, isToday: boolean): string {
 const verdictConfig = {
   'go': {
     label: 'GO',
+    icon: CheckCircleIcon,
     cardClass: 'border-emerald-500/40 bg-emerald-900/20',
     badgeClass: 'bg-emerald-500 text-white',
     dateClass: 'text-emerald-400',
@@ -40,6 +42,7 @@ const verdictConfig = {
   },
   'caution': {
     label: 'CAUTION',
+    icon: ExclamationTriangleIcon,
     cardClass: 'border-amber-500/40 bg-amber-900/20',
     badgeClass: 'bg-amber-500 text-white',
     dateClass: 'text-amber-400',
@@ -48,6 +51,7 @@ const verdictConfig = {
   },
   'no-go': {
     label: 'NO GO',
+    icon: XCircleIcon,
     cardClass: 'border-red-500/40 bg-red-900/20',
     badgeClass: 'bg-red-500 text-white',
     dateClass: 'text-red-400',
@@ -69,6 +73,7 @@ export function GoNoGoSummary({ forecasts }: GoNoGoSummaryProps) {
           const verdict = getVerdict(day.summary.overall_hiking_score)
           const reason = getReason(day)
           const config = verdictConfig[verdict]
+          const Icon = config.icon
           const dateLabel = formatDate(day.date, index === 0)
 
           return (
@@ -89,11 +94,12 @@ export function GoNoGoSummary({ forecasts }: GoNoGoSummaryProps) {
                   </span>
                   <span
                     className={cn(
-                      'px-2 py-0.5 rounded-full text-xs font-bold tracking-wide flex-shrink-0',
+                      'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold tracking-wide flex-shrink-0',
                       config.badgeClass
                     )}
                     aria-label={`Verdict: ${config.label}`}
                   >
+                    <Icon className="w-3.5 h-3.5" aria-hidden="true" />
                     {config.label}
                   </span>
                 </div>

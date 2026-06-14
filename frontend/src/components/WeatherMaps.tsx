@@ -258,6 +258,33 @@ function WindMap({ windData, location }: { windData: WindData; location: any }) 
 }
 
 function PrecipitationMap({ precipData, location }: { precipData: PrecipitationLevel; location: any }) {
+  // Seeded, render-stable particle positions (kills the per-render Math.random flicker)
+  const drops = useMemo(() => {
+    const count =
+      precipData.level === 'light' ? 20 :
+      precipData.level === 'moderate' ? 40 :
+      precipData.level === 'heavy' ? 60 : 0
+    if (count === 0) return []
+    const seedStr = `${location?.name ?? ''}|${precipData.level}`
+    let h = 2166136261
+    for (let i = 0; i < seedStr.length; i++) {
+      h ^= seedStr.charCodeAt(i)
+      h = Math.imul(h, 16777619)
+    }
+    const rand = () => {
+      h += 0x6d2b79f5
+      let t = Math.imul(h ^ (h >>> 15), 1 | h)
+      t ^= t + Math.imul(t ^ (t >>> 7), 61 | t)
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+    }
+    return Array.from({ length: count }, () => ({
+      x1: rand() * 400,
+      y1: rand() * 300,
+      x2: rand() * 400,
+      y2: rand() * 300,
+    }))
+  }, [precipData.level, location?.name])
+
   return (
     <div 
       className="relative rounded-lg p-6 h-64 overflow-hidden transition-colors"
@@ -267,53 +294,41 @@ function PrecipitationMap({ precipData, location }: { precipData: PrecipitationL
       {precipData.level !== 'none' && (
         <div className="absolute inset-0">
           <svg width="100%" height="100%" viewBox="0 0 400 300">
-            {precipData.level === 'light' && (
-              <>
-                {[...Array(20)].map((_, i) => (
-                  <circle
-                    key={i}
-                    cx={Math.random() * 400}
-                    cy={Math.random() * 300}
-                    r="2"
-                    fill="white"
-                    opacity="0.6"
-                    className="animate-pulse"
-                  />
-                ))}
-              </>
-            )}
-            {precipData.level === 'moderate' && (
-              <>
-                {[...Array(40)].map((_, i) => (
-                  <line
-                    key={i}
-                    x1={Math.random() * 400}
-                    y1={Math.random() * 300}
-                    x2={Math.random() * 400}
-                    y2={Math.random() * 300}
-                    stroke="white"
-                    strokeWidth="1"
-                    opacity="0.7"
-                  />
-                ))}
-              </>
-            )}
-            {precipData.level === 'heavy' && (
-              <>
-                {[...Array(60)].map((_, i) => (
-                  <line
-                    key={i}
-                    x1={Math.random() * 400}
-                    y1={Math.random() * 300}
-                    x2={Math.random() * 400 + 5}
-                    y2={Math.random() * 300 + 8}
-                    stroke="white"
-                    strokeWidth="2"
-                    opacity="0.8"
-                  />
-                ))}
-              </>
-            )}
+            {precipData.level === 'light' && drops.map((d, i) => (
+              <circle
+                key={i}
+                cx={d.x1}
+                cy={d.y1}
+                r="2"
+                fill="white"
+                opacity="0.6"
+                className="animate-pulse"
+              />
+            ))}
+            {precipData.level === 'moderate' && drops.map((d, i) => (
+              <line
+                key={i}
+                x1={d.x1}
+                y1={d.y1}
+                x2={d.x2}
+                y2={d.y2}
+                stroke="white"
+                strokeWidth="1"
+                opacity="0.7"
+              />
+            ))}
+            {precipData.level === 'heavy' && drops.map((d, i) => (
+              <line
+                key={i}
+                x1={d.x1}
+                y1={d.y1}
+                x2={d.x2 + 5}
+                y2={d.y2 + 8}
+                stroke="white"
+                strokeWidth="2"
+                opacity="0.8"
+              />
+            ))}
           </svg>
         </div>
       )}
