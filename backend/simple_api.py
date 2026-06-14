@@ -501,13 +501,14 @@ def convert_forecast_to_api_format(forecast_data: Dict, location: Dict) -> Optio
                 "precipitation_mm": total_precip,
                 "precipitation_type": precip_type,
                 "weather_description": p.get("summary", ""),
-                # MOCK FALLBACK: Scraper does not collect visibility data;
-                # deterministic per location+date to avoid non-deterministic UI changes
-                "visibility_m": stable_mock_value(loc_id + date_str, "visibility", 2000, 15000),
-                "cloud_base_m": p.get("cloud_base_m", 1000),
-                # MOCK FALLBACK: Scraper does not collect humidity data;
-                # deterministic per location+date to avoid non-deterministic UI changes
-                "humidity_percent": stable_mock_value(loc_id + date_str, "humidity", 50, 95),
+                # Scraper does not collect visibility — emit null so the UI shows
+                # "Unavailable" rather than a fabricated number (this is a safety tool).
+                "visibility_m": None,
+                # Pass the scraped cloud base through as-is; null when unknown. Do NOT
+                # default to a fabricated 1000m, which would silently feed hiking_score.
+                "cloud_base_m": p.get("cloud_base_m"),
+                # Scraper does not collect humidity — emit null (see visibility_m).
+                "humidity_percent": None,
                 "pressure_hpa": pressure_hpa,
                 "pressure_estimated": True,  # mountain-forecast.com does not provide pressure
                 "uv_index": uv_index,
@@ -1422,9 +1423,10 @@ def generate_mock_weather_period(period_type: str, base_temp: int = None, days_o
         "precipitation_mm": rain_mm + (snow_cm * 10),
         "precipitation_type": precip_type,
         "weather_description": random.choice(weather_descriptions),
-        "visibility_m": random.randint(2000, 25000),
-        "cloud_base_m": random.randint(300, 2000),
-        "humidity_percent": random.randint(60, 95),
+        # Not real data — emit null so the UI shows "Unavailable" instead of a fabricated value
+        "visibility_m": None,
+        "cloud_base_m": None,
+        "humidity_percent": None,
         "pressure_hpa": random.randint(990, 1025),
         "pressure_estimated": True,
         "uv_index": estimate_uv_index(period_type, datetime.now().month, random.randint(30, 90)),
@@ -1489,8 +1491,10 @@ def generate_mock_forecast(location: Dict[str, Any]) -> Dict[str, Any]:
         "data_source": "estimated (no forecast data available)",
         "hourly_available": False,
         "alerts": [{
-            "severity": "info",
-            "message": "This location is showing estimated data. Real forecast data is not yet available."
+            "severity": "warning",
+            "message": "Estimated data only — no live forecast is available for this location. "
+                       "All metrics, including the hiking score and Go/No-Go verdict, are seasonal "
+                       "estimates and must not be relied on for safety decisions."
         }]
     }
 

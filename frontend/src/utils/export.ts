@@ -95,7 +95,7 @@ function exportAsCSV(
         )
       }
       if (options.includedData.visibility) {
-        row.push((period.visibility_m || 0).toString())
+        row.push(period.visibility_m != null ? period.visibility_m.toString() : 'N/A')
       }
       if (options.includedData.hikingScores) {
         row.push(
@@ -222,7 +222,7 @@ function generatePDFHTML(
           <td>${period.wind_speed_kph} km/h ${period.wind_direction}</td>
         ` : ''}
         ${options.includedData.visibility ? `
-          <td>${period.visibility_m || 0}m</td>
+          <td>${period.visibility_m != null ? period.visibility_m + 'm' : 'N/A'}</td>
         ` : ''}
         ${options.includedData.hikingScores ? `
           <td>${period.hiking_score}/10</td>

@@ -59,7 +59,7 @@ interface ChartDataPoint {
   windSpeed: number
   hikingScore: number
   visibility: number | null
-  humidity: number
+  humidity: number | null
 }
 
 interface PeriodDataPoint {
@@ -69,7 +69,7 @@ interface PeriodDataPoint {
   feelsLike: number
   precipitation: number
   windSpeed: number
-  humidity: number
+  humidity: number | null
   visibility: number | null
   hikingScore: number
 }
@@ -93,7 +93,7 @@ export function WeatherCharts({ forecasts, preferences }: WeatherChartsProps) {
       windSpeed: forecast.summary.max_wind_speed_kph,
       hikingScore: forecast.summary.overall_hiking_score,
       visibility: visibilityKm(forecast.periods[0]?.visibility_m),
-      humidity: forecast.periods[0]?.humidity_percent || 0
+      humidity: forecast.periods[0]?.humidity_percent ?? null
     }
   })
 
@@ -106,7 +106,7 @@ export function WeatherCharts({ forecasts, preferences }: WeatherChartsProps) {
         feelsLike: period.feels_like_c,
         precipitation: period.precipitation_mm,
         windSpeed: period.wind_speed_kph,
-        humidity: period.humidity_percent || 0,
+        humidity: period.humidity_percent ?? null,
         visibility: visibilityKm(period.visibility_m),
         hikingScore: period.hiking_score
       }))
@@ -373,7 +373,7 @@ function PrecipitationChart({ data, animate }: { data: ChartDataPoint[]; animate
           contentStyle={tooltipContentStyle}
           formatter={(value: any, name: string) => {
             if (name === 'precipitation') return [`${value}mm`, 'Precipitation']
-            if (name === 'humidity') return [`${value}%`, 'Humidity']
+            if (name === 'humidity') return value == null ? ['No data', 'Humidity'] : [`${value}%`, 'Humidity']
             return [value, name]
           }}
         />
@@ -394,6 +394,7 @@ function PrecipitationChart({ data, animate }: { data: ChartDataPoint[]; animate
           strokeWidth={2}
           name="Humidity"
           dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
+          connectNulls={false}
           isAnimationActive={animate}
         />
       </ComposedChart>
