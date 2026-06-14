@@ -1,0 +1,23 @@
+name: feature-development
+description: End-to-end new feature development
+trigger-phrases:
+  - "full feature pipeline"
+  - "end to end feature"
+  - "complete feature workflow"
+steps:
+  - skill: spec-first
+    gate: user-approval
+    description: Define scope and acceptance criteria
+  - skill: phase-gate
+    gate: user-approval
+    description: Review and approve the spec before implementation begins
+    consumes: "spec from spec-first"
+  - skill: tdd-feature
+    gate: tests-pass
+    description: Implement test-first until green
+  - skill: code-review
+    gate: no-critical-findings
+    description: Review for quality, security, performance
+  - skill: verify-implementation
+    gate: all-pass
+    description: Run full quality gate

@@ -1,0 +1,20 @@
+name: skill-authoring
+description: Author and validate a skill before syncing to downstream repos
+trigger-phrases:
+  - "ship this skill"
+  - "prepare skill for sync"
+  - "validate this skill"
+steps:
+  - skill: marginal-evidence-audit
+    gate: filler-removed
+    description: Remove filler sentences that dilute conditions
+  - skill: condition-budget-auditor
+    gate: no-filler-conditions
+    description: Check condition budget — remove over-specified or filler conditions
+    consumes: "cleaned prompt from marginal-evidence-audit"
+  - skill: stability-test
+    gate: similarity-above-0.80
+    description: Verify consistent output across runs
+  - skill: prompt-ab-test
+    gate: winner-declared
+    description: Compare against previous version if applicable

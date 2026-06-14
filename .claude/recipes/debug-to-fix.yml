@@ -1,0 +1,23 @@
+name: debug-to-fix
+description: Debug a failing test, fix it, add targeted regression coverage, review, and verify
+trigger-phrases:
+  - "fix and verify"
+  - "debug to green"
+  - "fix the test and add coverage"
+steps:
+  - skill: debug-test-failure
+    gate: root-cause-identified
+    description: Isolate failure, trace root cause, and apply fix
+    produces: "root-cause and fix diff"
+  - skill: generate-tests
+    gate: regression-test-added
+    description: Write a regression test targeting the specific root cause from step 1 — not generic tests
+    consumes: "root-cause from debug-test-failure"
+  - skill: code-review
+    gate: no-critical-findings
+    description: Review the fix and new test for correctness and security
+    consumes: "changed files from steps 1-2"
+  - skill: verify-implementation
+    gate: all-pass
+    description: Run full quality gate — all tests including new regression test must pass
+    consumes: "all changed files"
