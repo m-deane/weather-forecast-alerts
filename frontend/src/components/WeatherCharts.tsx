@@ -57,7 +57,8 @@ interface ChartDataPoint {
   avgTemp: number
   precipitation: number
   windSpeed: number
-  hikingScore: number
+  // null on the estimated path — recharts renders a gap rather than a fabricated point
+  hikingScore: number | null
   visibility: number | null
   humidity: number | null
 }
@@ -71,7 +72,8 @@ interface PeriodDataPoint {
   windSpeed: number
   humidity: number | null
   visibility: number | null
-  hikingScore: number
+  // null on the estimated path — recharts renders a gap rather than a fabricated point
+  hikingScore: number | null
 }
 
 export function WeatherCharts({ forecasts, preferences }: WeatherChartsProps) {
@@ -246,7 +248,7 @@ function OverviewChart({ data, preferences, animate }: { data: ChartDataPoint[];
             if (name === 'maxTemp' || name === 'minTemp') {
               return [`${value}°${tu}`, name === 'maxTemp' ? 'High' : 'Low']
             }
-            if (name === 'hikingScore') return [`${value}/10`, 'Hiking Score']
+            if (name === 'hikingScore') return [value == null ? 'Unavailable' : `${value}/10`, 'Hiking Score']
             return [value, name]
           }}
         />
@@ -491,7 +493,7 @@ function PeriodDetailChart({ data, preferences, animate }: { data: PeriodDataPoi
           formatter={(value: any, name: string) => {
             if (name === 'temperature') return [`${value}°${tu}`, 'Temperature']
             if (name === 'feelsLike') return [`${value}°${tu}`, 'Feels Like']
-            if (name === 'hikingScore') return [`${value}/10`, 'Hiking Score']
+            if (name === 'hikingScore') return [value == null ? 'Unavailable' : `${value}/10`, 'Hiking Score']
             if (name === 'precipitation') return [`${value}mm`, 'Precipitation']
             return [value, name]
           }}

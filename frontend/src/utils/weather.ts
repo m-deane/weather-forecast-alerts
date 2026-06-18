@@ -170,26 +170,29 @@ export function getPeriodLabel(period: WeatherPeriod['period_type']): string {
 
 export function isConditionSafe(period: WeatherPeriod, riskTolerance: 'conservative' | 'moderate' | 'aggressive'): boolean {
   const { wind_speed_kph, hiking_score, risk_level } = period
-  
+
+  // Estimated/scrape-failure path: no real score available, so safety cannot be asserted — treat as not safe
+  if (hiking_score === null) return false
+
   // Conservative users
   if (riskTolerance === 'conservative') {
     if (risk_level === 'high' || risk_level === 'extreme') return false
     if (wind_speed_kph > 30) return false
     if (hiking_score < 6) return false
   }
-  
+
   // Moderate users
   if (riskTolerance === 'moderate') {
     if (risk_level === 'extreme') return false
     if (wind_speed_kph > 45) return false
     if (hiking_score < 4) return false
   }
-  
+
   // Aggressive users
   if (riskTolerance === 'aggressive') {
     if (wind_speed_kph > 60) return false
     if (hiking_score < 2) return false
   }
-  
+
   return true
 }

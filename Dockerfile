@@ -39,9 +39,6 @@ COPY backend/simple_api.py backend/simple_api.py
 # Copy weather scraper (runs on startup + every 6 hours)
 COPY weather_scraper.py ./
 
-# Copy forecast data (scraped JSON files the API serves)
-COPY forecasts/ forecasts/
-
 # Copy static data files (mountain photos, routes, viewpoints)
 COPY data/ data/
 
@@ -53,6 +50,9 @@ COPY hf_app.py ./
 
 # Copy built frontend from stage 1
 COPY --from=frontend-builder /build/frontend/dist frontend/dist
+
+# Create empty forecasts dir (scraper regenerates JSON at runtime via hf_app.py)
+RUN mkdir -p forecasts
 
 # ---------------------------------------------------------------------------
 # Hugging Face Spaces requires a non-root user

@@ -203,9 +203,10 @@ export function WeatherCard({ locationId, compact = false, showDetails = false }
               currentPeriod.risk_level === 'low' && 'bg-emerald-900/50 text-emerald-400 border border-emerald-700/50',
               currentPeriod.risk_level === 'moderate' && 'bg-warning-900/50 text-warning-400 border border-warning-700/50',
               currentPeriod.risk_level === 'high' && 'bg-orange-900/50 text-orange-400 border border-orange-700/50',
-              currentPeriod.risk_level === 'extreme' && 'bg-danger-900/50 text-danger-400 border border-danger-700/50'
+              currentPeriod.risk_level === 'extreme' && 'bg-danger-900/50 text-danger-400 border border-danger-700/50',
+              currentPeriod.risk_level === 'unknown' && 'bg-slate-700/50 text-slate-400 border border-slate-600/50'
             )}>
-              {currentPeriod.risk_level}
+              {currentPeriod.risk_level === 'unknown' ? 'Unavailable' : currentPeriod.risk_level}
             </span>
           </div>
 

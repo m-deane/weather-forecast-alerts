@@ -7,9 +7,11 @@ interface GoNoGoSummaryProps {
   isEstimated?: boolean
 }
 
-type Verdict = 'go' | 'caution' | 'no-go'
+type Verdict = 'go' | 'caution' | 'no-go' | 'unknown'
 
-function getVerdict(score: number): Verdict {
+function getVerdict(score: number | null): Verdict {
+  // No real score — do not fabricate a Go/No-Go safety verdict
+  if (score === null) return 'unknown'
   if (score >= 7) return 'go'
   if (score >= 4) return 'caution'
   return 'no-go'
@@ -18,6 +20,7 @@ function getVerdict(score: number): Verdict {
 function getReason(day: DailyForecast): string {
   const { max_wind_speed_kph, total_precipitation_mm, min_temp_c, overall_hiking_score } = day.summary
 
+  if (overall_hiking_score === null) return 'Verdict unavailable — estimated data'
   if (max_wind_speed_kph > 50) return 'Strong winds forecast'
   if (total_precipitation_mm > 5) return 'Heavy rain/snow forecast'
   if (min_temp_c < -5) return 'Severe cold — winter conditions'
@@ -58,6 +61,15 @@ const verdictConfig = {
     dateClass: 'text-red-400',
     reasonClass: 'text-red-300/80',
     stripClass: 'bg-red-500',
+  },
+  'unknown': {
+    label: 'N/A',
+    icon: ExclamationTriangleIcon,
+    cardClass: 'border-slate-600/40 bg-slate-800/40',
+    badgeClass: 'bg-slate-600 text-white',
+    dateClass: 'text-slate-400',
+    reasonClass: 'text-slate-400/80',
+    stripClass: 'bg-slate-600',
   },
 }
 

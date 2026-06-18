@@ -12,8 +12,9 @@ type TrendDirection = 'improving' | 'deteriorating' | 'stable'
 
 interface DayGroup {
   dayLabel: string
-  periods: { label: string; score: number }[]
-  bestScore: number
+  periods: { label: string; score: number | null }[]
+  // null when no period has a real score (estimated path)
+  bestScore: number | null
 }
 
 function getDirection(groups: DayGroup[]): { direction: TrendDirection; summary: string } {
@@ -21,10 +22,17 @@ function getDirection(groups: DayGroup[]): { direction: TrendDirection; summary:
 
   const firstBest = groups[0].bestScore
   const lastBest = groups[groups.length - 1].bestScore
+
+  // Cannot infer a trend without real scores at both ends (estimated path suppresses scores)
+  if (firstBest === null || lastBest === null) {
+    return { direction: 'stable', summary: 'Trend unavailable — estimated data' }
+  }
+
   const change = lastBest - firstBest
 
-  const overallBest = groups.reduce((best, g) =>
-    g.bestScore > best.bestScore ? g : best, groups[0])
+  const scored = groups.filter((g): g is DayGroup & { bestScore: number } => g.bestScore !== null)
+  const overallBest = scored.reduce((best, g) =>
+    g.bestScore > best.bestScore ? g : best, scored[0])
 
   if (change > 1.5) return {
     direction: 'improving',
@@ -40,21 +48,24 @@ function getDirection(groups: DayGroup[]): { direction: TrendDirection; summary:
   }
 }
 
-function scoreColor(score: number): string {
+function scoreColor(score: number | null): string {
+  if (score === null) return 'bg-slate-600'
   if (score >= 7) return 'bg-emerald-500'
   if (score >= 5) return 'bg-amber-500'
   if (score >= 3) return 'bg-orange-500'
   return 'bg-red-500'
 }
 
-function scoreBgTrack(score: number): string {
+function scoreBgTrack(score: number | null): string {
+  if (score === null) return 'bg-slate-600/10'
   if (score >= 7) return 'bg-emerald-500/10'
   if (score >= 5) return 'bg-amber-500/10'
   if (score >= 3) return 'bg-orange-500/10'
   return 'bg-red-500/10'
 }
 
-function scoreTextColor(score: number): string {
+function scoreTextColor(score: number | null): string {
+  if (score === null) return 'text-slate-400'
   if (score >= 7) return 'text-emerald-400'
   if (score >= 5) return 'text-amber-400'
   if (score >= 3) return 'text-orange-400'
@@ -77,10 +88,12 @@ export function WeatherTrend({ forecasts, className }: WeatherTrendProps) {
         label: periodLabels[p.period_type || ''] || p.period_type || '?',
         score: p.hiking_score,
       }))
+      // Best score from real scores only — suppressed (null) when every period is estimated
+      const realScores = periods.map(p => p.score).filter((s): s is number => s !== null)
       return {
         dayLabel,
         periods,
-        bestScore: Math.max(...periods.map(p => p.score), 0),
+        bestScore: realScores.length > 0 ? Math.max(...realScores) : null,
       }
     })
   }, [forecasts])
@@ -112,7 +125,7 @@ export function WeatherTrend({ forecasts, className }: WeatherTrendProps) {
             <div className="flex items-baseline justify-between mb-2">
               <span className="text-xs font-medium text-slate-400">{group.dayLabel}</span>
               <span className={cn('text-sm font-bold tabular-nums', scoreTextColor(group.bestScore))}>
-                {group.bestScore.toFixed(1)}
+                {group.bestScore !== null ? group.bestScore.toFixed(1) : '—'}
               </span>
             </div>
 
@@ -124,11 +137,11 @@ export function WeatherTrend({ forecasts, className }: WeatherTrendProps) {
                   <div className={cn('flex-1 h-2 rounded-full overflow-hidden', scoreBgTrack(p.score))}>
                     <div
                       className={cn('h-full rounded-full transition-all', scoreColor(p.score))}
-                      style={{ width: `${Math.max(p.score * 10, 3)}%` }}
+                      style={{ width: `${p.score !== null ? Math.max(p.score * 10, 3) : 0}%` }}
                     />
                   </div>
                   <span className={cn('text-[10px] tabular-nums w-6 text-right', scoreTextColor(p.score))}>
-                    {p.score.toFixed(1)}
+                    {p.score !== null ? p.score.toFixed(1) : '—'}
                   </span>
                 </div>
               ))}

@@ -13,11 +13,15 @@ const periodLabels: Record<string, string> = {
   current: 'Now',
 }
 
-function getScoreColor(score: number): {
+function getScoreColor(score: number | null): {
   bg: string
   text: string
   label: string
 } {
+  // No real score — render a neutral cell, never a coloured safety verdict
+  if (score === null) {
+    return { bg: 'bg-slate-600', text: 'text-slate-200', label: 'Unavailable' }
+  }
   if (score >= 7) {
     return { bg: 'bg-emerald-500', text: 'text-white', label: 'Safe' }
   }
@@ -57,10 +61,10 @@ export function SafeWindowBar({ periods, className }: SafeWindowBarProps) {
                 isFirst && 'rounded-l-lg',
                 isLast && 'rounded-r-lg'
               )}
-              title={`${periodLabels[period.period_type] || period.period_type}: Score ${period.hiking_score.toFixed(1)}`}
+              title={`${periodLabels[period.period_type] || period.period_type}: Score ${period.hiking_score !== null ? period.hiking_score.toFixed(1) : 'unavailable'}`}
             >
               <span className="font-bold text-sm drop-shadow-sm">
-                {period.hiking_score.toFixed(1)}
+                {period.hiking_score !== null ? period.hiking_score.toFixed(1) : '—'}
               </span>
             </div>
           )

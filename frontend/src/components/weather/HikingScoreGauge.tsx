@@ -3,7 +3,7 @@ import { cn } from '@/utils/cn'
 import { scoreThresholds } from '@/utils/weather'
 
 interface HikingScoreGaugeProps {
-  score: number // 1-10
+  score: number | null // 1-10, or null when no real score is available (estimated/scrape-failure path)
   size?: 'sm' | 'md' | 'lg'
   showLabel?: boolean
   showDescription?: boolean
@@ -114,7 +114,14 @@ function GaugeVariant({
             </span>
           )}
         </div>
-        <div className={cn('font-bold mono-nums', style.color, sizeClasses[size].text)}>
+        <div
+          className={cn(
+            'font-bold mono-nums',
+            style.color,
+            // Cinematic oversized hero numeral at the most prominent size only
+            size === 'lg' ? 'hero-score' : sizeClasses[size].text
+          )}
+        >
           {score}<span className="text-slate-500 text-sm">/10</span>
         </div>
       </div>
@@ -286,10 +293,28 @@ export function HikingScoreGauge({
   className,
   riskTolerance
 }: HikingScoreGaugeProps) {
-  const normalizedScore = useMemo(() => Math.max(1, Math.min(10, Math.round(score))), [score])
-  const style = useMemo(() => getScoreStyle(normalizedScore, riskTolerance), [normalizedScore, riskTolerance])
+  // Suppress entirely when there is no real score — never render a fabricated number
+  const normalizedScore = useMemo(
+    () => (score === null ? null : Math.max(1, Math.min(10, Math.round(score)))),
+    [score]
+  )
+  const style = useMemo(
+    () => getScoreStyle(normalizedScore ?? 0, riskTolerance),
+    [normalizedScore, riskTolerance]
+  )
 
   const content = useMemo(() => {
+    if (normalizedScore === null) {
+      const labelSize = size === 'lg' ? 'text-base' : size === 'md' ? 'text-sm' : 'text-sm'
+      return (
+        <span
+          className={cn('font-medium text-slate-500 mono-nums', labelSize)}
+          title="Estimated data — hiking score unavailable"
+        >
+          —
+        </span>
+      )
+    }
     switch (variant) {
       case 'badge':
         return <BadgeVariant score={normalizedScore} style={style} showLabel={showLabel} size={size} />

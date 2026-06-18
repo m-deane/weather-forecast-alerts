@@ -118,7 +118,9 @@ export function WalkTimeEstimator({ forecasts, location }: WalkTimeEstimatorProp
   const returnMinutes = toMinutes(returnTime)
   const lateReturn = returnMinutes > 18 * 60 // after 18:00
   const afterSunset = sunsetTime ? returnMinutes > toMinutes(sunsetTime) : false
-  const poorSummitConditions = summitPeriod !== null && summitPeriod.hiking_score < 4
+  // Null score (estimated path) cannot be judged "poor" — the warning only fires on a real low score
+  const poorSummitConditions =
+    summitPeriod !== null && summitPeriod.hiking_score !== null && summitPeriod.hiking_score < 4
 
   const scoreColor = (score: number) => {
     if (score >= 8) return 'text-emerald-400'
@@ -362,8 +364,11 @@ export function WalkTimeEstimator({ forecasts, location }: WalkTimeEstimatorProp
                   </div>
                   <div className="text-center">
                     <div className="text-xs text-slate-500">Score</div>
-                    <div className={cn('font-bold text-base mono-nums', scoreColor(summitPeriod.hiking_score))}>
-                      {summitPeriod.hiking_score.toFixed(1)}
+                    <div className={cn(
+                      'font-bold text-base mono-nums',
+                      summitPeriod.hiking_score !== null ? scoreColor(summitPeriod.hiking_score) : 'text-slate-500'
+                    )}>
+                      {summitPeriod.hiking_score !== null ? summitPeriod.hiking_score.toFixed(1) : '—'}
                     </div>
                   </div>
                 </div>
@@ -372,7 +377,7 @@ export function WalkTimeEstimator({ forecasts, location }: WalkTimeEstimatorProp
 
             {/* Warnings */}
             <div className="space-y-2">
-              {poorSummitConditions && summitPeriod && (
+              {poorSummitConditions && summitPeriod && summitPeriod.hiking_score !== null && (
                 <WarningBanner
                   variant="danger"
                   message={`Poor conditions at estimated summit time — score ${summitPeriod.hiking_score.toFixed(1)}/10`}

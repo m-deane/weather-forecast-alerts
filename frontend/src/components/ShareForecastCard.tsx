@@ -15,7 +15,11 @@ function buildShareText(location: Location, forecast: DailyForecast): { title: s
     day: 'numeric',
     month: 'long',
   })
-  const score = forecast.summary.overall_hiking_score.toFixed(1)
+  // Estimated/scrape-failure path suppresses the score — share text must not quote a fabricated number
+  const score =
+    forecast.summary.overall_hiking_score != null
+      ? forecast.summary.overall_hiking_score.toFixed(1)
+      : null
   const wind = Math.round(forecast.summary.max_wind_speed_kph)
   const rain = forecast.summary.total_precipitation_mm.toFixed(1)
 
@@ -25,9 +29,11 @@ function buildShareText(location: Location, forecast: DailyForecast): { title: s
       ? String((forecast.summary as { dominant_conditions?: string }).dominant_conditions ?? 'mixed conditions')
       : 'mixed conditions'
 
+  const scorePrefix = score != null ? `Score ${score}/10 — ` : 'Score unavailable (estimated data) — '
+
   return {
     title: `${location.name} forecast — ${date}`,
-    text: `Score ${score}/10 — ${condition}. Wind: ${wind}kph, Rain: ${rain}mm`,
+    text: `${scorePrefix}${condition}. Wind: ${wind}kph, Rain: ${rain}mm`,
   }
 }
 

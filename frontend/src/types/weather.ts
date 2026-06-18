@@ -31,8 +31,8 @@ export interface WeatherPeriod {
   visibility_m?: number
   humidity_percent?: number
   weather_description: string
-  hiking_score: number
-  risk_level: 'low' | 'moderate' | 'high' | 'extreme'
+  hiking_score: number | null
+  risk_level: 'low' | 'moderate' | 'high' | 'extreme' | 'unknown'
 }
 
 export interface DailyForecast {
@@ -43,7 +43,7 @@ export interface DailyForecast {
     min_temp_c: number
     total_precipitation_mm: number
     max_wind_speed_kph: number
-    overall_hiking_score: number
+    overall_hiking_score: number | null
     best_period: string
   }
 }

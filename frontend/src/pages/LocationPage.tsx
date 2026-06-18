@@ -304,14 +304,14 @@ export function LocationPage() {
             <div className="space-y-6 px-4 pb-4">
               <WalkHighlandsRoutes
                 locationId={locationId}
-                hikingScore={currentDay?.summary.overall_hiking_score}
+                hikingScore={currentDay?.summary.overall_hiking_score ?? undefined}
               />
               <WalkTimeEstimator forecasts={forecast.forecasts} location={location} />
               <GearChecklist location={location} forecasts={forecast.forecasts} />
               <GettingThere locationId={locationId} />
               <WalkHistoryLog
                 location={location}
-                currentScore={currentDay?.summary.overall_hiking_score}
+                currentScore={currentDay?.summary.overall_hiking_score ?? undefined}
               />
             </div>
           )}

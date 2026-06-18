@@ -1375,25 +1375,6 @@ def generate_mock_weather_period(period_type: str, base_temp: int = None, days_o
         snow_cm = round(precipitation * 0.3, 1)  # Mixed sleet/snow
         rain_mm = round(precipitation * 0.5, 1)
 
-    # Calculate hiking score using the same algorithm as real data
-    # Start at 10 (perfect conditions) and apply penalties
-    score = calculate_hiking_score(
-        temp_min=temperature - 3,
-        temp_max=temperature,
-        temp_chill=temperature - 5 if wind_speed > 20 else temperature,
-        wind_kph=wind_speed,
-        rain_mm=rain_mm,
-        snow_cm=snow_cm,
-        cloud_base_m=None,   # Mock data: no cloud base available
-        elevation_m=None
-    )
-    
-    risk_levels = ["low", "moderate", "high", "extreme"]
-    if score >= 8: risk_level = "low"
-    elif score >= 6: risk_level = "moderate" 
-    elif score >= 4: risk_level = "high"
-    else: risk_level = "extreme"
-    
     weather_descriptions = [
         "Clear skies", "Partly cloudy", "Overcast", "Light rain", 
         "Heavy rain", "Snow showers", "Sunny spells", "Misty"
@@ -1431,8 +1412,9 @@ def generate_mock_weather_period(period_type: str, base_temp: int = None, days_o
         "pressure_estimated": True,
         "uv_index": estimate_uv_index(period_type, datetime.now().month, random.randint(30, 90)),
         "uv_index_estimated": True,
-        "hiking_score": score,
-        "risk_level": risk_level,
+        # Not real data — a score derived from estimated inputs must never be shown as a real number
+        "hiking_score": None,
+        "risk_level": "unknown",
         "snow_cm": snow_cm
     }
 
@@ -1454,7 +1436,8 @@ def generate_mock_forecast(location: Dict[str, Any]) -> Dict[str, Any]:
         temps = [p["temperature_c"] for p in periods if p["temperature_c"] is not None]
         winds = [p["wind_speed_kph"] for p in periods if p["wind_speed_kph"] is not None]
         precip = sum(p["precipitation_mm"] for p in periods)
-        scores = [p["hiking_score"] for p in periods]
+        # Estimated path: hiking scores are suppressed (None), so the day score is also suppressed
+        scores = [p["hiking_score"] for p in periods if p["hiking_score"] is not None]
 
         daily_forecast = {
             "date": date.isoformat(),
@@ -1463,10 +1446,15 @@ def generate_mock_forecast(location: Dict[str, Any]) -> Dict[str, Any]:
                 "min_temp_c": min(temps) if temps else 0,
                 "max_wind_speed_kph": max(winds) if winds else 0,
                 "total_precipitation_mm": precip,
-                # Use minimum period score (most conservative/safe) — worst period sets the day's rating
-                "overall_hiking_score": min(scores) if scores else 5.0,
+                # Use minimum period score (most conservative/safe) — worst period sets the day's rating.
+                # Suppressed (None) on the estimated path so no fabricated day score is shown.
+                "overall_hiking_score": min(scores) if scores else None,
                 "dominant_conditions": "Mixed conditions",
-                "best_period": max(periods, key=lambda p: p["hiking_score"])["period_type"]
+                # Cannot rank by score when scores are suppressed — fall back to the first period
+                "best_period": (
+                    max(periods, key=lambda p: p["hiking_score"])["period_type"]
+                    if scores else periods[0]["period_type"]
+                )
             },
             "periods": periods
         }
