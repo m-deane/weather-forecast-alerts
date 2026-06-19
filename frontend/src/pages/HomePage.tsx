@@ -10,8 +10,14 @@ import { NoFavorites, EmptyState } from '@/components/EmptyState'
 import { BestConditionsToday } from '@/components/BestConditionsToday'
 import { BestDayThisWeek } from '@/components/BestDayThisWeek'
 import { cn } from '@/utils/cn'
+import { formatSunCaption } from '@/lib/mapPalette'
 
 const LocationMap = lazy(() => import('@/components/LocationMap'))
+
+// Centre of the Scottish Highlands — the same fixed point the map defaults to.
+// HomePage's caption is GENERIC ("Highlands · …"), never a named summit's time,
+// because the overview map is not centred on any single peak.
+const HIGHLANDS_CENTER: [number, number] = [57.0, -5.0]
 
 // Colour an area's average hiking score using the same thresholds as the Go/No-Go verdict
 function areaScoreBadgeClass(score: number): string {
@@ -265,6 +271,9 @@ export function HomePage() {
               areaScores={areaAvgScores}
               onLocationSelect={(location) => navigate(`/location/${location.id}`)}
               className="w-full h-48 rounded-xl"
+              // Generic, honest day-phase caption for the fixed Highlands centre
+              // (never a named peak's time). No day-arc tint on the overview map.
+              dayPhaseCaption={formatSunCaption(new Date(), HIGHLANDS_CENTER[0], HIGHLANDS_CENTER[1], 'Highlands')}
             />
           </Suspense>
           <Link

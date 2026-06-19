@@ -37,6 +37,18 @@ interface LocationMapProps {
   // preserves the existing instant MapBounds.fitBounds at every other call site.
   // Always reduced-motion-gated: under prefers-reduced-motion the move is instant.
   enableGuidedMoves?: boolean
+  // dayPhaseCaption: honest, solar-geometry-derived caption (Phase 5, PATTERNS
+  // C5) shown in the count badge. Derived ONLY from real lat/lng — never from a
+  // mock weather field. LocationPage passes a place-true "sunset ~21:47";
+  // HomePage passes a generic "Highlands · sunset ~21:47" from fixed [57,-5].
+  dayPhaseCaption?: string
+  // dayArcTint: opt-in (default OFF, behind ?dayarc=1, LocationPage-only) to a
+  // pointer-events-none edge-vignette painted over the marker pane. Alpha is
+  // capped ≤0.25 and hue-neutral over pin pixels so the score-coded markers read
+  // through it; it auto-reduces when the rain radar is shown and is fully static
+  // under prefers-reduced-motion. Intensity is lerped ONLY from beaconScore —
+  // never from visibility/cloud_base/freezing fields (None/random in the backend).
+  dayArcTint?: boolean
 }
 
 // RainViewer API response shape (only the fields we use)
@@ -305,7 +317,9 @@ export default function LocationMap({
   showPopups = true,
   areaScores,
   beaconScore,
-  enableGuidedMoves = false
+  enableGuidedMoves = false,
+  dayPhaseCaption,
+  dayArcTint = false
 }: LocationMapProps) {
   // Re-evaluating reduced-motion gate (matchMedia + change listener). Mounted
   // here, ABOVE the MapContainer/Suspense boundary, so no un-guarded guided move
@@ -320,6 +334,56 @@ export default function LocationMap({
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [showRadar, setShowRadar] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+
+  // ---- Phase 5: optional edge-vignette tint (default OFF, ?dayarc=1) ----
+  // A 60s tick (NOT rAF) re-evaluates the tint as the day phase drifts; it is
+  // paused while the tab is hidden so a backgrounded LocationPage costs nothing.
+  // Under prefers-reduced-motion the tick never starts (the tint stays static).
+  const [tintTick, setTintTick] = useState(0)
+  useEffect(() => {
+    if (!dayArcTint || prefersReducedMotion) return
+    let interval: ReturnType<typeof setInterval> | undefined
+
+    const start = () => {
+      if (interval !== undefined) return
+      interval = setInterval(() => setTintTick(t => t + 1), 60_000) // 60s, not rAF
+    }
+    const stop = () => {
+      if (interval !== undefined) {
+        clearInterval(interval)
+        interval = undefined
+      }
+    }
+    const onVisibility = () => {
+      if (document.hidden) stop()
+      else start()
+    }
+
+    if (!document.hidden) start()
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      stop()
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
+  }, [dayArcTint, prefersReducedMotion])
+
+  // Tint opacity is lerped ONLY from beaconScore (a true overall_hiking_score on
+  // LocationPage) — never from any mock weather field. No real score → faint
+  // neutral edge only. Capped at the 0.25 alpha ceiling so pins read through.
+  // Auto-reduced (halved) when the rain radar overlay is showing.
+  const VIGNETTE_MAX_ALPHA = 0.25
+  const tintAlpha = (() => {
+    if (!dayArcTint) return 0
+    // Lower hiking scores → slightly stronger, more sombre edge glow; clamp 0..1.
+    const score = beaconScore ?? null
+    const norm = score == null ? 0.5 : 1 - Math.min(Math.max(score / 10, 0), 1)
+    const base = VIGNETTE_MAX_ALPHA * (0.5 + 0.5 * norm) // 0.125..0.25
+    const radarReduced = showRadar ? base * 0.5 : base
+    return Math.min(radarReduced, VIGNETTE_MAX_ALPHA)
+  })()
+  // Reference tintTick so the lint rule sees the dependency that triggers the
+  // 60s re-render; the value itself only forces re-evaluation of the phase.
+  void tintTick
 
   // Resolve the real score for a pin (Phase 3 — props only, zero fetches).
   // Priority: explicit area average (HomePage) > single-beacon (LocationPage) >
@@ -490,6 +554,23 @@ export default function LocationMap({
         })}
       </MapContainer>
 
+      {/* Phase 5: optional edge-vignette tint (default OFF, ?dayarc=1).
+          A pointer-events-none sibling painted OVER the marker pane. The radial
+          gradient is hue-NEUTRAL (transparent centre → dark slate edge) so it
+          dims only the frame, never recolouring the score-coded pins, which read
+          through the near-transparent centre. Alpha is the beaconScore-derived,
+          radar-aware, ≤0.25-capped value computed above. */}
+      {dayArcTint && tintAlpha > 0 && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 z-[450] rounded-xl"
+          style={{
+            background: `radial-gradient(ellipse at center, transparent 55%, rgba(15, 23, 42, ${tintAlpha}) 100%)`,
+            transition: 'background 0.6s var(--ease-scene, ease)',
+          }}
+        />
+      )}
+
       {/* Map legend — only renders when at least one location has a real score,
           so the honest "all-unknown" state ships no score legend at all. */}
       {hasAnyScore && (
@@ -519,10 +600,21 @@ export default function LocationMap({
         </div>
       )}
 
-      {/* Location count badge */}
+      {/* Location count badge — carries the honest solar day-phase caption when
+          a caller supplies one (Phase 5). The caption is derived purely from
+          lat/lng, so it is a true fact about the place, never a weather claim. */}
       <div className="map-glass-hud absolute top-3 left-3 rounded-lg px-3 py-1.5 z-[1000]">
-        <span className="text-emerald-400 font-semibold">{locations.length}</span>
-        <span className="text-slate-400 text-sm ml-1">locations</span>
+        <div>
+          <span className="text-emerald-400 font-semibold">{locations.length}</span>
+          <span className="text-slate-400 text-sm ml-1">
+            {locations.length === 1 ? 'location' : 'locations'}
+          </span>
+        </div>
+        {dayPhaseCaption && (
+          <div className="text-slate-400 text-[11px] leading-tight mt-0.5">
+            {dayPhaseCaption}
+          </div>
+        )}
       </div>
 
       {/* Rain radar toggle button */}

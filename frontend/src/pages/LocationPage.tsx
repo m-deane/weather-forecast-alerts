@@ -1,5 +1,5 @@
 import React, { lazy, Suspense, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
   ArrowLeftIcon,
@@ -57,11 +57,15 @@ import { EmergencyInfo } from '@/components/EmergencyInfo'
 import { WalkHistoryLog } from '@/components/WalkHistoryLog'
 import { WeatherNarrative } from '@/components/weather/WeatherNarrative'
 import { MountainWebcams } from '@/components/MountainWebcams'
+import { formatSunCaption } from '@/lib/mapPalette'
 import type { WeatherPeriod, DailyForecast } from '@/types'
 
 export function LocationPage() {
   const { locationId } = useParams<{ locationId: string }>()
   const navigate = useNavigate()
+  // Phase 5: the day-arc edge-vignette tint is opt-in via ?dayarc=1 (default off).
+  const [searchParams] = useSearchParams()
+  const dayArcEnabled = searchParams.get('dayarc') === '1'
   const { preferences, isFavorite, addFavorite, removeFavorite, addRecent } = useAppStore()
   const setLastUpdated = useDataStalenessStore((state) => state.setLastUpdated)
   const [expandedDayIndex, setExpandedDayIndex] = useState<number | null>(null)
@@ -363,6 +367,10 @@ export function LocationPage() {
                       className="w-full h-48"
                       interactive={false}
                       showPopups={false}
+                      // Honest day-phase caption from this summit's REAL coords.
+                      dayPhaseCaption={formatSunCaption(new Date(), location.latitude, location.longitude)}
+                      // Optional edge-vignette tint, opt-in via ?dayarc=1 only.
+                      dayArcTint={dayArcEnabled}
                     />
                   </Suspense>
                   <div className="p-3 bg-slate-800/50 border-t border-slate-700/50 space-y-1.5">
