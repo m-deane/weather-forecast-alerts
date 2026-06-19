@@ -1,20 +1,13 @@
 import { CheckCircleIcon, ExclamationTriangleIcon, XCircleIcon } from '@heroicons/react/24/solid'
 import { cn } from '@/utils/cn'
 import type { DailyForecast } from '@/types'
+// Verdict thresholds live in the shared map palette so this table and the map's
+// markers/legend/popup can never silently diverge on a safety key.
+import { getVerdict, type Verdict } from '@/lib/mapPalette'
 
 interface GoNoGoSummaryProps {
   forecasts: DailyForecast[]
   isEstimated?: boolean
-}
-
-type Verdict = 'go' | 'caution' | 'no-go' | 'unknown'
-
-function getVerdict(score: number | null): Verdict {
-  // No real score — do not fabricate a Go/No-Go safety verdict
-  if (score === null) return 'unknown'
-  if (score >= 7) return 'go'
-  if (score >= 4) return 'caution'
-  return 'no-go'
 }
 
 function getReason(day: DailyForecast): string {
@@ -34,8 +27,19 @@ function formatDate(dateStr: string, isToday: boolean): string {
   return date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
-const verdictConfig = {
-  'go': {
+// Tailwind dressing per verdict. The verdict DECISION (thresholds) is owned by
+// mapPalette.getVerdict; these presentation classes stay local since the shared
+// module only exports the raw token/glyph, not component-specific styling.
+const verdictConfig: Record<Verdict, {
+  label: string
+  icon: typeof CheckCircleIcon
+  cardClass: string
+  badgeClass: string
+  dateClass: string
+  reasonClass: string
+  stripClass: string
+}> = {
+  GO: {
     label: 'GO',
     icon: CheckCircleIcon,
     cardClass: 'border-emerald-500/40 bg-emerald-900/20',
@@ -44,7 +48,7 @@ const verdictConfig = {
     reasonClass: 'text-emerald-300/80',
     stripClass: 'bg-emerald-500',
   },
-  'caution': {
+  CAUTION: {
     label: 'CAUTION',
     icon: ExclamationTriangleIcon,
     cardClass: 'border-amber-500/40 bg-amber-900/20',
@@ -53,7 +57,7 @@ const verdictConfig = {
     reasonClass: 'text-amber-300/80',
     stripClass: 'bg-amber-500',
   },
-  'no-go': {
+  'NO-GO': {
     label: 'NO GO',
     icon: XCircleIcon,
     cardClass: 'border-red-500/40 bg-red-900/20',
@@ -62,7 +66,7 @@ const verdictConfig = {
     reasonClass: 'text-red-300/80',
     stripClass: 'bg-red-500',
   },
-  'unknown': {
+  UNKNOWN: {
     label: 'N/A',
     icon: ExclamationTriangleIcon,
     cardClass: 'border-slate-600/40 bg-slate-800/40',

@@ -4,6 +4,7 @@ import { DivIcon } from 'leaflet'
 import { useQuery } from '@tanstack/react-query'
 import { locationApi } from '@/api/client'
 import type { Location } from '@/types'
+import { getVerdict, VERDICT_TOKEN, VERDICT_GLYPH, type Verdict } from '@/lib/mapPalette'
 import 'leaflet/dist/leaflet.css'
 import {
   ArrowsPointingOutIcon,
@@ -30,29 +31,34 @@ interface RainViewerResponse {
   }
 }
 
-// Color based on hiking score
-const getMarkerColor = (score?: number): string => {
-  if (!score) return '#10b981' // emerald-500 default
-  if (score >= 7) return '#22c55e' // green - excellent
-  if (score >= 5) return '#10b981' // emerald - good
-  if (score >= 3) return '#f59e0b' // amber - moderate
-  return '#ef4444' // red - poor/dangerous
-}
-
-// Create custom marker icon
-const createMarkerIcon = (color: string, isSelected: boolean, elevation?: number): DivIcon => {
+// Create custom marker icon.
+// Encoding is two-channel: the verdict TOKEN is the hue, the verdict GLYPH is
+// the greyscale/colour-blind-safe channel. UNKNOWN (no real score) renders as a
+// stroke-only HOLLOW teardrop so an absent score is never shown as fake green.
+// All marker motion (pulse halo, hover scale) lives inside the inner <div> —
+// never on .custom-marker, which Leaflet owns and re-applies translate3d to.
+const createMarkerIcon = (verdict: Verdict, isSelected: boolean, elevation?: number): DivIcon => {
   const size = elevation && elevation >= 1200 ? 32 : elevation && elevation >= 1000 ? 28 : 24
   const glowSize = isSelected ? size * 2 : 0
+  const token = VERDICT_TOKEN[verdict]
+  const glyph = VERDICT_GLYPH[verdict]
+  const isHollow = verdict === 'UNKNOWN'
+
+  // Hollow UNKNOWN pins use a stroke-only teardrop (no fill); the others fill
+  // with the verdict token. The halo glow + hover share the token colour.
+  const teardropFill = isHollow ? 'none' : token
+  const teardropStroke = isHollow ? token : 'none'
+  const teardropStrokeWidth = isHollow ? 2 : 0
 
   return new DivIcon({
     className: 'custom-marker',
     html: `
-      <div style="position: relative; width: ${size}px; height: ${size}px; cursor: pointer;">
+      <div class="custom-marker-inner" style="position: relative; width: ${size}px; height: ${size}px; cursor: pointer;">
         ${isSelected ? `
           <div style="
             position: absolute;
             inset: -${glowSize/4}px;
-            background: radial-gradient(circle, ${color}40 0%, transparent 70%);
+            background: radial-gradient(circle, ${token}40 0%, transparent 70%);
             border-radius: 50%;
             animation: pulse 2s ease-in-out infinite;
           "></div>
@@ -60,22 +66,39 @@ const createMarkerIcon = (color: string, isSelected: boolean, elevation?: number
         <svg viewBox="0 0 24 24" style="
           width: 100%;
           height: 100%;
-          fill: ${color};
-          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4)) ${isSelected ? `drop-shadow(0 0 8px ${color})` : ''};
+          fill: ${teardropFill};
+          stroke: ${teardropStroke};
+          stroke-width: ${teardropStrokeWidth};
+          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4)) ${isSelected ? `drop-shadow(0 0 8px ${token})` : ''};
         ">
           <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
         </svg>
-        <div style="
-          position: absolute;
-          top: 4px;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 6px;
-          height: 6px;
-          background: rgba(255,255,255,0.9);
-          border-radius: 50%;
-          box-shadow: 0 0 4px ${color};
-        "></div>
+        ${glyph ? `
+          <div style="
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -65%);
+            color: #ffffff;
+            font-size: ${Math.round(size * 0.42)}px;
+            font-weight: 700;
+            line-height: 1;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+            pointer-events: none;
+          ">${glyph}</div>
+        ` : `
+          <div style="
+            position: absolute;
+            top: 4px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 6px;
+            height: 6px;
+            background: rgba(255,255,255,0.9);
+            border-radius: 50%;
+            box-shadow: 0 0 4px ${token};
+          "></div>
+        `}
       </div>
     `,
     iconSize: [size, size],
@@ -185,6 +208,10 @@ export default function LocationMap({
   const [showRadar, setShowRadar] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
+  // The score legend ships only when at least one location carries a real score.
+  // Today all list scores are undefined, so no score legend renders anywhere.
+  const hasAnyScore = locations.some(l => l.current_score != null)
+
   // Toggle fullscreen
   const toggleFullscreen = useCallback(() => {
     if (!containerRef.current) return
@@ -265,8 +292,8 @@ export default function LocationMap({
 
         {locations.map((location) => {
           const isSelected = selectedLocationId === location.id
-          const color = getMarkerColor(location.current_score)
-          const icon = createMarkerIcon(color, isSelected, location.elevation_m)
+          const verdict = getVerdict(location.current_score)
+          const icon = createMarkerIcon(verdict, isSelected, location.elevation_m)
 
           return (
             <Marker
@@ -286,16 +313,14 @@ export default function LocationMap({
                     <p className="text-xs text-slate-600 mt-0.5">
                       {location.area} &bull; {location.elevation_m}m
                     </p>
-                    {location.current_score !== undefined && (
+                    {location.current_score != null && (
                       <div className="mt-2 flex items-center gap-2">
                         <span
-                          className={`
-                            text-xs font-medium px-2 py-0.5 rounded-full
-                            ${location.current_score >= 7 ? 'bg-green-100 text-green-700' :
-                              location.current_score >= 5 ? 'bg-emerald-100 text-emerald-700' :
-                              location.current_score >= 3 ? 'bg-amber-100 text-amber-700' :
-                              'bg-red-100 text-red-700'}
-                          `}
+                          className="text-xs font-medium px-2 py-0.5 rounded-full"
+                          style={{
+                            backgroundColor: `${VERDICT_TOKEN[getVerdict(location.current_score)]}22`,
+                            color: VERDICT_TOKEN[getVerdict(location.current_score)],
+                          }}
                         >
                           Score: {location.current_score}/10
                         </span>
@@ -320,28 +345,34 @@ export default function LocationMap({
         })}
       </MapContainer>
 
-      {/* Map legend */}
-      <div className="absolute bottom-3 right-3 bg-slate-800/90 backdrop-blur-sm rounded-lg px-3 py-2 border border-slate-700/50 text-xs z-[1000]">
-        <div className="text-slate-400 font-medium mb-1.5">Hiking Conditions</div>
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
-            <span className="text-slate-300">Excellent (7+)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-            <span className="text-slate-300">Good (5-7)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-            <span className="text-slate-300">Moderate (3-5)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
-            <span className="text-slate-300">Poor (&lt;3)</span>
+      {/* Map legend — only renders when at least one location has a real score,
+          so the honest "all-unknown" state ships no score legend at all. */}
+      {hasAnyScore && (
+        <div className="absolute bottom-3 right-3 bg-slate-800/90 backdrop-blur-sm rounded-lg px-3 py-2 border border-slate-700/50 text-xs z-[1000]">
+          <div className="text-slate-400 font-medium mb-1.5">Hiking Conditions</div>
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: VERDICT_TOKEN.GO }} />
+              <span className="text-slate-300">Go (7+)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: VERDICT_TOKEN.CAUTION }} />
+              <span className="text-slate-300">Caution (4-6)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: VERDICT_TOKEN['NO-GO'] }} />
+              <span className="text-slate-300">No-Go (&lt;4)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div
+                className="w-2.5 h-2.5 rounded-full"
+                style={{ backgroundColor: 'transparent', border: `1.5px solid ${VERDICT_TOKEN.UNKNOWN}` }}
+              />
+              <span className="text-slate-300">Unknown</span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Location count badge */}
       <div className="absolute top-3 left-3 bg-slate-800/90 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-slate-700/50 z-[1000]">
@@ -395,11 +426,18 @@ export default function LocationMap({
         .custom-marker {
           background: none !important;
           border: none !important;
+        }
+        /* Hover scale lives on the inner child, never on .custom-marker:
+           Leaflet 1.9.4 owns .leaflet-marker-icon and re-applies translate3d on
+           every pan/zoom, so a transform on the wrapper would collide. */
+        .custom-marker-inner {
           transition: transform 0.2s ease;
         }
         .custom-marker:hover {
-          transform: scale(1.15);
           z-index: 1000 !important;
+        }
+        .custom-marker:hover .custom-marker-inner {
+          transform: scale(1.15);
         }
         .leaflet-popup-content-wrapper {
           background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
