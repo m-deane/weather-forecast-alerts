@@ -16,6 +16,28 @@
     --color-accent: #10b981;
     --color-accent-hover: #059669;
     --color-border: #cbd5e1;
+
+    /* ===== Map palette — single source of truth (mirrors mapPalette.ts) =====
+       Lives on :root (NOT in the component's scoped inline <style>) so the vars
+       exist before any lazy/Suspense-mounted map first renders. Literal-hex
+       fallbacks at each use site mean a missing var degrades to today's look,
+       never to unstyled. */
+    --map-ink: #1e293b;      /* slate chrome base */
+    --map-ink-2: #0f172a;
+    --map-hairline: #334155;
+    --map-mute: #64748b;     /* NO-DATA neutral — explicitly NOT a safety colour */
+    /* Safety axis — high-separation traffic-light; NEVER recoloured or
+       desaturated. --map-nogo red must stay maximally separable. */
+    --map-go: #22c55e;       /* GO      (score >= 7) */
+    --map-caution: #f59e0b;  /* CAUTION (4 <= score < 7) */
+    --map-nogo: #ef4444;     /* NO-GO   (score < 4) */
+    --map-unknown: #64748b;  /* UNKNOWN (score null/undefined) — hollow, never green */
+
+    /* ===== Motion tokens ===== */
+    --ease-reveal: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-scene: cubic-bezier(0.16, 1, 0.3, 1);
+    --dur-scene-fast: 0.6s;
+    --dur-scene-slow: 1.2s;
   }
 
   /* Dark mode CSS variables */
@@ -750,6 +772,33 @@
   .map-container {
     @apply rounded-xl overflow-hidden border border-slate-700/50;
     @apply shadow-lg;
+  }
+
+  /* Glass HUD recipe for map overlays (legend, count badge, control buttons).
+     Frosted glass over the busy tile backdrop. The @supports block is a
+     MANDATORY opaque fallback for browsers without backdrop-filter — the HUD
+     must stay readable, not transparent, where the blur cannot render. */
+  .map-glass-hud {
+    background: rgba(15, 23, 42, 0.16); /* var(--map-ink-2) at low alpha */
+    -webkit-backdrop-filter: blur(12px); /* NOT 15px — perf on the list thumbnail */
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(51, 65, 85, 0.6); /* hairline */
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  }
+
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .map-glass-hud {
+      background: rgba(15, 23, 42, 0.92); /* opaque fallback — stays readable */
+    }
+  }
+
+  /* Gate the blur OFF on the h-48 (192px) HomePage thumbnail rendered inside a
+     scrolling list — a blurred surface there is the costly case. The opaque
+     background keeps the HUD readable without the GPU cost. */
+  .map-container--thumbnail .map-glass-hud {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: rgba(15, 23, 42, 0.92);
   }
 
   /* Divider */

@@ -137,7 +137,7 @@ function ResetViewControl({ locations, center, zoom }: { locations: Location[], 
   return (
     <button
       onClick={handleResetView}
-      className="absolute top-14 left-3 bg-slate-800/90 backdrop-blur-sm rounded-lg p-2 border border-slate-700/50 z-[1000] hover:bg-slate-700/90 transition-colors"
+      className="map-glass-hud absolute top-14 left-3 rounded-lg p-2 z-[1000] hover:bg-slate-700/90 transition-colors"
       title="Reset map view"
       aria-label="Reset map view"
     >
@@ -212,6 +212,10 @@ export default function LocationMap({
   // Today all list scores are undefined, so no score legend renders anywhere.
   const hasAnyScore = locations.some(l => l.current_score != null)
 
+  // Detect the h-48 (192px) HomePage thumbnail so the glass HUD gates its blur
+  // OFF there — a blurred surface inside a scrolling list is the costly case.
+  const isThumbnail = /\bh-48\b/.test(className)
+
   // Toggle fullscreen
   const toggleFullscreen = useCallback(() => {
     if (!containerRef.current) return
@@ -256,7 +260,7 @@ export default function LocationMap({
   return (
     <div
       ref={containerRef}
-      className={`map-container relative ${className} ${isFullscreen ? 'fixed inset-0 z-[9999] !h-screen !w-screen !rounded-none' : ''}`}
+      className={`map-container relative ${isThumbnail ? 'map-container--thumbnail' : ''} ${className} ${isFullscreen ? 'fixed inset-0 z-[9999] !h-screen !w-screen !rounded-none' : ''}`}
     >
       <MapContainer
         center={center}
@@ -348,7 +352,7 @@ export default function LocationMap({
       {/* Map legend — only renders when at least one location has a real score,
           so the honest "all-unknown" state ships no score legend at all. */}
       {hasAnyScore && (
-        <div className="absolute bottom-3 right-3 bg-slate-800/90 backdrop-blur-sm rounded-lg px-3 py-2 border border-slate-700/50 text-xs z-[1000]">
+        <div className="map-glass-hud absolute bottom-3 right-3 rounded-lg px-3 py-2 text-xs z-[1000]">
           <div className="text-slate-400 font-medium mb-1.5">Hiking Conditions</div>
           <div className="space-y-1">
             <div className="flex items-center gap-2">
@@ -375,7 +379,7 @@ export default function LocationMap({
       )}
 
       {/* Location count badge */}
-      <div className="absolute top-3 left-3 bg-slate-800/90 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-slate-700/50 z-[1000]">
+      <div className="map-glass-hud absolute top-3 left-3 rounded-lg px-3 py-1.5 z-[1000]">
         <span className="text-emerald-400 font-semibold">{locations.length}</span>
         <span className="text-slate-400 text-sm ml-1">locations</span>
       </div>
@@ -384,10 +388,10 @@ export default function LocationMap({
       {interactive && (
         <button
           onClick={() => setShowRadar(prev => !prev)}
-          className={`absolute top-24 left-3 bg-slate-800/90 backdrop-blur-sm rounded-lg p-2 border z-[1000] transition-colors ${
+          className={`map-glass-hud absolute top-24 left-3 rounded-lg p-2 z-[1000] transition-colors ${
             showRadar
               ? 'border-emerald-500/70 text-emerald-400 hover:bg-emerald-900/30'
-              : 'border-slate-700/50 text-slate-300 hover:bg-slate-700/90'
+              : 'text-slate-300 hover:bg-slate-700/90'
           }`}
           title={showRadar ? 'Hide rain radar' : 'Show rain radar'}
           aria-label={showRadar ? 'Hide rain radar' : 'Show rain radar'}
@@ -401,7 +405,7 @@ export default function LocationMap({
       {interactive && (
         <button
           onClick={toggleFullscreen}
-          className="absolute top-3 right-3 bg-slate-800/90 backdrop-blur-sm rounded-lg p-2 border border-slate-700/50 z-[1000] hover:bg-slate-700/90 transition-colors"
+          className="map-glass-hud absolute top-3 right-3 rounded-lg p-2 z-[1000] hover:bg-slate-700/90 transition-colors"
           title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
           aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
         >
@@ -429,9 +433,11 @@ export default function LocationMap({
         }
         /* Hover scale lives on the inner child, never on .custom-marker:
            Leaflet 1.9.4 owns .leaflet-marker-icon and re-applies translate3d on
-           every pan/zoom, so a transform on the wrapper would collide. */
+           every pan/zoom, so a transform on the wrapper would collide. The
+           transition rides the reveal ease token (literal fallback preserves
+           today's 0.2s ease). */
         .custom-marker-inner {
-          transition: transform 0.2s ease;
+          transition: transform 0.2s var(--ease-reveal, ease);
         }
         .custom-marker:hover {
           z-index: 1000 !important;
@@ -440,15 +446,15 @@ export default function LocationMap({
           transform: scale(1.15);
         }
         .leaflet-popup-content-wrapper {
-          background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
+          background: linear-gradient(145deg, var(--map-ink, #1e293b) 0%, var(--map-ink-2, #0f172a) 100%);
           color: #e2e8f0;
           border-radius: 0.75rem;
-          border: 1px solid #334155;
+          border: 1px solid var(--map-hairline, #334155);
           box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
         }
         .leaflet-popup-tip {
-          background: #1e293b;
-          border: 1px solid #334155;
+          background: var(--map-ink, #1e293b);
+          border: 1px solid var(--map-hairline, #334155);
           border-top: none;
           border-left: none;
         }
@@ -462,7 +468,7 @@ export default function LocationMap({
           color: #94a3b8;
         }
         .leaflet-popup-close-button {
-          color: #64748b !important;
+          color: var(--map-mute, #64748b) !important;
         }
         .leaflet-popup-close-button:hover {
           color: #e2e8f0 !important;
@@ -472,18 +478,18 @@ export default function LocationMap({
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
         }
         .leaflet-control-zoom a {
-          background: #1e293b !important;
+          background: var(--map-ink, #1e293b) !important;
           color: #e2e8f0 !important;
-          border: 1px solid #334155 !important;
-          transition: all 0.2s ease !important;
+          border: 1px solid var(--map-hairline, #334155) !important;
+          transition: all 0.2s var(--ease-reveal, ease) !important;
         }
         .leaflet-control-zoom a:hover {
-          background: #334155 !important;
+          background: var(--map-hairline, #334155) !important;
           color: #10b981 !important;
         }
         .leaflet-control-attribution {
           background: rgba(15, 23, 42, 0.9) !important;
-          color: #64748b !important;
+          color: var(--map-mute, #64748b) !important;
           backdrop-filter: blur(4px);
         }
         .leaflet-control-attribution a {
@@ -492,7 +498,8 @@ export default function LocationMap({
         .leaflet-control-attribution a:hover {
           color: #10b981 !important;
         }
-        /* Emerald tint on map tiles to match app theme */
+        /* Emerald tint on map tiles to match app theme — LEAVE AS-IS (§3.7):
+           varising this changes no behaviour and still tints the radar pane. */
         .leaflet-tile-pane {
           filter: sepia(0.2) hue-rotate(120deg) saturate(0.6) brightness(0.9);
         }
@@ -501,26 +508,26 @@ export default function LocationMap({
           border-radius: 0 !important;
         }
         .map-container:fullscreen {
-          background: #0f172a;
+          background: var(--map-ink-2, #0f172a);
         }
         /* Dark theme for LayersControl */
         .leaflet-control-layers {
           background: rgba(30, 41, 59, 0.95) !important;
-          border: 1px solid #334155 !important;
+          border: 1px solid var(--map-hairline, #334155) !important;
           border-radius: 0.5rem !important;
           color: #e2e8f0 !important;
           backdrop-filter: blur(8px);
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
         }
         .leaflet-control-layers-toggle {
-          background-color: #1e293b !important;
-          border: 1px solid #334155 !important;
+          background-color: var(--map-ink, #1e293b) !important;
+          border: 1px solid var(--map-hairline, #334155) !important;
           border-radius: 0.5rem !important;
           width: 32px !important;
           height: 32px !important;
         }
         .leaflet-control-layers-separator {
-          border-top-color: #334155 !important;
+          border-top-color: var(--map-hairline, #334155) !important;
         }
         .leaflet-control-layers label {
           color: #cbd5e1 !important;
