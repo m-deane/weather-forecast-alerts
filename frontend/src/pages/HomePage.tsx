@@ -160,6 +160,31 @@ export function HomePage() {
           </div>
         </section>
 
+        {/* Mountain Map — moved up, larger, expandable */}
+        <section className="fade-in-up" style={{ animationDelay: '0.12s' }}>
+          <h2 className="section-title flex items-center gap-2">
+            <MapPinIcon className="w-5 h-5 text-emerald-400" />
+            Mountain Map
+          </h2>
+          <Suspense fallback={<LoadingSkeleton height={340} className="rounded-xl" />}>
+            <LocationMap
+              locations={allLocations || []}
+              areaScores={areaAvgScores}
+              onLocationSelect={(location) => navigate(`/location/${location.id}`)}
+              className="w-full h-80 sm:h-96 rounded-xl"
+              // Generic, honest day-phase caption for the fixed Highlands centre
+              // (never a named peak's time). No day-arc tint on the overview map.
+              dayPhaseCaption={formatSunCaption(new Date(), HIGHLANDS_CENTER[0], HIGHLANDS_CENTER[1], 'Highlands')}
+            />
+          </Suspense>
+          <Link
+            to="/search"
+            className="block text-center text-sm text-emerald-400 hover:text-emerald-300 transition-colors mt-2 py-1"
+          >
+            Explore full map
+          </Link>
+        </section>
+
         {/* 3. Best Day This Week */}
         <BestDayThisWeek className="fade-in-up" style={{ animationDelay: '0.15s' }} />
 
@@ -257,31 +282,6 @@ export function HomePage() {
               )}
             </>
           )}
-        </section>
-
-        {/* 7. Compact Interactive Map */}
-        <section className="fade-in-up" style={{ animationDelay: '0.3s' }}>
-          <h2 className="section-title flex items-center gap-2">
-            <MapPinIcon className="w-5 h-5 text-emerald-400" />
-            Mountain Map
-          </h2>
-          <Suspense fallback={<LoadingSkeleton height={192} className="rounded-xl" />}>
-            <LocationMap
-              locations={allLocations || []}
-              areaScores={areaAvgScores}
-              onLocationSelect={(location) => navigate(`/location/${location.id}`)}
-              className="w-full h-48 rounded-xl"
-              // Generic, honest day-phase caption for the fixed Highlands centre
-              // (never a named peak's time). No day-arc tint on the overview map.
-              dayPhaseCaption={formatSunCaption(new Date(), HIGHLANDS_CENTER[0], HIGHLANDS_CENTER[1], 'Highlands')}
-            />
-          </Suspense>
-          <Link
-            to="/search"
-            className="block text-center text-sm text-emerald-400 hover:text-emerald-300 transition-colors mt-2 py-1"
-          >
-            Explore full map
-          </Link>
         </section>
 
         {/* 8. Browse by Area */}

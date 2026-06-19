@@ -414,18 +414,24 @@ export default function LocationMap({
 
   // Toggle fullscreen
   const toggleFullscreen = useCallback(() => {
-    if (!containerRef.current) return
+    // In-app expand: toggle the fixed inset-0 overlay (more reliable than the
+    // browser Fullscreen API, which needs a user gesture and desyncs on Esc).
+    setIsFullscreen((v) => !v)
+  }, [])
 
-    if (!isFullscreen) {
-      if (containerRef.current.requestFullscreen) {
-        containerRef.current.requestFullscreen()
-      }
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen()
-      }
+  // While expanded: Escape exits, and body scroll is locked.
+  useEffect(() => {
+    if (!isFullscreen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsFullscreen(false)
     }
-    setIsFullscreen(!isFullscreen)
+    document.addEventListener('keydown', onKey)
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prevOverflow
+    }
   }, [isFullscreen])
 
   const handleMarkerClick = useCallback((location: Location) => {
@@ -472,17 +478,17 @@ export default function LocationMap({
       >
         {/* Base layer switcher: Standard (dark) and Topographic */}
         <LayersControl position="topright">
-          <LayersControl.BaseLayer checked name="Standard">
-            <TileLayer
-              url={darkTileUrl}
-              attribution={darkAttribution}
-            />
-          </LayersControl.BaseLayer>
-          <LayersControl.BaseLayer name="Topographic">
+          <LayersControl.BaseLayer checked name="Topographic">
             <TileLayer
               url={topoTileUrl}
               attribution={topoAttribution}
               maxZoom={17}
+            />
+          </LayersControl.BaseLayer>
+          <LayersControl.BaseLayer name="Dark">
+            <TileLayer
+              url={darkTileUrl}
+              attribution={darkAttribution}
             />
           </LayersControl.BaseLayer>
         </LayersControl>
@@ -731,11 +737,9 @@ export default function LocationMap({
         .leaflet-control-attribution a:hover {
           color: #10b981 !important;
         }
-        /* Emerald tint on map tiles to match app theme — LEAVE AS-IS (§3.7):
-           varising this changes no behaviour and still tints the radar pane. */
-        .leaflet-tile-pane {
-          filter: sepia(0.2) hue-rotate(120deg) saturate(0.6) brightness(0.9);
-        }
+        /* No tint on the basemap. A light topographic map suits terrain/weather
+           information and stays legible; the old emerald tint over-darkened it
+           and also distorted the rain-radar precipitation colours. */
         /* Fullscreen specific styles */
         .map-container:fullscreen .leaflet-container {
           border-radius: 0 !important;
