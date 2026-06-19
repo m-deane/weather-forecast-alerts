@@ -314,6 +314,7 @@ export function SearchPage() {
                         navigate(`/location/${location.id}`)
                       }}
                       className="w-full h-64 rounded-xl"
+                      enableGuidedMoves
                     />
                   </Suspense>
                 )}

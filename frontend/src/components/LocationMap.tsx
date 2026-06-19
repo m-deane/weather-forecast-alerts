@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { locationApi } from '@/api/client'
 import type { Location } from '@/types'
 import { getVerdict, VERDICT_TOKEN, VERDICT_GLYPH, type Verdict } from '@/lib/mapPalette'
+import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion'
 import 'leaflet/dist/leaflet.css'
 import {
   ArrowsPointingOutIcon,
@@ -30,6 +31,12 @@ interface LocationMapProps {
   // currentDay.summary.overall_hiking_score. Applies to every rendered pin, so
   // pass it only on single-pin maps. null/undefined keeps the pin hollow UNKNOWN.
   beaconScore?: number | null
+  // enableGuidedMoves: opt-in to Phase 4 guided re-framing (SearchPage only).
+  // When the location set changes, the camera flies to the new bounds with a
+  // distance-scaled, rate-limited move instead of an instant fit. Default false
+  // preserves the existing instant MapBounds.fitBounds at every other call site.
+  // Always reduced-motion-gated: under prefers-reduced-motion the move is instant.
+  enableGuidedMoves?: boolean
 }
 
 // RainViewer API response shape (only the fields we use)
@@ -129,6 +136,93 @@ function MapBounds({ locations }: { locations: Location[] }) {
   return null
 }
 
+// Guided re-framing controller (Phase 4, SearchPage only).
+//
+// A SIBLING useEffect to MapBounds — it does NOT replace or modify the existing
+// MapBounds.fitBounds useEffect, which still owns the very first frame and every
+// non-guided surface. This one owns subsequent re-frames when the filtered set
+// changes: it flies to the new bounds with a distance-scaled duration clamped to
+// the 0.6–1.2s scene band, rate-limited by a `moveend` latch so a fast burst of
+// filter changes can't stack overlapping camera moves.
+//
+// The whole motion path is gated by the re-evaluating usePrefersReducedMotion
+// hook (passed in as a prop so the matchMedia listener lives above this through
+// Suspense): when reduced motion is requested the camera jumps instantly
+// (fitBounds with animate:false — the bounds-equivalent of an instant setView,
+// no flyTo, no rAF), and MapContainer's zoom/fade/markerZoom animations are
+// switched off too — matching the OS preference live.
+function GuidedBounds({ locations, prefersReducedMotion }: { locations: Location[]; prefersReducedMotion: boolean }) {
+  const map = useMap()
+  // Latch is true while a guided move is in flight; the next request is dropped
+  // until `moveend` clears it. Survives re-renders via a ref (never triggers one).
+  const movingRef = useRef(false)
+  // Skip the very first run: MapBounds already framed the initial set, so the
+  // guided controller should only animate on subsequent changes.
+  const firstRunRef = useRef(true)
+
+  useEffect(() => {
+    if (locations.length === 0) return
+
+    const bounds = locations.map(loc => [loc.latitude, loc.longitude] as [number, number])
+
+    // First mount: let MapBounds own the initial frame; just align without motion.
+    if (firstRunRef.current) {
+      firstRunRef.current = false
+      return
+    }
+
+    // Reduced motion: instant jump, no animation, no latch needed.
+    if (prefersReducedMotion) {
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 10, animate: false })
+      return
+    }
+
+    // Rate-limit: drop the request if a guided move is still in flight.
+    if (movingRef.current) return
+
+    // Distance-scale the duration: how far the camera centre must travel maps
+    // linearly into the 0.6–1.2s scene band (CSS --dur-scene-fast/-slow).
+    const currentCenter = map.getCenter()
+    // Centre of the target bounds (simple mean of lat/lng extremes).
+    const lats = bounds.map(b => b[0])
+    const lngs = bounds.map(b => b[1])
+    const destLat = (Math.min(...lats) + Math.max(...lats)) / 2
+    const destLng = (Math.min(...lngs) + Math.max(...lngs)) / 2
+    const distanceMeters = map.distance(currentCenter, [destLat, destLng])
+
+    // Map 0..~120km onto 0.6..1.2s, clamped at both ends.
+    const MIN_DURATION = 0.6
+    const MAX_DURATION = 1.2
+    const DISTANCE_FOR_MAX = 120_000 // metres at which the move reaches full length
+    const scaled =
+      MIN_DURATION +
+      (MAX_DURATION - MIN_DURATION) * Math.min(distanceMeters / DISTANCE_FOR_MAX, 1)
+    const duration = Math.min(MAX_DURATION, Math.max(MIN_DURATION, scaled))
+
+    movingRef.current = true
+    const clearLatch = () => {
+      movingRef.current = false
+      map.off('moveend', clearLatch)
+    }
+    map.on('moveend', clearLatch)
+
+    // easeLinearity is Leaflet's scalar approximation of the scene bezier.
+    map.flyToBounds(bounds, {
+      padding: [50, 50],
+      maxZoom: 10,
+      duration,
+      easeLinearity: 0.25,
+    })
+
+    return () => {
+      map.off('moveend', clearLatch)
+      movingRef.current = false
+    }
+  }, [locations, map, prefersReducedMotion])
+
+  return null
+}
+
 // Reset view control component
 function ResetViewControl({ locations, center, zoom }: { locations: Location[], center: [number, number], zoom: number }) {
   const map = useMap()
@@ -210,8 +304,17 @@ export default function LocationMap({
   interactive = true,
   showPopups = true,
   areaScores,
-  beaconScore
+  beaconScore,
+  enableGuidedMoves = false
 }: LocationMapProps) {
+  // Re-evaluating reduced-motion gate (matchMedia + change listener). Mounted
+  // here, ABOVE the MapContainer/Suspense boundary, so no un-guarded guided move
+  // can fire through Suspense; it also flips live when the OS preference changes.
+  const prefersReducedMotion = usePrefersReducedMotion()
+
+  // Under reduced motion, disable Leaflet's own animation engines too, so even
+  // the initial fit and any internal zoom land instantly (no flyTo, no fade).
+  const animateMap = !prefersReducedMotion
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_activePopup, setActivePopup] = useState<string | null>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -299,6 +402,9 @@ export default function LocationMap({
         dragging={interactive}
         zoomControl={interactive}
         attributionControl={true}
+        zoomAnimation={animateMap}
+        fadeAnimation={animateMap}
+        markerZoomAnimation={animateMap}
       >
         {/* Base layer switcher: Standard (dark) and Topographic */}
         <LayersControl position="topright">
@@ -321,6 +427,11 @@ export default function LocationMap({
         <RainRadarOverlay visible={showRadar} />
 
         {locations.length > 1 && <MapBounds locations={locations} />}
+        {/* Phase 4: guided re-framing sibling — owns subsequent re-frames only
+            (skips the first run so it never fights MapBounds' initial fit). */}
+        {enableGuidedMoves && locations.length > 0 && (
+          <GuidedBounds locations={locations} prefersReducedMotion={prefersReducedMotion} />
+        )}
         {interactive && <ResetViewControl locations={locations} center={center} zoom={zoom} />}
 
         {locations.map((location) => {
