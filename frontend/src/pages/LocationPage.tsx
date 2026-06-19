@@ -357,6 +357,7 @@ export function LocationPage() {
                     <LocationMap
                       locations={[location]}
                       selectedLocationId={location.id}
+                      beaconScore={currentDay?.summary.overall_hiking_score ?? undefined}
                       center={[location.latitude, location.longitude]}
                       zoom={11}
                       className="w-full h-48"

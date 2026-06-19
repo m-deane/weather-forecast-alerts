@@ -262,6 +262,7 @@ export function HomePage() {
           <Suspense fallback={<LoadingSkeleton height={192} className="rounded-xl" />}>
             <LocationMap
               locations={allLocations || []}
+              areaScores={areaAvgScores}
               onLocationSelect={(location) => navigate(`/location/${location.id}`)}
               className="w-full h-48 rounded-xl"
             />

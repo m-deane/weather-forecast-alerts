@@ -22,6 +22,14 @@ interface LocationMapProps {
   className?: string
   interactive?: boolean
   showPopups?: boolean
+  // Real verdict data wired by call sites (Phase 3) — props only, zero fetches.
+  // areaScores: today's AREA-AVERAGE hiking score keyed by area name (HomePage).
+  // A pin whose area has no average stays hollow UNKNOWN — never fake green.
+  areaScores?: Record<string, number>
+  // beaconScore: the single-location true verdict (LocationPage), e.g.
+  // currentDay.summary.overall_hiking_score. Applies to every rendered pin, so
+  // pass it only on single-pin maps. null/undefined keeps the pin hollow UNKNOWN.
+  beaconScore?: number | null
 }
 
 // RainViewer API response shape (only the fields we use)
@@ -200,7 +208,9 @@ export default function LocationMap({
   selectedLocationId,
   className = "w-full h-80 rounded-xl",
   interactive = true,
-  showPopups = true
+  showPopups = true,
+  areaScores,
+  beaconScore
 }: LocationMapProps) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_activePopup, setActivePopup] = useState<string | null>(null)
@@ -208,9 +218,28 @@ export default function LocationMap({
   const [showRadar, setShowRadar] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // The score legend ships only when at least one location carries a real score.
-  // Today all list scores are undefined, so no score legend renders anywhere.
-  const hasAnyScore = locations.some(l => l.current_score != null)
+  // Resolve the real score for a pin (Phase 3 — props only, zero fetches).
+  // Priority: explicit area average (HomePage) > single-beacon (LocationPage) >
+  // per-location current_score. Anything else stays undefined -> hollow UNKNOWN,
+  // never fake green. areaScores is keyed by area NAME; an area with no average
+  // yields undefined here.
+  const scoreFor = useCallback(
+    (location: Location): number | null | undefined => {
+      if (areaScores) return areaScores[location.area]
+      if (beaconScore !== undefined) return beaconScore
+      return location.current_score
+    },
+    [areaScores, beaconScore]
+  )
+
+  // The score legend ships only when at least one rendered pin carries a real
+  // score. Today's plain list maps (no areaScores/beaconScore, undefined
+  // current_score) still render no legend; the area-average and single-beacon
+  // surfaces enable it correctly.
+  const hasAnyScore = locations.some(l => scoreFor(l) != null)
+
+  // Label the legend honestly: area averages are NOT individual-summit verdicts.
+  const legendTitle = areaScores ? 'Hiking Conditions (area average)' : 'Hiking Conditions'
 
   // Detect the h-48 (192px) HomePage thumbnail so the glass HUD gates its blur
   // OFF there — a blurred surface inside a scrolling list is the costly case.
@@ -296,7 +325,8 @@ export default function LocationMap({
 
         {locations.map((location) => {
           const isSelected = selectedLocationId === location.id
-          const verdict = getVerdict(location.current_score)
+          const score = scoreFor(location)
+          const verdict = getVerdict(score)
           const icon = createMarkerIcon(verdict, isSelected, location.elevation_m)
 
           return (
@@ -317,16 +347,16 @@ export default function LocationMap({
                     <p className="text-xs text-slate-600 mt-0.5">
                       {location.area} &bull; {location.elevation_m}m
                     </p>
-                    {location.current_score != null && (
+                    {score != null && (
                       <div className="mt-2 flex items-center gap-2">
                         <span
                           className="text-xs font-medium px-2 py-0.5 rounded-full"
                           style={{
-                            backgroundColor: `${VERDICT_TOKEN[getVerdict(location.current_score)]}22`,
-                            color: VERDICT_TOKEN[getVerdict(location.current_score)],
+                            backgroundColor: `${VERDICT_TOKEN[getVerdict(score)]}22`,
+                            color: VERDICT_TOKEN[getVerdict(score)],
                           }}
                         >
-                          Score: {location.current_score}/10
+                          {areaScores ? 'Area avg' : 'Score'}: {score}/10
                         </span>
                       </div>
                     )}
@@ -353,7 +383,7 @@ export default function LocationMap({
           so the honest "all-unknown" state ships no score legend at all. */}
       {hasAnyScore && (
         <div className="map-glass-hud absolute bottom-3 right-3 rounded-lg px-3 py-2 text-xs z-[1000]">
-          <div className="text-slate-400 font-medium mb-1.5">Hiking Conditions</div>
+          <div className="text-slate-400 font-medium mb-1.5">{legendTitle}</div>
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: VERDICT_TOKEN.GO }} />
