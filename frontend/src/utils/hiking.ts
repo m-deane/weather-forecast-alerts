@@ -1,8 +1,8 @@
 import type { WeatherPeriod, UserPreferences, Location } from '@/types'
 
 export interface HikingAssessment {
-  score: number
-  level: 'excellent' | 'good' | 'moderate' | 'poor' | 'dangerous'
+  score: number | null
+  level: 'excellent' | 'good' | 'moderate' | 'poor' | 'dangerous' | 'unavailable'
   recommendation: string
   riskFactors: RiskFactor[]
   gearRecommendations: GearRecommendation[]
@@ -298,7 +298,9 @@ function generateSafetyGuidance(riskFactors: RiskFactor[], location: Location): 
   return guidance
 }
 
-function getHikingLevel(score: number): 'excellent' | 'good' | 'moderate' | 'poor' | 'dangerous' {
+function getHikingLevel(score: number | null): 'excellent' | 'good' | 'moderate' | 'poor' | 'dangerous' | 'unavailable' {
+  // Estimated/scrape-failure path suppresses the score — never infer a level from a fabricated number
+  if (score === null) return 'unavailable'
   if (score >= 8) return 'excellent'
   if (score >= 6) return 'good'
   if (score >= 4) return 'moderate'
@@ -307,10 +309,15 @@ function getHikingLevel(score: number): 'excellent' | 'good' | 'moderate' | 'poo
 }
 
 function getRecommendation(
-  score: number,
+  score: number | null,
   riskFactors: RiskFactor[],
   riskTolerance: 'conservative' | 'moderate' | 'aggressive'
 ): string {
+  // No real score available — do not present a suitability recommendation derived from estimated inputs
+  if (score === null) {
+    return 'Suitability score unavailable — estimated data only. Do not rely on this for safety decisions.'
+  }
+
   const hasExtremeRisk = riskFactors.some(r => r.severity === 'extreme')
   const hasHighRisk = riskFactors.some(r => r.severity === 'high')
 

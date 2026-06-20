@@ -1,23 +1,19 @@
 import { CheckCircleIcon, ExclamationTriangleIcon, XCircleIcon } from '@heroicons/react/24/solid'
 import { cn } from '@/utils/cn'
 import type { DailyForecast } from '@/types'
+// Verdict thresholds live in the shared map palette so this table and the map's
+// markers/legend/popup can never silently diverge on a safety key.
+import { getVerdict, type Verdict } from '@/lib/mapPalette'
 
 interface GoNoGoSummaryProps {
   forecasts: DailyForecast[]
   isEstimated?: boolean
 }
 
-type Verdict = 'go' | 'caution' | 'no-go'
-
-function getVerdict(score: number): Verdict {
-  if (score >= 7) return 'go'
-  if (score >= 4) return 'caution'
-  return 'no-go'
-}
-
 function getReason(day: DailyForecast): string {
   const { max_wind_speed_kph, total_precipitation_mm, min_temp_c, overall_hiking_score } = day.summary
 
+  if (overall_hiking_score === null) return 'Verdict unavailable — estimated data'
   if (max_wind_speed_kph > 50) return 'Strong winds forecast'
   if (total_precipitation_mm > 5) return 'Heavy rain/snow forecast'
   if (min_temp_c < -5) return 'Severe cold — winter conditions'
@@ -31,8 +27,19 @@ function formatDate(dateStr: string, isToday: boolean): string {
   return date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
-const verdictConfig = {
-  'go': {
+// Tailwind dressing per verdict. The verdict DECISION (thresholds) is owned by
+// mapPalette.getVerdict; these presentation classes stay local since the shared
+// module only exports the raw token/glyph, not component-specific styling.
+const verdictConfig: Record<Verdict, {
+  label: string
+  icon: typeof CheckCircleIcon
+  cardClass: string
+  badgeClass: string
+  dateClass: string
+  reasonClass: string
+  stripClass: string
+}> = {
+  GO: {
     label: 'GO',
     icon: CheckCircleIcon,
     cardClass: 'border-emerald-500/40 bg-emerald-900/20',
@@ -41,7 +48,7 @@ const verdictConfig = {
     reasonClass: 'text-emerald-300/80',
     stripClass: 'bg-emerald-500',
   },
-  'caution': {
+  CAUTION: {
     label: 'CAUTION',
     icon: ExclamationTriangleIcon,
     cardClass: 'border-amber-500/40 bg-amber-900/20',
@@ -50,7 +57,7 @@ const verdictConfig = {
     reasonClass: 'text-amber-300/80',
     stripClass: 'bg-amber-500',
   },
-  'no-go': {
+  'NO-GO': {
     label: 'NO GO',
     icon: XCircleIcon,
     cardClass: 'border-red-500/40 bg-red-900/20',
@@ -58,6 +65,15 @@ const verdictConfig = {
     dateClass: 'text-red-400',
     reasonClass: 'text-red-300/80',
     stripClass: 'bg-red-500',
+  },
+  UNKNOWN: {
+    label: 'N/A',
+    icon: ExclamationTriangleIcon,
+    cardClass: 'border-slate-600/40 bg-slate-800/40',
+    badgeClass: 'bg-slate-600 text-white',
+    dateClass: 'text-slate-400',
+    reasonClass: 'text-slate-400/80',
+    stripClass: 'bg-slate-600',
   },
 }
 

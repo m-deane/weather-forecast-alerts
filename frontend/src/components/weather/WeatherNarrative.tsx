@@ -74,7 +74,11 @@ function getVisibilityNarrative(cloudBase: number | undefined, elevation: number
   return 'Clear above summit level with good visibility.'
 }
 
-function getOverallAssessment(score: number, mainConcern: string): string {
+function getOverallAssessment(score: number | null, mainConcern: string): string {
+  // No real score on the estimated path — describe conditions without an overall safety verdict
+  if (score === null) {
+    return `Estimated data only — no overall suitability rating available. Main concern: ${mainConcern}. Do not rely on this for safety decisions.`
+  }
   if (score >= 8) {
     return 'An excellent day for the hills.'
   }

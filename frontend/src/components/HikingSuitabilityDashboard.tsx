@@ -84,14 +84,15 @@ export function HikingSuitabilityDashboard({
           </div>
           <div className="text-center">
             {/* Score gauge */}
-            <div className="score-gauge mx-auto mb-2" style={{ '--score-value': `${assessment.score * 10}%` } as React.CSSProperties}>
+            <div className="score-gauge mx-auto mb-2" style={{ '--score-value': `${(assessment.score ?? 0) * 10}%` } as React.CSSProperties}>
               <div className={cn(
                 'score-gauge-fill',
                 assessment.level === 'excellent' && 'bg-emerald-500',
                 assessment.level === 'good' && 'bg-emerald-400',
                 assessment.level === 'moderate' && 'bg-amber-400',
                 assessment.level === 'poor' && 'bg-orange-500',
-                assessment.level === 'dangerous' && 'bg-red-500'
+                assessment.level === 'dangerous' && 'bg-red-500',
+                assessment.level === 'unavailable' && 'bg-slate-600'
               )} />
               <div className="score-gauge-marker" />
             </div>
@@ -101,11 +102,14 @@ export function HikingSuitabilityDashboard({
               assessment.level === 'good' && 'text-emerald-300',
               assessment.level === 'moderate' && 'text-amber-400',
               assessment.level === 'poor' && 'text-orange-400',
-              assessment.level === 'dangerous' && 'text-red-400'
+              assessment.level === 'dangerous' && 'text-red-400',
+              assessment.level === 'unavailable' && 'text-slate-400'
             )}>
-              {assessment.score}/10
+              {assessment.score === null ? '—' : `${assessment.score}/10`}
             </div>
-            <div className="text-sm font-medium capitalize text-slate-300">{assessment.level}</div>
+            <div className="text-sm font-medium capitalize text-slate-300">
+              {assessment.level === 'unavailable' ? 'Unavailable' : assessment.level}
+            </div>
           </div>
         </div>
 
@@ -116,7 +120,8 @@ export function HikingSuitabilityDashboard({
           assessment.level === 'good' && 'bg-emerald-900/15 border-emerald-500 text-emerald-200',
           assessment.level === 'moderate' && 'bg-amber-900/20 border-amber-400 text-amber-300',
           assessment.level === 'poor' && 'bg-orange-900/20 border-orange-400 text-orange-300',
-          assessment.level === 'dangerous' && 'bg-red-900/20 border-red-400 text-red-300'
+          assessment.level === 'dangerous' && 'bg-red-900/20 border-red-400 text-red-300',
+          assessment.level === 'unavailable' && 'bg-slate-700/30 border-slate-500 text-slate-300'
         )}>
           <p className="font-medium">{assessment.recommendation}</p>
         </div>
@@ -185,9 +190,10 @@ function CompactDashboard({ assessment, period: _period }: { assessment: any; pe
           assessment.level === 'good' && 'text-emerald-300',
           assessment.level === 'moderate' && 'text-amber-400',
           assessment.level === 'poor' && 'text-orange-400',
-          assessment.level === 'dangerous' && 'text-red-400'
+          assessment.level === 'dangerous' && 'text-red-400',
+          assessment.level === 'unavailable' && 'text-slate-400'
         )}>
-          {assessment.score}/10
+          {assessment.score === null ? '—' : `${assessment.score}/10`}
         </div>
       </div>
 
@@ -219,7 +225,7 @@ function OverviewTab({ assessment, period }: { assessment: any; period: WeatherP
     <div className="space-y-4 stagger-children">
       <div className="data-grid">
         <div className="data-cell text-center p-4 bg-slate-700/30 rounded-xl border border-slate-600/30">
-          <div className="text-2xl font-bold text-emerald-400 mono-nums">{assessment.score}</div>
+          <div className="text-2xl font-bold text-emerald-400 mono-nums">{assessment.score === null ? '—' : assessment.score}</div>
           <div className="text-sm text-slate-400">Hiking Score</div>
         </div>
         <div className="data-cell text-center p-4 bg-slate-700/30 rounded-xl border border-slate-600/30">
@@ -254,9 +260,10 @@ function OverviewTab({ assessment, period }: { assessment: any; period: WeatherP
               period.risk_level === 'low' && 'bg-emerald-900/30 text-emerald-400 border-emerald-700/50',
               period.risk_level === 'moderate' && 'bg-amber-900/30 text-amber-400 border-amber-700/50',
               period.risk_level === 'high' && 'bg-orange-900/30 text-orange-400 border-orange-700/50',
-              period.risk_level === 'extreme' && 'bg-red-900/30 text-red-400 border-red-700/50'
+              period.risk_level === 'extreme' && 'bg-red-900/30 text-red-400 border-red-700/50',
+              period.risk_level === 'unknown' && 'bg-slate-700/40 text-slate-400 border-slate-600/50'
             )}>
-              {period.risk_level}
+              {period.risk_level === 'unknown' ? 'Unavailable' : period.risk_level}
             </span>
           </div>
         </div>

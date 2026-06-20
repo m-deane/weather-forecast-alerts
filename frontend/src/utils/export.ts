@@ -99,7 +99,7 @@ function exportAsCSV(
       }
       if (options.includedData.hikingScores) {
         row.push(
-          period.hiking_score.toString(),
+          period.hiking_score != null ? period.hiking_score.toString() : 'N/A',
           `"${period.risk_level}"`
         )
       }
