@@ -134,6 +134,27 @@ def validate_url(url):
         return False
 
 
+def parse_elevation_from_url(url):
+    """Extracts the trailing elevation number from a mountain-forecast.com URL.
+
+    Mountain-forecast.com URLs end in /forecasts/{elevation}, e.g.
+    .../peaks/Beinn-Eighe/forecasts/500 → "500m".
+
+    Args:
+        url (str): A mountain-forecast.com forecast URL.
+
+    Returns:
+        str or None: The elevation as a string with a trailing 'm'
+                     (e.g. "500m"), or None if no elevation could be parsed.
+    """
+    if not url:
+        return None
+    match = re.search(r'/forecasts/(\d+)$', url)
+    if match:
+        return f"{match.group(1)}m"
+    return None
+
+
 def validate_weather_data(temp_c=None, wind_kph=None, precip_mm=None, data_source="unknown"):
     """Validates weather data values are within reasonable ranges.
 
@@ -1911,6 +1932,7 @@ def process_locations(config):
         for munro in munros:
             munro_name = munro.get('name')
             munro_url = munro.get('url')
+            munro_base_url = munro.get('base_url')
 
             if not munro_name or not munro_url:
                 logger.warning(f"Skipping munro with missing name or URL in area {area}")
@@ -1919,14 +1941,14 @@ def process_locations(config):
 
             # Fix known URL issues
             munro_url = fix_known_url_issues(munro_url)
-            
+
             logger.info(f"Fetching forecast for {munro_name} ({munro_url})")
-            
+
             # Add random delay to avoid rate limiting
             delay = random.uniform(3, 6)  # Random delay between 3-6 seconds
             logger.debug(f"Waiting {delay:.1f} seconds before fetching {munro_name}")
             time.sleep(delay)
-            
+
             html = get_html(munro_url)
             if html:
                 parsed_data = parse_detailed_forecast(html, munro_name, munro_url)
@@ -1940,8 +1962,44 @@ def process_locations(config):
                          if first_day_key:
                              parsed_data['conditions_summary'] = summarize_day_conditions(munro_periods_by_day[first_day_key], source="MF")
                     # --- Generate Munro Summary --- END
-                    area_forecasts_to_save.append(parsed_data) 
-                    munro_forecasts_data.append(parsed_data) 
+
+                    # --- Feature 2: Base-elevation forecast (backward-compatible) --- START
+                    # Fetch the SAME peak at a lower elevation via base_url, reusing the
+                    # throttled get_html / retry / User-Agent path. Base data is additive:
+                    # the summit fields above are never modified, and a base failure never
+                    # crashes the munro — we record it and continue summit-only.
+                    parsed_data['elevation_base'] = parse_elevation_from_url(munro_base_url)
+                    parsed_data['forecast_periods_base'] = []
+                    if munro_base_url:
+                        munro_base_url = fix_known_url_issues(munro_base_url)
+                        logger.info(f"Fetching base-elevation forecast for {munro_name} ({munro_base_url})")
+                        # Throttle the base request identically to summit requests
+                        base_delay = random.uniform(3, 6)
+                        logger.debug(f"Waiting {base_delay:.1f} seconds before fetching base for {munro_name}")
+                        time.sleep(base_delay)
+                        try:
+                            base_html = get_html(munro_base_url)
+                            if base_html:
+                                base_parsed = parse_detailed_forecast(base_html, f"{munro_name} (Base)", munro_base_url)
+                                if base_parsed and base_parsed.get('forecast_periods'):
+                                    parsed_data['forecast_periods_base'] = base_parsed['forecast_periods']
+                                    logger.info(f"Successfully scraped base-elevation forecast for {munro_name}")
+                                else:
+                                    logger.warning(f"Failed to parse base-elevation forecast for {munro_name}; continuing summit-only")
+                                    failed_munros.append({'area': area, 'munro': f"{munro_name} (Base)", 'url': munro_base_url, 'status': 'Base parse/validation failed'})
+                            else:
+                                logger.warning(f"Failed to retrieve base-elevation HTML for {munro_name}; continuing summit-only")
+                                failed_munros.append({'area': area, 'munro': f"{munro_name} (Base)", 'url': munro_base_url, 'status': 'Base HTML fetch failed'})
+                        except Exception as base_e:
+                            logger.warning(f"Error fetching/parsing base-elevation forecast for {munro_name}: {base_e}; continuing summit-only")
+                            failed_munros.append({'area': area, 'munro': f"{munro_name} (Base)", 'url': munro_base_url, 'status': f'Base error: {base_e}'})
+                    else:
+                        logger.warning(f"No base_url configured for {munro_name}; base forecast will be empty")
+                        failed_munros.append({'area': area, 'munro': f"{munro_name} (Base)", 'url': 'N/A', 'status': 'Base URL missing'})
+                    # --- Feature 2: Base-elevation forecast (backward-compatible) --- END
+
+                    area_forecasts_to_save.append(parsed_data)
+                    munro_forecasts_data.append(parsed_data)
                     logger.info(f"Successfully scraped and validated forecast for {munro_name}")
                 else:
                     logger.error(f"Failed to parse or validate forecast for {munro_name}")

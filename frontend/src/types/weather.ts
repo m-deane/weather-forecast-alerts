@@ -9,6 +9,9 @@ export interface Location {
   difficulty: 'easy' | 'moderate' | 'challenging' | 'extreme'
   current_score?: number // Current hiking score (1-10), if available
   os_grid_ref?: string // OS Grid Reference e.g. "NN 166 713"
+  // Feature 2 (base elevation) — optional so summit-only responses keep working.
+  elevation_base_m?: number // Lower-elevation forecast altitude, e.g. 500
+  forecast_altitude_label_base?: string // e.g. "Base forecast (500m)"
 }
 
 export interface PhotographyOpportunity {
@@ -38,6 +41,9 @@ export interface WeatherPeriod {
 export interface DailyForecast {
   date: string
   periods: WeatherPeriod[]
+  // Feature 2 (base elevation) — same per-period shape as `periods`, at a lower
+  // altitude. Optional so summit-only responses keep working unchanged.
+  periods_base?: WeatherPeriod[]
   summary: {
     max_temp_c: number
     min_temp_c: number
