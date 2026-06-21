@@ -67,6 +67,12 @@ export function WeatherCard({ locationId, compact = false, showDetails = false }
     return null
   }
 
+  // Feature 2: base-elevation comparison. Only shown when base data is present;
+  // degrades cleanly to summit-only when it is absent. Never mislabels base as summit.
+  const currentBasePeriod = currentDay?.periods_base?.[0]
+  const hasBaseComparison =
+    currentBasePeriod !== undefined && location.elevation_base_m !== undefined
+
   const isSafe = isConditionSafe(currentPeriod, preferences.riskTolerance)
   const hasAlerts = data.alerts && data.alerts.length > 0
   const isEstimated = data.data_source?.includes('estimated')
@@ -166,6 +172,43 @@ export function WeatherCard({ locationId, compact = false, showDetails = false }
           )}
         </div>
       </div>
+
+      {/* Summit-vs-base comparison — headline temp + hiking score at each altitude.
+          Only rendered when base data exists; summit stays the primary figure above. */}
+      {hasBaseComparison && currentBasePeriod && (
+        <div className="mt-3 pt-3 border-t border-slate-700/50 grid grid-cols-2 gap-3 text-sm fade-in">
+          <div className="rounded-lg bg-slate-800/40 border border-slate-700/40 px-2.5 py-2">
+            <div className="text-[10px] uppercase tracking-wider text-slate-400">
+              Summit ({location.elevation_m}m)
+            </div>
+            <div className="mt-1 flex items-center justify-between gap-2">
+              <span className="font-medium text-slate-100 mono-nums">
+                {Math.round(currentPeriod.temperature_c)}°C
+              </span>
+              <span className="text-slate-300 mono-nums" title="Hiking score at summit">
+                {isEstimated || currentPeriod.hiking_score === null
+                  ? '—'
+                  : `${currentPeriod.hiking_score}/10`}
+              </span>
+            </div>
+          </div>
+          <div className="rounded-lg bg-slate-800/40 border border-slate-700/40 px-2.5 py-2">
+            <div className="text-[10px] uppercase tracking-wider text-emerald-400/80">
+              Base ({location.elevation_base_m}m)
+            </div>
+            <div className="mt-1 flex items-center justify-between gap-2">
+              <span className="font-medium text-slate-100 mono-nums">
+                {Math.round(currentBasePeriod.temperature_c)}°C
+              </span>
+              <span className="text-slate-300 mono-nums" title="Hiking score at base">
+                {isEstimated || currentBasePeriod.hiking_score === null
+                  ? '—'
+                  : `${currentBasePeriod.hiking_score}/10`}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Status indicators */}
       {!compact && (

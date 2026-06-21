@@ -71,6 +71,8 @@ export function LocationPage() {
   const [expandedDayIndex, setExpandedDayIndex] = useState<number | null>(null)
   const [planningOpen, setPlanningOpen] = useState(false)
   const [photoRefOpen, setPhotoRefOpen] = useState(false)
+  // Feature 2: which altitude the 6-day forecast shows. Summit is always the default.
+  const [altitudeView, setAltitudeView] = useState<'summit' | 'base'>('summit')
 
   // Get weather forecast
   const { data: forecast, isLoading: forecastLoading, error: forecastError } = useQuery({
@@ -122,6 +124,15 @@ export function LocationPage() {
   const currentDay = forecast.forecasts[0]
   const isFav = isFavorite(locationId)
 
+  // Feature 2: base-elevation forecast is available only when at least one day
+  // carries periods_base AND the location declares a base altitude.
+  const hasBaseForecast =
+    location.elevation_base_m !== undefined &&
+    forecast.forecasts.some((d) => d.periods_base && d.periods_base.length > 0)
+  // Effective view: never show "base" if base data is missing — fall back to summit.
+  const effectiveAltitudeView: 'summit' | 'base' =
+    hasBaseForecast && altitudeView === 'base' ? 'base' : 'summit'
+
   return (
     <div className="min-h-screen">
       {/* Header */}
@@ -141,7 +152,9 @@ export function LocationPage() {
               {location.area} • {location.elevation_m}m • {location.classification}
             </p>
             <p className="text-emerald-200/60 text-xs mt-0.5">
-              Summit forecast ({location.elevation_m}m)
+              {hasBaseForecast
+                ? `Summit (${location.elevation_m}m) & base (${location.elevation_base_m}m) forecasts`
+                : `Summit forecast (${location.elevation_m}m)`}
             </p>
           </div>
 
@@ -235,7 +248,55 @@ export function LocationPage() {
 
         {/* 6. 6-Day Forecast — the core content users need */}
         <section className="fade-in-up" style={{ animationDelay: '0.1s' }}>
-          <h2 className="section-title">6-Day Forecast</h2>
+          <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+            <h2 className="section-title mb-0">6-Day Forecast</h2>
+            {/* Summit/Base altitude toggle — only when base data exists. Summit is default. */}
+            {hasBaseForecast && (
+              <div
+                className="inline-flex rounded-lg border border-slate-700/60 bg-slate-800/40 p-0.5"
+                role="group"
+                aria-label="Forecast altitude"
+              >
+                <button
+                  type="button"
+                  onClick={() => setAltitudeView('summit')}
+                  aria-pressed={effectiveAltitudeView === 'summit'}
+                  className={cn(
+                    'px-3 py-1 text-xs font-medium rounded-md transition-colors',
+                    effectiveAltitudeView === 'summit'
+                      ? 'bg-emerald-600 text-white'
+                      : 'text-slate-300 hover:text-white'
+                  )}
+                >
+                  Summit ({location.elevation_m}m)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAltitudeView('base')}
+                  aria-pressed={effectiveAltitudeView === 'base'}
+                  className={cn(
+                    'px-3 py-1 text-xs font-medium rounded-md transition-colors',
+                    effectiveAltitudeView === 'base'
+                      ? 'bg-emerald-600 text-white'
+                      : 'text-slate-300 hover:text-white'
+                  )}
+                >
+                  Base ({location.elevation_base_m}m)
+                </button>
+              </div>
+            )}
+          </div>
+          {hasBaseForecast && (
+            <p className="text-xs text-slate-400 mb-3">
+              Showing the{' '}
+              <span className="font-medium text-slate-200">
+                {effectiveAltitudeView === 'base'
+                  ? `base forecast (${location.elevation_base_m}m)`
+                  : `summit forecast (${location.elevation_m}m)`}
+              </span>
+              . Conditions on the summit are usually harsher than at the base.
+            </p>
+          )}
           <div className="space-y-3 stagger-children">
             {forecast.forecasts.map((day, index) => {
               // Forecast confidence decreases after day 3
@@ -254,6 +315,9 @@ export function LocationPage() {
                     isExpanded={expandedDayIndex === index}
                     onToggle={() => setExpandedDayIndex(expandedDayIndex === index ? null : index)}
                     confidence={confidence}
+                    altitudeView={effectiveAltitudeView}
+                    summitElevationM={location.elevation_m}
+                    baseElevationM={location.elevation_base_m}
                   />
                 </div>
               )
@@ -589,35 +653,64 @@ function CurrentConditionsCard({ day, preferences }: { day: DailyForecast; prefe
   )
 }
 
-function DayForecastCard({ day, preferences, isToday, isExpanded, onToggle, confidence }: {
+function DayForecastCard({ day, preferences, isToday, isExpanded, onToggle, confidence, altitudeView = 'summit', summitElevationM, baseElevationM }: {
   day: DailyForecast;
   preferences: any;
   isToday: boolean;
   isExpanded: boolean;
   onToggle: () => void;
   confidence?: 'high' | 'medium' | 'low';
+  altitudeView?: 'summit' | 'base';
+  summitElevationM?: number;
+  baseElevationM?: number;
 }) {
   const date = new Date(day.date)
   const dayName = isToday ? 'Today' : date.toLocaleDateString('en-GB', { weekday: 'short' })
   const dateStr = date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
   const panelId = `day-detail-${day.date}`
 
+  // Feature 2: select the altitude's periods. Base is only used when it exists for
+  // this day; otherwise we transparently fall back to summit (never mislabel).
+  const showingBase = altitudeView === 'base' && !!day.periods_base && day.periods_base.length > 0
+  const activePeriods = showingBase ? day.periods_base! : day.periods
+  const activeElevationM = showingBase ? baseElevationM : summitElevationM
+
+  // Headline figures: use the day summary for summit; derive from base periods for base
+  // (base periods have the same per-period shape, so the maths is identical).
+  const maxTempC = showingBase
+    ? Math.max(...activePeriods.map(p => p.temperature_c))
+    : day.summary.max_temp_c
+  const minTempC = showingBase
+    ? Math.min(...activePeriods.map(p => p.temperature_c))
+    : day.summary.min_temp_c
+  const maxWindKph = showingBase
+    ? Math.max(...activePeriods.map(p => p.wind_speed_kph))
+    : day.summary.max_wind_speed_kph
+  const baseScores = showingBase
+    ? activePeriods.map(p => p.hiking_score).filter((s): s is number => s !== null)
+    : []
+  const hikingScore = showingBase
+    ? (baseScores.length > 0 ? Math.min(...baseScores) : null)
+    : day.summary.overall_hiking_score
+  const totalPrecipMm = showingBase
+    ? activePeriods.reduce((sum, p) => sum + p.precipitation_mm, 0)
+    : day.summary.total_precipitation_mm
+
   // Get representative period for freezing level and cloud base (use midday/afternoon period if available)
-  const representativePeriod = day.periods.find(p => p.period_type === 'pm') || day.periods[0]
+  const representativePeriod = activePeriods.find(p => p.period_type === 'pm') || activePeriods[0]
   const freezingLevel = representativePeriod?.freezing_level_m
   const cloudBase = representativePeriod?.cloud_base_m
 
   // Calculate min feels_like across all periods for wind chill display
-  const minFeelsLike = Math.min(...day.periods.map(p => p.feels_like_c))
-  const significantWindChill = day.summary.min_temp_c - minFeelsLike >= 3
+  const minFeelsLike = Math.min(...activePeriods.map(p => p.feels_like_c))
+  const significantWindChill = minTempC - minFeelsLike >= 3
 
   // Determine weather condition icon based on data
-  const hasRain = day.summary.total_precipitation_mm > 0
+  const hasRain = totalPrecipMm > 0
   const hasSnow = freezingLevel !== undefined && freezingLevel < 800 && hasRain
-  const isWindy = day.summary.max_wind_speed_kph > 40
-  const hikingScore = day.summary.overall_hiking_score
+  const isWindy = maxWindKph > 40
 
-  const hasPeriods = day.periods.length > 1
+  const hasPeriods = activePeriods.length > 1
 
   return (
     <div className={cn(
@@ -653,11 +746,22 @@ function DayForecastCard({ day, preferences, isToday, isExpanded, onToggle, conf
             />
 
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className={cn(
                   "font-semibold",
                   isToday ? "text-emerald-400 text-lg" : "text-slate-100"
                 )}>{dayName}</span>
+                {/* Altitude badge — makes it impossible to confuse base with summit. */}
+                {activeElevationM !== undefined && (
+                  <span className={cn(
+                    'text-[10px] px-1.5 py-0.5 rounded-full border font-medium uppercase tracking-wider',
+                    showingBase
+                      ? 'text-sky-300 bg-sky-900/20 border-sky-700/40'
+                      : 'text-emerald-300 bg-emerald-900/20 border-emerald-700/40'
+                  )}>
+                    {showingBase ? 'Base' : 'Summit'} {activeElevationM}m
+                  </span>
+                )}
                 {confidence && confidence !== 'high' && (
                   <span className={cn(
                     'text-[10px] px-1.5 py-0.5 rounded-full border font-medium uppercase tracking-wider',
@@ -678,13 +782,13 @@ function DayForecastCard({ day, preferences, isToday, isExpanded, onToggle, conf
             <div className="text-center">
               <div className="text-xs text-slate-500 uppercase tracking-wider-custom">Temp</div>
               <TemperatureDisplay
-                temperature={day.summary.max_temp_c}
+                temperature={maxTempC}
                 size="sm"
                 showUnit={true}
                 variant="compact"
               />
               <TemperatureDisplay
-                temperature={day.summary.min_temp_c}
+                temperature={minTempC}
                 size="xs"
                 showUnit={true}
                 variant="compact"
@@ -704,7 +808,7 @@ function DayForecastCard({ day, preferences, isToday, isExpanded, onToggle, conf
                 "font-semibold mono-nums",
                 isWindy ? "text-amber-400" : "text-slate-200"
               )}>
-                {formatWindSpeed(day.summary.max_wind_speed_kph, preferences)}
+                {formatWindSpeed(maxWindKph, preferences)}
               </div>
             </div>
 
@@ -741,7 +845,7 @@ function DayForecastCard({ day, preferences, isToday, isExpanded, onToggle, conf
             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M5.5 17a4.5 4.5 0 01-1.44-8.765 4.5 4.5 0 018.302-3.046 3.5 3.5 0 014.504 4.272A4 4 0 0115 17H5.5zm3.75-2.75a.75.75 0 001.5 0V9.66l1.95 2.1a.75.75 0 101.1-1.02l-3.25-3.5a.75.75 0 00-1.1 0l-3.25 3.5a.75.75 0 101.1 1.02l1.95-2.1v4.59z" clipRule="evenodd" />
             </svg>
-            {formatPrecipitation(day.summary.total_precipitation_mm)}
+            {formatPrecipitation(totalPrecipMm)}
           </span>
         )}
 
@@ -784,20 +888,26 @@ function DayForecastCard({ day, preferences, isToday, isExpanded, onToggle, conf
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider-custom">
               Detailed Periods
+              {showingBase && activeElevationM !== undefined && (
+                <span className="ml-2 text-sky-300 normal-case font-normal">
+                  · Base ({activeElevationM}m)
+                </span>
+              )}
             </h3>
-            {day.summary.best_period && (
+            {/* best_period is a summit summary field; only meaningful in summit view */}
+            {!showingBase && day.summary.best_period && (
               <span className="text-xs text-emerald-400 bg-emerald-900/30 border border-emerald-700/50 px-2 py-1 rounded-full">
                 Best: {getPeriodLabel(day.summary.best_period as WeatherPeriod['period_type'])}
               </span>
             )}
           </div>
           <div className="grid gap-3 md:grid-cols-3">
-            {day.periods.map((period) => (
+            {activePeriods.map((period) => (
               <div
                 key={period.period_type}
                 className={cn(
                   "p-3 rounded-lg border transition-colors",
-                  day.summary.best_period === period.period_type
+                  !showingBase && day.summary.best_period === period.period_type
                     ? "bg-emerald-900/20 border-emerald-700/50"
                     : "bg-slate-800/50 border-slate-700/50"
                 )}

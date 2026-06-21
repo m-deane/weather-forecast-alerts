@@ -419,10 +419,232 @@ def find_latest_forecast(location_name: str) -> Optional[Dict]:
         logger.error("Error loading forecast for %s: %s", location_name, e)
         return None
 
+# --- Feature 2: base-elevation helpers ---
+
+# Default base elevation (m) used when neither the scraper JSON nor the area
+# proxy URL tell us a lower forecast altitude. 500m is the typical "valley"
+# altitude mountain-forecast.com offers below a summit.
+DEFAULT_BASE_ELEVATION_M = 500
+
+# Dry-adiabatic-ish environmental lapse rate (°C per 100m). Air cools roughly
+# 0.65°C for every 100m of ascent, so descending to a lower base elevation
+# warms the temperature by this much per 100m. Used ONLY to synthesize a base
+# forecast when the scraper has not provided a real forecast_periods_base.
+LAPSE_RATE_C_PER_100M = 0.65
+
+
+def parse_elevation_string(elevation: Any) -> Optional[int]:
+    """Parse an elevation value like '500m', '500', or 500 into an int (metres).
+
+    Returns None if it cannot be parsed.
+    """
+    if elevation is None:
+        return None
+    if isinstance(elevation, (int, float)):
+        return int(elevation)
+    if isinstance(elevation, str):
+        digits = "".join(ch for ch in elevation if (ch.isdigit() or ch == "-"))
+        if digits and digits != "-":
+            try:
+                return int(digits)
+            except ValueError:
+                return None
+    return None
+
+
+def derive_base_elevation_m(forecast_data: Dict, location: Dict) -> int:
+    """Determine the base (lower) forecast elevation in metres.
+
+    Order of preference:
+      1. The scraper JSON "elevation_base" field (e.g. "500m") when present.
+      2. The area proxy URL elevation from config.yaml (reuses get_proxy_elevation,
+         the same helper the comparison endpoint uses to derive a valley altitude).
+      3. DEFAULT_BASE_ELEVATION_M as a last resort.
+    """
+    # 1. Scraper-provided base elevation
+    parsed = parse_elevation_string(forecast_data.get("elevation_base"))
+    if parsed is not None:
+        return parsed
+
+    # 2. Area proxy URL elevation (same source the comparison endpoint reuses)
+    area_name = location.get("area")
+    if area_name:
+        proxy_elev = get_proxy_elevation(area_name)
+        if proxy_elev is not None:
+            return proxy_elev
+
+    # 3. Sensible default
+    return DEFAULT_BASE_ELEVATION_M
+
+
+def build_api_period(p: Dict, location: Dict, date_str: str) -> Dict:
+    """Build a single API period object from a raw scraper period dict.
+
+    Shared by the summit periods and the (real) base periods so both have the
+    EXACT same object shape. The summit call path is unchanged in behaviour.
+    """
+    score = calculate_hiking_score(
+        temp_min=p.get("temp_min_c"),
+        temp_max=p.get("temp_max_c"),
+        temp_chill=p.get("temp_chill_c"),
+        wind_kph=p.get("wind_kph"),
+        rain_mm=p.get("rain_mm", 0),
+        snow_cm=p.get("snow_cm", 0),
+        cloud_base_m=p.get("cloud_base_m"),
+        elevation_m=location.get("elevation_m")
+    )
+
+    rain_mm = p.get("rain_mm", 0)
+    snow_cm = p.get("snow_cm", 0)
+    total_precip = rain_mm + (snow_cm * 10)  # Convert snow to water equivalent
+    temp_c = p.get("temp_max_c", 0)
+    # Derive precipitation type from available data
+    if total_precip == 0:
+        precip_type = "none"
+    elif snow_cm > 0 and rain_mm == 0:
+        precip_type = "snow"
+    elif snow_cm > 0 and rain_mm > 0:
+        precip_type = "sleet"
+    else:
+        precip_type = "rain"
+
+    period_type_str = p.get("time", "").lower()
+    loc_id = location.get("id", "")
+    cloud_cover_est = stable_mock_value(loc_id + date_str, "cloud_cover", 30, 90)
+
+    # Wind gust: pass through from scraper (OWM data) or estimate as 1.6x wind speed
+    # (standard mountain gust factor — exposed summits typically see gusts 1.4-1.8x mean wind)
+    raw_gust = p.get("gust_kph")
+    wind_speed = p.get("wind_kph", 0)
+    if raw_gust is not None:
+        wind_gust_kph = raw_gust
+        wind_gust_estimated = False
+    else:
+        wind_gust_kph = round(wind_speed * 1.6, 1) if wind_speed else 0
+        wind_gust_estimated = True
+
+    # Pressure: not available from mountain-forecast.com scraper
+    pressure_hpa = generate_mock_pressure(loc_id, date_str, period_type_str)
+
+    # UV index: not available from scraper; estimate from period, season, cloud cover
+    current_month = datetime.now().month
+    try:
+        current_month = int(date_str.split("-")[1]) if date_str else datetime.now().month
+    except (ValueError, IndexError):
+        pass
+    uv_index = estimate_uv_index(period_type_str, current_month, cloud_cover_est)
+
+    return {
+        "period_type": period_type_str,
+        "temperature_c": temp_c,
+        "feels_like_c": p.get("temp_chill_c"),
+        "wind_speed_kph": wind_speed,
+        "wind_gust_kph": wind_gust_kph,
+        "wind_gust_estimated": wind_gust_estimated,
+        "wind_direction": p.get("wind_dir", ""),
+        "precipitation_mm": total_precip,
+        "precipitation_type": precip_type,
+        "weather_description": p.get("summary", ""),
+        # Scraper does not collect visibility — emit null so the UI shows
+        # "Unavailable" rather than a fabricated number (this is a safety tool).
+        "visibility_m": None,
+        # Pass the scraped cloud base through as-is; null when unknown. Do NOT
+        # default to a fabricated 1000m, which would silently feed hiking_score.
+        "cloud_base_m": p.get("cloud_base_m"),
+        # Scraper does not collect humidity — emit null (see visibility_m).
+        "humidity_percent": None,
+        "pressure_hpa": pressure_hpa,
+        "pressure_estimated": True,  # mountain-forecast.com does not provide pressure
+        "uv_index": uv_index,
+        "uv_index_estimated": True,  # derived from season/period/cloud, not measured
+        "hiking_score": score,
+        "risk_level": get_risk_level(score),
+        "snow_cm": p.get("snow_cm", 0),
+        "freezing_level_m": p.get("freezing_level_m")
+    }
+
+
+def synthesize_base_period(summit_period: Dict, elevation_diff_m: int, base_elevation_m: int) -> Dict:
+    """Synthesize a base-elevation period from a summit API period.
+
+    Used when the scraper has NOT provided a real forecast_periods_base. The
+    derivation is a simple physically-motivated approximation, NOT measured
+    data, so every synthesized period is flagged "estimated": True so the UI
+    can label it honestly (this is a safety-critical app).
+
+    Adjustments applied (lower down = warmer, slightly less wind):
+      - base_temp ≈ summit_temp + (elevation_diff_m / 100) * 0.65  (lapse rate)
+      - wind reduced modestly (summits are more exposed than valleys)
+      - hiking_score recomputed from the adjusted values with the same scorer
+    """
+    base = dict(summit_period)  # copy summit shape so keys match exactly
+
+    warming = (elevation_diff_m / 100.0) * LAPSE_RATE_C_PER_100M
+
+    def warm(val):
+        return round(val + warming, 1) if isinstance(val, (int, float)) else val
+
+    base_temp = warm(summit_period.get("temperature_c"))
+    base_feels_like = warm(summit_period.get("feels_like_c"))
+
+    # Wind is modestly lower at the base than on an exposed summit (~25% less).
+    summit_wind = summit_period.get("wind_speed_kph")
+    base_wind = round(summit_wind * 0.75, 1) if isinstance(summit_wind, (int, float)) else summit_wind
+    summit_gust = summit_period.get("wind_gust_kph")
+    base_gust = round(summit_gust * 0.75, 1) if isinstance(summit_gust, (int, float)) else summit_gust
+
+    base["temperature_c"] = base_temp
+    base["feels_like_c"] = base_feels_like
+    base["wind_speed_kph"] = base_wind
+    base["wind_gust_kph"] = base_gust
+    base["wind_gust_estimated"] = True  # synthesized
+
+    # Recompute hiking score with the same scoring approach used everywhere else.
+    # temp_min/temp_max are not separately tracked in the API period, so we feed
+    # the single temperature_c for both and the feels_like as the chill input.
+    base_score = calculate_hiking_score(
+        temp_min=base_temp,
+        temp_max=base_temp,
+        temp_chill=base_feels_like,
+        wind_kph=base_wind,
+        rain_mm=summit_period.get("precipitation_mm", 0) if summit_period.get("precipitation_type") != "snow" else 0,
+        snow_cm=summit_period.get("snow_cm", 0),
+        cloud_base_m=summit_period.get("cloud_base_m"),
+        elevation_m=base_elevation_m
+    )
+    base["hiking_score"] = base_score
+    base["risk_level"] = get_risk_level(base_score)
+
+    # Honesty flag: this whole period is a physically-motivated estimate, not a
+    # scraped forecast. Existing summit periods do NOT carry this flag.
+    base["estimated"] = True
+
+    return base
+
+
 def convert_forecast_to_api_format(forecast_data: Dict, location: Dict) -> Optional[Dict]:
     """Convert scraped forecast JSON to API response format"""
     if not forecast_data or "forecast_periods" not in forecast_data:
         return None
+
+    # Determine the base (lower) forecast elevation for this location.
+    base_elevation_m = derive_base_elevation_m(forecast_data, location)
+    summit_elevation_m = location.get("elevation_m")
+    elevation_diff_m = (
+        (summit_elevation_m - base_elevation_m)
+        if summit_elevation_m is not None else 0
+    )
+
+    # Group REAL base periods by day when the scraper provided them. Backward
+    # compatible: absent on older scrapes, in which case base periods are
+    # synthesized per-day from the summit periods below.
+    base_periods_by_day = defaultdict(list)
+    raw_base_periods = forecast_data.get("forecast_periods_base") or []
+    for period in raw_base_periods:
+        date = period.get("full_date", "")
+        if date:
+            base_periods_by_day[date].append(period)
+    has_real_base = bool(raw_base_periods)
 
     # Group periods by day
     daily_forecasts = defaultdict(list)
@@ -436,88 +658,21 @@ def convert_forecast_to_api_format(forecast_data: Dict, location: Dict) -> Optio
     for date_str in sorted(daily_forecasts.keys())[:6]:  # Max 6 days
         periods_data = daily_forecasts[date_str]
 
-        # Convert each period
-        api_periods = []
-        for p in periods_data:
-            score = calculate_hiking_score(
-                temp_min=p.get("temp_min_c"),
-                temp_max=p.get("temp_max_c"),
-                temp_chill=p.get("temp_chill_c"),
-                wind_kph=p.get("wind_kph"),
-                rain_mm=p.get("rain_mm", 0),
-                snow_cm=p.get("snow_cm", 0),
-                cloud_base_m=p.get("cloud_base_m"),
-                elevation_m=location.get("elevation_m")
-            )
+        # Convert each summit period (behaviour identical to before — shared helper).
+        api_periods = [build_api_period(p, location, date_str) for p in periods_data]
 
-            rain_mm = p.get("rain_mm", 0)
-            snow_cm = p.get("snow_cm", 0)
-            total_precip = rain_mm + (snow_cm * 10)  # Convert snow to water equivalent
-            temp_c = p.get("temp_max_c", 0)
-            # Derive precipitation type from available data
-            if total_precip == 0:
-                precip_type = "none"
-            elif snow_cm > 0 and rain_mm == 0:
-                precip_type = "snow"
-            elif snow_cm > 0 and rain_mm > 0:
-                precip_type = "sleet"
-            else:
-                precip_type = "rain"
-
-            period_type_str = p.get("time", "").lower()
-            loc_id = location.get("id", "")
-            cloud_cover_est = stable_mock_value(loc_id + date_str, "cloud_cover", 30, 90)
-
-            # Wind gust: pass through from scraper (OWM data) or estimate as 1.6x wind speed
-            # (standard mountain gust factor — exposed summits typically see gusts 1.4-1.8x mean wind)
-            raw_gust = p.get("gust_kph")
-            wind_speed = p.get("wind_kph", 0)
-            if raw_gust is not None:
-                wind_gust_kph = raw_gust
-                wind_gust_estimated = False
-            else:
-                wind_gust_kph = round(wind_speed * 1.6, 1) if wind_speed else 0
-                wind_gust_estimated = True
-
-            # Pressure: not available from mountain-forecast.com scraper
-            pressure_hpa = generate_mock_pressure(loc_id, date_str, period_type_str)
-
-            # UV index: not available from scraper; estimate from period, season, cloud cover
-            current_month = datetime.now().month
-            try:
-                current_month = int(date_str.split("-")[1]) if date_str else datetime.now().month
-            except (ValueError, IndexError):
-                pass
-            uv_index = estimate_uv_index(period_type_str, current_month, cloud_cover_est)
-
-            api_periods.append({
-                "period_type": period_type_str,
-                "temperature_c": temp_c,
-                "feels_like_c": p.get("temp_chill_c"),
-                "wind_speed_kph": wind_speed,
-                "wind_gust_kph": wind_gust_kph,
-                "wind_gust_estimated": wind_gust_estimated,
-                "wind_direction": p.get("wind_dir", ""),
-                "precipitation_mm": total_precip,
-                "precipitation_type": precip_type,
-                "weather_description": p.get("summary", ""),
-                # Scraper does not collect visibility — emit null so the UI shows
-                # "Unavailable" rather than a fabricated number (this is a safety tool).
-                "visibility_m": None,
-                # Pass the scraped cloud base through as-is; null when unknown. Do NOT
-                # default to a fabricated 1000m, which would silently feed hiking_score.
-                "cloud_base_m": p.get("cloud_base_m"),
-                # Scraper does not collect humidity — emit null (see visibility_m).
-                "humidity_percent": None,
-                "pressure_hpa": pressure_hpa,
-                "pressure_estimated": True,  # mountain-forecast.com does not provide pressure
-                "uv_index": uv_index,
-                "uv_index_estimated": True,  # derived from season/period/cloud, not measured
-                "hiking_score": score,
-                "risk_level": get_risk_level(score),
-                "snow_cm": p.get("snow_cm", 0),
-                "freezing_level_m": p.get("freezing_level_m")
-            })
+        # Build base (lower-elevation) periods with the SAME object shape.
+        # ONLY from real scraped base data — no synthesis. When the scraper did
+        # not provide a base forecast for this peak (mountain-forecast.com offers
+        # no lower tier), base is left empty and the UI shows it as unavailable
+        # rather than a fabricated estimate (user requirement: no mock data).
+        if has_real_base and base_periods_by_day.get(date_str):
+            api_periods_base = [
+                build_api_period(bp, {**location, "elevation_m": base_elevation_m}, date_str)
+                for bp in base_periods_by_day[date_str]
+            ]
+        else:
+            api_periods_base = []
 
         # Calculate daily summary
         if api_periods:
@@ -540,7 +695,11 @@ def convert_forecast_to_api_format(forecast_data: Dict, location: Dict) -> Optio
                     "dominant_conditions": api_periods[0]["weather_description"] if api_periods else "Unknown",
                     "best_period": max(api_periods, key=lambda p: p["hiking_score"])["period_type"] if api_periods else "am"
                 },
-                "periods": api_periods
+                "periods": api_periods,
+                # Feature 2: lower-elevation ("base") periods, same shape as periods.
+                # Real when the scraper provided forecast_periods_base, else a
+                # lapse-rate estimate (each estimated period carries "estimated": True).
+                "periods_base": api_periods_base
             })
 
     # Enrich location with elevation label, OS grid ref, what3words
@@ -548,6 +707,10 @@ def convert_forecast_to_api_format(forecast_data: Dict, location: Dict) -> Optio
     elev = enriched_location.get("elevation_m")
     if elev:
         enriched_location["forecast_altitude_label"] = f"Summit forecast ({elev}m)"
+    # Feature 2: base-elevation fields — only when REAL base data exists.
+    if has_real_base:
+        enriched_location["elevation_base_m"] = base_elevation_m
+        enriched_location["forecast_altitude_label_base"] = f"Base forecast ({base_elevation_m}m)"
     lat_val = enriched_location.get("latitude")
     lng_val = enriched_location.get("longitude")
     if lat_val is not None and lng_val is not None:
@@ -1422,16 +1585,16 @@ def generate_mock_forecast(location: Dict[str, Any]) -> Dict[str, Any]:
     """Generate a complete mock forecast for a location"""
     forecasts = []
     base_date = datetime.now().date()
-    
+
     for day_offset in range(6):
         date = base_date + timedelta(days=day_offset)
-        
+
         periods = [
             generate_mock_weather_period("am", days_offset=day_offset),
-            generate_mock_weather_period("pm", days_offset=day_offset), 
+            generate_mock_weather_period("pm", days_offset=day_offset),
             generate_mock_weather_period("night", days_offset=day_offset)
         ]
-        
+
         # Calculate daily summary
         temps = [p["temperature_c"] for p in periods if p["temperature_c"] is not None]
         winds = [p["wind_speed_kph"] for p in periods if p["wind_speed_kph"] is not None]

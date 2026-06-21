@@ -9,6 +9,7 @@ import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { NoFavorites, EmptyState } from '@/components/EmptyState'
 import { BestConditionsToday } from '@/components/BestConditionsToday'
 import { BestDayThisWeek } from '@/components/BestDayThisWeek'
+import { WeekendOutlook } from '@/components/WeekendOutlook'
 import { cn } from '@/utils/cn'
 import { formatSunCaption } from '@/lib/mapPalette'
 
@@ -184,6 +185,14 @@ export function HomePage() {
             Explore full map
           </Link>
         </section>
+
+        {/* Weekend Outlook — Sat/Sun scores for top mountains, reusing already-fetched weather */}
+        <WeekendOutlook
+          allWeather={allWeather}
+          now={new Date()}
+          className="fade-in-up"
+          style={{ animationDelay: '0.14s' }}
+        />
 
         {/* 3. Best Day This Week */}
         <BestDayThisWeek className="fade-in-up" style={{ animationDelay: '0.15s' }} />
